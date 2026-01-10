@@ -11,17 +11,3 @@ Press CTRL+C to quit
  * Restarting with stat
  * Debugger is active!
  * Debugger PIN: 548-952-695
-192.168.50.106 - - [10/Jan/2026 04:52:25] "POST /api/recommend HTTP/1.1" 200 -
-192.168.50.106 - - [10/Jan/2026 04:52:26] "POST /api/recommend HTTP/1.1" 200 -
-192.168.50.106 - - [10/Jan/2026 04:52:27] "POST /api/recommend HTTP/1.1" 200 -
-192.168.50.106 - - [10/Jan/2026 04:52:29] "POST /api/recommend HTTP/1.1" 200 -
-192.168.50.106 - - [10/Jan/2026 04:52:31] "POST /api/recommend HTTP/1.1" 200 -
-192.168.50.106 - - [10/Jan/2026 04:53:15] "POST /api/lobby-heartbeat HTTP/1.1" 200 -
-192.168.50.1 - - [10/Jan/2026 04:53:15] "POST /api/lobby-heartbeat HTTP/1.1" 200 -
-192.168.50.106 - - [10/Jan/2026 04:53:15] "GET /api/rooms HTTP/1.1" 200 -
-192.168.50.1 - - [10/Jan/2026 04:53:15] "GET /api/rooms HTTP/1.1" 200 -
-127.0.0.1 - - [10/Jan/2026 04:53:15] "GET /api/rooms HTTP/1.1" 200 -
-127.0.0.1 - - [10/Jan/2026 04:53:15] "POST /api/lobby-heartbeat HTTP/1.1" 200 -
-192.168.50.1 - - [10/Jan/2026 04:53:16] "GET /api/system-status HTTP/1.1" 200 -
-192.168.50.106 - - [10/Jan/2026 04:53:16] "GET /api/system-status HTTP/1.1" 200 -
-127.0.0.1 - - [10/Jan/2026 04:53:16] "GET /api/system-status HTTP/1.1" 200 -

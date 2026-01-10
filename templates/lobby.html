@@ -302,7 +302,7 @@
                 localStorage.setItem('yacht_username', 'Player');
                 localStorage.setItem('yacht_mode', mode);
                 localStorage.removeItem('yacht_room');
-                window.location.href = '/game';
+                window.location.href = '/game/single';
                 return;
             }
 
@@ -340,7 +340,7 @@
                 localStorage.setItem('yacht_username', username);
                 localStorage.setItem('yacht_mode', 'multi');
                 localStorage.setItem('yacht_room', code);
-                window.location.href = `/game?room=${code}`;
+                window.location.href = `/game/multi?room=${code}`;
             })
             .catch(() => statusEl.textContent = '❌ 방 생성 실패');
         }
@@ -371,7 +371,7 @@
                 localStorage.setItem('yacht_username', username);
                 localStorage.setItem('yacht_mode', 'multi');
                 localStorage.setItem('yacht_room', code);
-                window.location.href = `/game?room=${code}`;
+                window.location.href = `/game/multi?room=${code}`;
             })
             .catch(() => statusEl.textContent = '❌ 입장 실패');
         }
@@ -397,7 +397,7 @@
                 localStorage.setItem('yacht_username', username);
                 localStorage.setItem('yacht_mode', 'multi');
                 localStorage.setItem('yacht_room', code);
-                window.location.href = `/game?room=${code}`;
+                window.location.href = `/game/multi?room=${code}`;
             })
             .catch(() => statusEl.textContent = '❌ 입장 실패');
         }

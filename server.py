@@ -76,7 +76,16 @@ def index():
 
 @app.route('/game')
 def game():
+    # 기존 경로 유지 (호환성)
     return render_template('index.html')
+
+@app.route('/game/single')
+def game_single():
+    return render_template('single-game.html')
+
+@app.route('/game/multi')
+def game_multi():
+    return render_template('multi-game.html')
 
 @app.route('/api/recommend', methods=['POST'])
 def recommend():
