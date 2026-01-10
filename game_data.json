@@ -1,23 +1,4 @@
 {
-  "users": {
-    "김치맨": {
-      "username": "김치맨",
-      "wins": 0,
-      "draws": 0,
-      "losses": 0,
-      "total_score": 0,
-      "games_played": 0,
-      "created_at": "2026-01-10T04:30:24.522906"
-    },
-    "상욱이": {
-      "username": "상욱이",
-      "wins": 0,
-      "draws": 0,
-      "losses": 0,
-      "total_score": 0,
-      "games_played": 0,
-      "created_at": "2026-01-10T04:30:24.523754"
-    }
-  },
+  "users": {},
   "games": []
 }
