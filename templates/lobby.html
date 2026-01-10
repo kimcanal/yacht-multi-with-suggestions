@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎲 Yacht - 로비</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a3e 100%);
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .lobby-container {
+            max-width: 600px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 30px;
+            padding: 50px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+        .title {
+            font-size: 3em;
+            font-weight: 700;
+            margin-bottom: 40px;
+            text-shadow: 0 0 30px rgba(0, 255, 200, 0.3);
+            color: #00ffcc;
+        }
+        .input-group {
+            margin-bottom: 30px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            color: #00ffcc;
+            font-weight: 600;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1em;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            color: #fff;
+            transition: all 0.3s ease;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #00ffcc;
+            background: rgba(0, 255, 204, 0.1);
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+        }
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+        }
+        .btn {
+            flex: 1;
+            padding: 15px 30px;
+            font-size: 1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+        .btn-single {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-single:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+        }
+        .btn-multi {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+        }
+        .btn-multi:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(245, 87, 108, 0.6);
+        }
+        .leaderboard {
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        .leaderboard-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #ffd700;
+        }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+        .leaderboard-name {
+            color: #00ffcc;
+            font-weight: 600;
+        }
+        .leaderboard-stats {
+            color: #aaa;
+            font-size: 0.9em;
+        }
+        .error {
+            color: #ff6666;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        .system-status {
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            border: 1px solid rgba(0, 255, 200, 0.2);
+        }
+        .system-status-title {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #00ffcc;
+            font-weight: 600;
+            text-align: center;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .status-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 10px;
+            border-left: 3px solid #00ffcc;
+        }
+        .status-label {
+            font-size: 0.85em;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+        .status-value {
+            font-size: 1.3em;
+            color: #00ffcc;
+            font-weight: bold;
+        }
+        .status-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .status-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffcc, #00ff88);
+            transition: width 0.3s ease;
+        }
+        .status-bar-fill.warning {
+            background: linear-gradient(90deg, #ffaa00, #ff8800);
+        }
+        .status-bar-fill.danger {
+            background: linear-gradient(90deg, #ff4444, #cc0000);
+        }
+    </style>
+</head>
+<body>
+    <div class="lobby-container">
+        <div class="title">🎲 YACHT</div>
+        
+        <div class="input-group">
+            <label>닉네임 입력</label>
+            <input type="text" id="username" placeholder="이름을 입력해주세요" maxlength="20">
+        </div>
+
+        <div class="buttons">
+            <button class="btn btn-single" onclick="startGame('single')">
+                🎮 싱글 플레이
+            </button>
+            <button class="btn btn-multi" onclick="createRoom()">
+                ➕ 방 만들기
+            </button>
+        </div>
+
+        <div class="input-group" style="margin-top:10px;">
+            <label>친구 방 코드로 입장</label>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="room-code" placeholder="예: ABC123" maxlength="10" style="flex:1; text-transform:uppercase;">
+                <button class="btn btn-multi" style="flex:0 0 140px;" onclick="joinRoom()">🚪 입장</button>
+            </div>
+        </div>
+        <div class="room-list-section" style="margin-top:30px; padding-top:20px; border-top:2px solid rgba(255,255,255,0.1);">
+            <div style="font-size:1.3em; margin-bottom:15px; color:#00ffcc; font-weight:600;">📜 참가 가능한 방</div>
+            <div id="room-list" style="max-height:200px; overflow-y:auto;"></div>
+        </div>
+        <div id="room-status" style="margin-top:12px; color:#00ffcc; font-weight:600;"></div>
+
+        <div id="error" class="error"></div>
+
+        <div class="system-status">
+            <div class="system-status-title">📊 서버 상태 <span style="font-size:0.75em; color:#888; font-weight:400;">(3초마다 갱신)</span></div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">현재 접속자 수</div>
+                    <div class="status-value" id="online-count">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">활성 방</div>
+                    <div class="status-value" id="active-rooms">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">CPU 사용률</div>
+                    <div class="status-value" id="cpu-usage">-</div>
+                    <div class="status-bar">
+                        <div class="status-bar-fill" id="cpu-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">메모리 사용률</div>
+                    <div class="status-value" id="memory-usage">-</div>
+                    <div class="status-bar">
+                        <div class="status-bar-fill" id="memory-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="leaderboard">
+            <div class="leaderboard-title" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <span>🏆 랭킹</span>
+                <button class="btn btn-multi" style="padding:6px 12px; font-size:0.85em;" onclick="resetLeaderboard()">🗑 랭킹 지우기</button>
+            </div>
+            <div id="leaderboard-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // 클라이언트 ID 생성 (세션마다 고유)
+        let clientId = localStorage.getItem('yacht_client_id');
+        if (!clientId) {
+            clientId = 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('yacht_client_id', clientId);
+        }
+
+        // Heartbeat 전송 (로비 접속 유지)
+        function sendHeartbeat() {
+            fetch('/api/lobby-heartbeat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({client_id: clientId})
+            }).catch(err => console.warn('Heartbeat failed:', err));
+        }
+
+        function ensureName() {
+            const username = document.getElementById('username').value.trim();
+            const errorEl = document.getElementById('error');
+
+            if (!username) {
+                errorEl.textContent = '❌ 닉네임을 입력해주세요';
+                return null;
+            }
+
+            if (username.length < 2) {
+                errorEl.textContent = '❌ 닉네임은 2글자 이상이어야 합니다';
+                return null;
+            }
+
+            errorEl.textContent = '';
+            return username;
+        }
+
+        function startGame(mode) {
+            // 싱글 플레이는 이름 불필요 (연습 모드)
+            if (mode === 'single') {
+                localStorage.setItem('yacht_username', 'Player');
+                localStorage.setItem('yacht_mode', mode);
+                localStorage.removeItem('yacht_room');
+                window.location.href = '/game';
+                return;
+            }
+
+            const username = ensureName();
+            if (!username) return;
+
+            // 로컬 스토리지에 사용자 정보 저장
+            localStorage.setItem('yacht_username', username);
+            localStorage.setItem('yacht_mode', mode);
+            localStorage.removeItem('yacht_room');
+
+            // 게임 페이지로 이동
+            window.location.href = '/game';
+        }
+
+        function createRoom() {
+            const username = ensureName();
+            if (!username) return;
+            const statusEl = document.getElementById('room-status');
+            statusEl.textContent = '방을 만드는 중...';
+
+            fetch('/api/rooms', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    statusEl.textContent = `❌ ${data.error}`;
+                    return;
+                }
+                const code = data.code;
+                statusEl.textContent = `✅ 방 코드: ${code} (친구에게 공유하세요)`;
+                localStorage.setItem('yacht_username', username);
+                localStorage.setItem('yacht_mode', 'multi');
+                localStorage.setItem('yacht_room', code);
+                window.location.href = `/game?room=${code}`;
+            })
+            .catch(() => statusEl.textContent = '❌ 방 생성 실패');
+        }
+
+        function joinRoom() {
+            const username = ensureName();
+            if (!username) return;
+            const code = document.getElementById('room-code').value.trim().toUpperCase();
+            const statusEl = document.getElementById('room-status');
+            if (!code) {
+                statusEl.textContent = '❌ 방 코드를 입력하세요';
+                return;
+            }
+            statusEl.textContent = '방에 입장 중...';
+
+            fetch(`/api/rooms/${code}/join`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    statusEl.textContent = `❌ ${data.error}`;
+                    return;
+                }
+                statusEl.textContent = `✅ ${code} 방 입장 완료`;
+                localStorage.setItem('yacht_username', username);
+                localStorage.setItem('yacht_mode', 'multi');
+                localStorage.setItem('yacht_room', code);
+                window.location.href = `/game?room=${code}`;
+            })
+            .catch(() => statusEl.textContent = '❌ 입장 실패');
+        }
+
+        function joinRoomById(code) {
+            const username = ensureName();
+            if (!username) return;
+            const statusEl = document.getElementById('room-status');
+            statusEl.textContent = '방에 입장 중...';
+
+            fetch(`/api/rooms/${code}/join`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    statusEl.textContent = `❌ ${data.error}`;
+                    return;
+                }
+                statusEl.textContent = `✅ ${code} 방 입장 완료`;
+                localStorage.setItem('yacht_username', username);
+                localStorage.setItem('yacht_mode', 'multi');
+                localStorage.setItem('yacht_room', code);
+                window.location.href = `/game?room=${code}`;
+            })
+            .catch(() => statusEl.textContent = '❌ 입장 실패');
+        }
+
+        function loadRoomList() {
+            fetch('/api/rooms', {cache:'no-store'})
+                .then(r => r.json())
+                .then(rooms => {
+                    const list = document.getElementById('room-list');
+                    const waiting = rooms.filter(r => r.status === 'waiting');
+                    if (waiting.length === 0) {
+                        list.innerHTML = '<p style="color:#aaa; padding:15px; text-align:center;">대기 중인 방이 없습니다</p>';
+                        return;
+                    }
+                    list.innerHTML = waiting.map(room => `
+                        <div style="background:rgba(255,255,255,0.05); padding:12px 16px; margin:8px 0; border-radius:10px; display:flex; justify-content:space-between; align-items:center; border-left:3px solid #00ffcc;">
+                            <div>
+                                <div style="font-weight:600; color:#00ffcc; font-size:1.1em;">🎮 ${room.code}</div>
+                                <div style="font-size:0.85em; color:#aaa; margin-top:4px;">호스트: ${room.host} (플레이어 ${room.players.length}/2)</div>
+                            </div>
+                            <button class="btn btn-multi" style="padding:8px 20px; font-size:0.9em;" onclick="joinRoomById('${room.code}')">입장</button>
+                        </div>
+                    `).join('');
+                })
+                .catch(() => {
+                    document.getElementById('room-list').innerHTML = '<p style="color:#ff6666; padding:15px; text-align:center;">방 목록 로드 실패</p>';
+                });
+        }
+
+        function loadLeaderboard() {
+            fetch('/api/leaderboard', {cache:'no-store'})
+                .then(r => r.json())
+                .then(data => {
+                    const list = document.getElementById('leaderboard-list');
+                    if (data.length === 0) {
+                        list.innerHTML = '<p style="color:#aaa;">아직 기록이 없습니다</p>';
+                        return;
+                    }
+                    list.innerHTML = data.slice(0, 5).map((user, idx) => `
+                        <div class="leaderboard-item">
+                            <span class="leaderboard-name">${idx + 1}. ${user.username}</span>
+                                <span class="leaderboard-stats">${user.wins}승 ${user.draws || 0}무 ${user.losses}패 (${user.total_score}점)</span>
+                        </div>
+                    `).join('');
+                });
+        }
+
+        function resetLeaderboard() {
+            if (!confirm('정말 랭킹을 초기화할까요?')) return;
+            fetch('/api/leaderboard/reset', {method:'POST'})
+                .then(r => r.json())
+                .then(() => {
+                    loadLeaderboard();
+                });
+        }
+
+        function loadSystemStatus() {
+            fetch('/api/system-status', {cache: 'no-store'})
+                .then(r => r.json())
+                .then(data => {
+                    // 접속자 수
+                    document.getElementById('online-count').textContent = data.online_count || 0;
+                    
+                    // 활성 방 수
+                    document.getElementById('active-rooms').textContent = data.active_rooms || 0;
+                    
+                    // CPU 사용률
+                    const cpuPercent = data.cpu_percent || 0;
+                    document.getElementById('cpu-usage').textContent = `${cpuPercent}%`;
+                    const cpuBar = document.getElementById('cpu-bar');
+                    cpuBar.style.width = `${cpuPercent}%`;
+                    cpuBar.className = 'status-bar-fill';
+                    if (cpuPercent > 80) cpuBar.classList.add('danger');
+                    else if (cpuPercent > 60) cpuBar.classList.add('warning');
+                    
+                    // 메모리 사용률
+                    const memPercent = data.memory_percent || 0;
+                    const memUsed = data.memory_used_gb || 0;
+                    const memTotal = data.memory_total_gb || 0;
+                    document.getElementById('memory-usage').textContent = `${memPercent}% (${memUsed.toFixed(1)}/${memTotal.toFixed(1)} GB)`;
+                    const memBar = document.getElementById('memory-bar');
+                    memBar.style.width = `${memPercent}%`;
+                    memBar.className = 'status-bar-fill';
+                    if (memPercent > 80) memBar.classList.add('danger');
+                    else if (memPercent > 60) memBar.classList.add('warning');
+                })
+                .catch(err => {
+                    console.error('Failed to load system status:', err);
+                });
+        }
+
+        // 엔터 키로 시작
+        document.getElementById('username').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startGame('single');
+            }
+        });
+
+        // 페이지 로드 시 랜킹 및 방 목록 업데이트
+        loadLeaderboard();
+        loadRoomList();
+        loadSystemStatus();
+        sendHeartbeat(); // 초기 heartbeat
+        
+        // 방 목록 주기적 갱신 (2초마다)
+        setInterval(loadRoomList, 2000);
+        // 시스템 상태 주기적 갱신 (3초마다)
+        setInterval(loadSystemStatus, 3000);
+        // Heartbeat 주기적 전송 (10초마다)
+        setInterval(sendHeartbeat, 10000);
+        
+        // 페이지 언로드 시 heartbeat 중단 (선택사항)
+        window.addEventListener('beforeunload', () => {
+            // 마지막으로 빈 heartbeat를 보내거나 로컬 스토리지를 유지
+            // (여기서는 자동으로 타임아웃될 것이므로 별도 처리 안함)
+        });
+    </script>
+</body>
+</html>
