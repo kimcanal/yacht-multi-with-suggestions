@@ -531,12 +531,15 @@ def solve_best_move(dice, rolls_left, open_categories):
             else:
                 prob_get_more = 1.0 - ((5.0/6.0) ** reroll_count)
 
+            # 한국어 조사 선택: 1(일), 3(삼), 6(육)은 받침 있음 → "이", 2(이), 4(사), 5(오)는 받침 없음 → "가"
+            josa = "이" if target_val in [1, 3, 6] else "가"
+
             breakdown.append({
                 "name": cat_name,
                 "prob": prob_get_more,
                 "val_str": f"{prob_get_more * 100:.2f}%",
                 "type": "upper",
-                "keep_str": f"{target_val}를 적어도 하나 더 뜰 확률",
+                "keep_str": f"현재 나온 {target_val}들을 모두 Keep → {target_val}{josa} 적어도 하나 더 뜰 확률",
                 "keep_indices": [i for i, d in enumerate(dice) if d == target_val]
             })
 

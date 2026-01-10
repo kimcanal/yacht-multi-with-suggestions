@@ -378,6 +378,9 @@
                     <div class="rolls-remaining">남은 Roll: <span id="rolls-left">3</span>/3</div>
                     <div id="game-status" style="margin-top: 10px; color: #00ffcc; font-size: 0.9em; text-align: center; min-height: 24px;"></div>
                     <div id="ai-breakdown" class="ai-breakdown"></div>
+                    <div id="ai-info-tip" style="margin-top: 8px; padding: 8px 12px; background: rgba(0, 255, 204, 0.1); border-left: 3px solid #00ffcc; border-radius: 5px; font-size: 0.75em; color: #aaa; line-height: 1.4; display: none;">
+                        💡 AI는 다음 턴의 최적 선택을 추천합니다. 아래 족보(4 of a Kind~Yacht) 달성 확률을 우선 고려하며, 모두 채운 후에는 Ones~Sixes를 효율적으로 채울 수 있는 조합을 제안합니다.
+                    </div>
                 </div>
                 
                 <div class="controls">
@@ -620,6 +623,13 @@
                     <div class="lock-label" id="lock-${i}"></div>
                 </div>
             `).join('');
+            
+            // AI 정보 팁 표시 (싱글 모드만)
+            const aiInfoTip = document.getElementById('ai-info-tip');
+            if (aiInfoTip) {
+                aiInfoTip.style.display = isMultiplayer ? 'none' : 'block';
+            }
+            
             updateDice();
         }
 
