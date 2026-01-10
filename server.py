@@ -525,5 +525,6 @@ def send_ngrok_url():
 if __name__ == '__main__':
     # ... (ngrok 전송 스레드 실행 부분) ...
     print("🎲 Yacht Game AI Server Starting...")
-    print("🌐 Open http://localhost:8080 in your browser")
+    print("🌐 External: https://app.yatch-game.cloud")
+    print("🌐 Local:    http://localhost:8080")
     app.run(host='0.0.0.0', port=8080, debug=True)

@@ -2,6 +2,8 @@
 
 Flask 기반 웹 요트 다이스 게임
 
+https://app.yatch-game.cloud/
+
 ## 기능
 
 - **싱글플레이 모드**: AI 추천 기능 포함
