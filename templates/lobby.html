@@ -16,6 +16,12 @@
             justify-content: center;
             padding: 20px;
         }
+        /* 모바일에서 padding 감소 */
+        @media (max-width: 767px) {
+            body {
+                padding: 10px;
+            }
+        }
         .lobby-container {
             max-width: 600px;
             width: 100%;
@@ -25,6 +31,13 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             text-align: center;
+        }
+        /* 모바일에서 padding 감소 */
+        @media (max-width: 767px) {
+            .lobby-container {
+                padding: 25px 15px;
+                border-radius: 20px;
+            }
         }
         .title {
             font-size: 3em;
@@ -74,6 +87,13 @@
             cursor: pointer;
             transition: all 0.3s ease;
             color: white;
+        }
+        /* 모바일에서 버튼 크기 확대 */
+        @media (max-width: 767px) {
+            .btn {
+                padding: 18px 20px;
+                font-size: 1.1em;
+            }
         }
         .btn-single {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -243,7 +263,7 @@
         <div class="system-status" style="margin-top: 20px;">
             <div class="system-status-title">🤖 AI 추천 시스템</div>
             <div style="padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; font-size: 0.9em; line-height: 1.6; color: #ccc;">
-                <div style="margin-bottom: 10px;">싱글 플레이 모드에서 AI 추천 기능을 사용할 수 있습니다.</div>
+                <div style="margin-bottom: 10px;">모든 플레이 모드에서 AI 추천 기능을 사용할 수 있습니다.</div>
                 <div style="padding-left: 15px;">
                     <div style="margin-bottom: 8px;">
                         • <strong style="color: #00ffcc;">전략:</strong><br>
@@ -451,7 +471,7 @@
                     list.innerHTML = data.slice(0, 5).map((user, idx) => `
                         <div class="leaderboard-item">
                             <span class="leaderboard-name">${idx + 1}. ${user.username}</span>
-                                <span class="leaderboard-stats">${user.wins}승 ${user.draws || 0}무 ${user.losses}패 (${user.total_score}점)</span>
+                                <span class="leaderboard-stats">${user.wins}승 ${user.draws || 0}무 ${user.losses}패 (최고: ${user.high_score || 0}점)</span>
                         </div>
                     `).join('');
                 });

@@ -379,7 +379,7 @@
                     <div id="game-status" style="margin-top: 10px; color: #00ffcc; font-size: 0.9em; text-align: center; min-height: 24px;"></div>
                     <div id="ai-breakdown" class="ai-breakdown"></div>
                     <div id="ai-info-tip" style="margin-top: 8px; padding: 8px 12px; background: rgba(0, 255, 204, 0.1); border-left: 3px solid #00ffcc; border-radius: 5px; font-size: 0.75em; color: #aaa; line-height: 1.4; display: none;">
-                        💡 AI는 다음 턴의 최적 선택을 추천합니다. 아래 족보(4 of a Kind~Yacht) 달성 확률을 우선 고려하며, 모두 채운 후에는 Ones~Sixes를 효율적으로 채울 수 있는 조합을 제안합니다.
+                        💡 AI 추천: 각 주사위를 keep했을 때 남은 주사위들을 다시 굴렸을 때<br>keep한 것과 같은 숫자가 나올 확률을 계산하여<br>가장 유리한 조합을 추천합니다.
                     </div>
                 </div>
                 
@@ -1294,20 +1294,21 @@
             
             let score = calcScore(dice, i);
             
-            // Yacht 보너스: Yacht를 이미 득점했고, 지금 다시 Yacht를 만들었다면 100점 보너스
-            if (i === 11 && score === 50 && myCard[11] !== null && myCard[11] > 0) {
-                score = 100;  // Yacht 보너스
-                alert('🎉 Yacht 보너스! +100점!');
-            }
-            // 또는 Yacht를 이미 득점했고, 다른 카테고리를 선택했는데 주사위가 Yacht인 경우
-            else if (i !== 11 && myCard[11] !== null && myCard[11] > 0 && calcScore(dice, 11) === 50) {
-                if (confirm('🎲 Yacht가 완성되었습니다!\n\n이 카테고리에 점수를 받으면 +100점 보너스를 받습니다.\n카테고리를 변경하시겠습니까?')) {
-                    return;  // 사용자가 다시 선택하도록
-                }
+            // Yacht 보너스: Yacht가 두 번 이상 나온 경우 (Yacht 칸에 +100점)
+            let yachtBonus = 0;
+            if (calcScore(dice, 11) === 50 && myCard[11] >= 50 && i !== 11 && score > 0) {
+                // 현재 Yacht가 나왔고, Yacht 칸에 이미 50점이 기록되어 있고, 0이 아닌 점수를 기록할 때
+                yachtBonus = 100;
+                myCard[11] += yachtBonus;  // Yacht 칸에 보너스 누적
             }
             
+            // 일반 점수 기록
             myCard[i] = score;
-            showToast(CATS[i], score);
+            if (yachtBonus > 0) {
+                showToast(`🏆 Yacht Bonus: ${CATS[i]} +${score}점, Yacht +100점`, score);
+            } else {
+                showToast(CATS[i], score);
+            }
             
             dice = [1,1,1,1,1];
             kept = [0,0,0,0,0];

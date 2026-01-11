@@ -13,6 +13,12 @@
             min-height: 100vh;
             padding: 20px;
         }
+        /* 모바일에서 body padding 감소 */
+        @media (max-width: 767px) {
+            body {
+                padding: 10px;
+            }
+        }
         .game-wrapper {
             max-width: 1400px;
             margin: 0 auto;
@@ -21,9 +27,22 @@
             flex-wrap: wrap;
             align-items: flex-start;
         }
+        /* 모바일에서 중앙 정렬 */
+        @media (max-width: 767px) {
+            .game-wrapper {
+                justify-content: center;
+            }
+        }
         .main-area {
             flex: 1;
             min-width: 400px;
+        }
+        /* 모바일에서 main-area 너비 조정 */
+        @media (max-width: 767px) {
+            .main-area {
+                min-width: 100%;
+                max-width: 450px;
+            }
         }
         .title {
             font-size: 3em;
@@ -40,12 +59,25 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             margin-bottom: 30px;
         }
+        /* 모바일에서 dice-area padding 감소 */
+        @media (max-width: 767px) {
+            .dice-area {
+                padding: 20px 15px;
+            }
+        }
         .dice-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 15px;
             justify-content: center;
             margin-bottom: 20px;
+        }
+        /* PC 화면에서는 주사위를 한 줄로 표시 */
+        @media (min-width: 768px) {
+            .dice-grid {
+                flex-wrap: nowrap;
+                gap: 20px;
+            }
         }
         .dice-item {
             display: flex;
@@ -90,11 +122,25 @@
             font-weight: bold;
         }
         .die-container {
-            width: 100px;
-            height: 100px;
+            width: 90px;
+            height: 90px;
             position: relative;
             perspective: 1000px;
             transition: transform 0.3s ease;
+        }
+        /* PC 화면에서는 주사위 크기 확대 */
+        @media (min-width: 768px) {
+            .die-container {
+                width: 100px;
+                height: 100px;
+            }
+        }
+        /* 모바일에서 주사위 크기 추가 감소 */
+        @media (max-width: 767px) {
+            .die-container {
+                width: 80px;
+                height: 80px;
+            }
         }
         .die-container.locked {
             transform: translateY(-15px);
@@ -208,6 +254,14 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             min-width: 350px;
+            margin: 0 auto;
+        }
+        /* 모바일에서 scorecard 최대 너비 */
+        @media (max-width: 767px) {
+            .scorecard-area {
+                min-width: 100%;
+                max-width: 450px;
+            }
         }
         .scorecard-title {
             font-size: 1.8em;
@@ -364,6 +418,15 @@
         }
         .toast-cat { font-size: 0.6em; color: #aaa; text-transform: uppercase; letter-spacing: 2px; }
         .toast-score { font-size: 1.5em; color: #ffd700; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+        /* 모바일에서 토스트 크기 조정 */
+        @media (max-width: 767px) {
+            .toast-overlay {
+                padding: 20px 30px;
+                font-size: 1.3em;
+                border-radius: 15px;
+                max-width: 85%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -380,9 +443,7 @@
                     <div class="rolls-remaining">남은 Roll: <span id="rolls-left">3</span>/3</div>
                     <div id="game-status" style="color: #00ffcc; font-size: 0.9em; text-align: center;"></div>
                     <div id="ai-info-tip" style="padding: 8px 12px; background: rgba(0, 255, 204, 0.1); border-left: 3px solid #00ffcc; border-radius: 5px; font-size: 0.75em; color: #aaa; line-height: 1.4; display: none;">
-                        💡 AI는 다음 턴의 최적 선택을 추천합니다.<br>
-                        아래 족보(4 of a Kind ~ Yacht) 달성 확률을 우선 고려하며,<br>
-                        모두 채운 후에는 Ones ~ Sixes를 효율적으로 채울 수 있는 조합을 제안합니다.
+                        💡 AI 추천: 고득점 족보(4 of a Kind, Full House, Straight, Yacht) 달성을 우선으로 고려합니다.<br>이들을 모두 완성한 후에는 상단 족보(Ones~Sixes)를 효율적으로 채울 수 있는 조합을 제안합니다.
                     </div>
                     <div id="ai-breakdown" class="ai-breakdown"></div>
                 </div>
@@ -1032,76 +1093,21 @@
             
             let score = calcScore(dice, i);
             
-            // Yacht 보너스 및 Joker Rule 처리
-            if (calcScore(dice, 11) === 50) {  // 현재 주사위가 Yacht를 만족
-                if (myCard[11] >= 50) {  // Yacht 칸에 이미 50점 기록됨 (Yacht Bonus 발생)
-                    // Joker Rule: Yacht 보너스가 나왔을 때
-                    const yachtDie = dice[0];  // Yacht를 만드는 숫자
-                    const upperIdx = yachtDie - 1;  // 해당 Upper section 인덱스 (0-5)
-                    const upperScore = yachtDie * 6;  // 만점 (예: 3은 18점)
-                    
-                    // 1) 해당 숫자의 Upper section이 비어있으면 그곳에 기록
-                    if (myCard[upperIdx] === null) {
-                        myCard[upperIdx] = upperScore;
-                        showToast(`🏆 Yacht Bonus: ${CATS[upperIdx]}`, upperScore);
-                        dice = [1,1,1,1,1];
-                        kept = [0,0,0,0,0];
-                        rollsLeft = 3;
-                        aiRec = null;
-                        GameState.setState({dice, kept, rollsLeft, myCard: [...myCard], oppCard: [...oppCard], gameOver, aiRec});
-                        updateDice();
-                        updateScorecard();
-                        return;
-                    }
-                    
-                    // 2) Upper section이 차있으면 Lower section의 빈 칸 찾기
-                    for (let j = 6; j < 12; j++) {
-                        if (myCard[j] === null) {
-                            myCard[j] = upperScore;
-                            showToast(`🏆 Yacht Bonus: ${CATS[j]}`, upperScore);
-                            dice = [1,1,1,1,1];
-                            kept = [0,0,0,0,0];
-                            rollsLeft = 3;
-                            aiRec = null;
-                            GameState.setState({dice, kept, rollsLeft, myCard: [...myCard], oppCard: [...oppCard], gameOver, aiRec});
-                            updateDice();
-                            updateScorecard();
-                            return;
-                        }
-                    }
-                    
-                    // 3) 모든 칸이 차있으면 다른 Upper section에 0점으로 기록
-                    for (let j = 0; j < 6; j++) {
-                        if (j !== upperIdx && myCard[j] === null) {
-                            myCard[j] = 0;
-                            showToast(`🏆 Yacht Bonus: ${CATS[j]}`, 0);
-                            dice = [1,1,1,1,1];
-                            kept = [0,0,0,0,0];
-                            rollsLeft = 3;
-                            aiRec = null;
-                            GameState.setState({dice, kept, rollsLeft, myCard: [...myCard], oppCard: [...oppCard], gameOver, aiRec});
-                            updateDice();
-                            updateScorecard();
-                            return;
-                        }
-                    }
-                    
-                    // 4) 정말 모든 칸이 차있으면 경고
-                    alert('모든 칸이 기록되어 점수를 얻을 수 없습니다.');
-                    return;
-                } else if (i === 11 && score === 50) {
-                    // Yacht 칸이 비어있고 지금 Yacht 카테고리를 선택하는 경우
-                    myCard[i] = score;
-                    showToast(CATS[i], score);
-                    dice = [1,1,1,1,1];
-                    kept = [0,0,0,0,0];
-                    rollsLeft = 3;
-                    aiRec = null;
-                    GameState.setState({dice, kept, rollsLeft, myCard: [...myCard], oppCard: [...oppCard], gameOver, aiRec});
-                    updateDice();
-                    updateScorecard();
-                    return;
-                }
+            // Yacht 보너스 처리: Yacht 칸에 이미 50점이 기록되어 있고, 현재 주사위가 Yacht를 만족하는 경우
+            if (calcScore(dice, 11) === 50 && myCard[11] >= 50 && i !== 11 && score > 0) {
+                // Yacht 칸에 100점 보너스 추가 (누적)
+                myCard[11] += 100;
+                // 선택한 칸에는 정상 점수 기록
+                myCard[i] = score;
+                showToast(`🏆 Yacht Bonus: ${CATS[i]} +${score}점, Yacht +100점`, score);
+                dice = [1,1,1,1,1];
+                kept = [0,0,0,0,0];
+                rollsLeft = 3;
+                aiRec = null;
+                GameState.setState({dice, kept, rollsLeft, myCard: [...myCard], oppCard: [...oppCard], gameOver, aiRec});
+                updateDice();
+                updateScorecard();
+                return;
             }
             
             // 일반 점수 기록

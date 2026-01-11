@@ -13,6 +13,12 @@
             min-height: 100vh;
             padding: 20px;
         }
+        /* 모바일에서 body padding 감소 */
+        @media (max-width: 767px) {
+            body {
+                padding: 10px;
+            }
+        }
         .game-wrapper {
             max-width: 1400px;
             margin: 0 auto;
@@ -21,9 +27,22 @@
             flex-wrap: wrap;
             align-items: flex-start;
         }
+        /* 모바일에서 중앙 정렬 */
+        @media (max-width: 767px) {
+            .game-wrapper {
+                justify-content: center;
+            }
+        }
         .main-area {
             flex: 1;
             min-width: 400px;
+        }
+        /* 모바일에서 main-area 너비 조정 */
+        @media (max-width: 767px) {
+            .main-area {
+                min-width: 100%;
+                max-width: 450px;
+            }
         }
         .title {
             font-size: 3em;
@@ -40,12 +59,25 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             margin-bottom: 30px;
         }
+        /* 모바일에서 dice-area padding 감소 */
+        @media (max-width: 767px) {
+            .dice-area {
+                padding: 20px 15px;
+            }
+        }
         .dice-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 15px;
             justify-content: center;
             margin-bottom: 20px;
+        }
+        /* PC 화면에서는 주사위를 한 줄로 표시 */
+        @media (min-width: 768px) {
+            .dice-grid {
+                flex-wrap: nowrap;
+                gap: 20px;
+            }
         }
         .dice-item {
             display: flex;
@@ -90,11 +122,25 @@
             font-weight: bold;
         }
         .die-container {
-            width: 100px;
-            height: 100px;
+            width: 90px;
+            height: 90px;
             position: relative;
             perspective: 1000px;
             transition: transform 0.3s ease;
+        }
+        /* PC 화면에서는 주사위 크기 확대 */
+        @media (min-width: 768px) {
+            .die-container {
+                width: 100px;
+                height: 100px;
+            }
+        }
+        /* 모바일에서 주사위 크기 추가 감소 */
+        @media (max-width: 767px) {
+            .die-container {
+                width: 80px;
+                height: 80px;
+            }
         }
         .die-container.locked {
             transform: translateY(-15px);
@@ -208,6 +254,14 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             min-width: 350px;
+            margin: 0 auto;
+        }
+        /* 모바일에서 scorecard 최대 너비 */
+        @media (max-width: 767px) {
+            .scorecard-area {
+                min-width: 100%;
+                max-width: 450px;
+            }
         }
         .scorecard-title {
             font-size: 1.8em;
@@ -364,6 +418,15 @@
         }
         .toast-cat { font-size: 0.6em; color: #aaa; text-transform: uppercase; letter-spacing: 2px; }
         .toast-score { font-size: 1.5em; color: #ffd700; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+        /* 모바일에서 토스트 크기 조정 */
+        @media (max-width: 767px) {
+            .toast-overlay {
+                padding: 20px 30px;
+                font-size: 1.3em;
+                border-radius: 15px;
+                max-width: 85%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -381,7 +444,7 @@
                     <div id="game-status" style="margin-top: 10px; color: #00ffcc; font-size: 0.9em; text-align: center; min-height: 24px;"></div>
                     <div id="ai-breakdown" class="ai-breakdown"></div>
                     <div id="ai-info-tip" style="margin-top: 8px; padding: 8px 12px; background: rgba(0, 255, 204, 0.1); border-left: 3px solid #00ffcc; border-radius: 5px; font-size: 0.75em; color: #aaa; line-height: 1.4; display: none;">
-                        💡 AI는 다음 턴의 최적 선택을 추천합니다. 아래 족보(4 of a Kind~Yacht) 달성 확률을 우선 고려하며, 모두 채운 후에는 Ones~Sixes를 효율적으로 채울 수 있는 조합을 제안합니다.
+                        💡 AI 추천: 고득점 족보(4 of a Kind, Full House, Straight, Yacht) 달성을 우선으로 고려합니다.<br>이들을 모두 완성한 후에는 상단 족보(Ones~Sixes)를 효율적으로 채울 수 있는 조합을 제안합니다.(설명수정예정)
                     </div>
                 </div>
             </div>
@@ -487,6 +550,7 @@
         let syncTimer = null;
         let isApplyingRemote = false;
         let roomPlayers = [];
+        let prevPlayerCount = 0;
         let opponentName = '';
         let turnOwner = null;
         let isRolling = false;
@@ -849,9 +913,30 @@
             }
             GameState.setGameOver(state.game_over ?? GameState.isGameOver());
             
-            // players 목록 업데이트 (새 상대 감지)
-            roomPlayers = state.players || roomPlayers;
-            console.log('현재 방 플레이어:', roomPlayers, '내 이름:', username, '상대:', opponentName);
+            // players 목록 업데이트 (새 상대 감지 및 퇴장 감지)
+            const newPlayers = state.players || [];
+            const currentPlayerCount = newPlayers.length;
+            console.log('현재 방 플레이어:', newPlayers, '이전 수:', prevPlayerCount, '현재 수:', currentPlayerCount, '내 이름:', username);
+            
+            // 상대가 퇴장한 경우 즉시 게임 종료 처리
+            if (isMultiplayer && prevPlayerCount === 2 && currentPlayerCount === 1 && newPlayers.includes(username)) {
+                console.log('⚠️ 상대가 퇴장했습니다. 게임 종료 처리');
+                GameState.setGameOver(true);
+                const statusEl = document.getElementById('game-status');
+                if (statusEl) {
+                    statusEl.innerText = '🚪 상대가 퇴장했습니다. 부전승!';
+                }
+                // 즉시 게임 종료 토스트 표시
+                const myTotal = calcTotals(GameState.getMyCard()).total;
+                const oppTotal = calcTotals(GameState.getOppCard()).total;
+                setTimeout(() => {
+                    showGameOverToast(myTotal, oppTotal);
+                }, 500);
+            }
+            
+            roomPlayers = newPlayers;
+            prevPlayerCount = currentPlayerCount;
+            
             if (!opponentName && roomPlayers.length > 1) {
                 const opp = roomPlayers.find(p => p !== username);
                 if (opp) {
@@ -1341,18 +1426,18 @@
             
             let score = calcScore(dice, i);
             
-            // Yacht 보너스: Yacht가 두 번 이상 나온 경우 (+100점)
+            // Yacht 보너스: Yacht가 두 번 이상 나온 경우 (Yacht 칸에 +100점)
             let yachtBonus = 0;
-            if (calcScore(dice, 11) === 50 && myCard[11] >= 50 && score > 0) {
+            if (calcScore(dice, 11) === 50 && myCard[11] >= 50 && i !== 11 && score > 0) {
                 // 현재 Yacht가 나왔고, Yacht 칸에 이미 50점이 기록되어 있고, 0이 아닌 점수를 기록할 때
                 yachtBonus = 100;
-                score += yachtBonus;
+                myCard[11] += yachtBonus;  // Yacht 칸에 보너스 누적
             }
             
             // 일반 점수 기록
             myCard[i] = score;
             if (yachtBonus > 0) {
-                showToast(`🏆 Yacht Bonus: ${CATS[i]}`, score);
+                showToast(`🏆 Yacht Bonus: ${CATS[i]} +${score}점, Yacht +100점`, score);
             } else {
                 showToast(CATS[i], score);
             }
