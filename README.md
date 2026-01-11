@@ -37,7 +37,7 @@ python3 server.py
 - **Ones ~ Sixes**: 해당 숫자의 합
 - **4 of a Kind**: 같은 숫자 4개 이상 (모든 주사위 합, 최대 30점)
 - **Full House**: 같은 숫자 3개 + 2개 (모든 주사위 합, 최대 30점)
-- **Small Straight**: 연속 4개 (15점)  ← 기존 Single Straight
+- **Small Straight**: 연속 4개 (15점)  
 - **Large Straight**: 연속 5개 (30점)
 - **Yacht**: 같은 숫자 5개 (50점, 두 번째는 보너스 +100점)
 - **Choice**: 모든 주사위 합 (최대 30점)
