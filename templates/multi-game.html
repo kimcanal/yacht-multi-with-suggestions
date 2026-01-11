@@ -25,24 +25,12 @@
             display: flex;
             gap: 40px;
             flex-wrap: wrap;
+            justify-content: center;
             align-items: flex-start;
         }
-        /* 모바일에서 중앙 정렬 */
-        @media (max-width: 767px) {
-            .game-wrapper {
-                justify-content: center;
-            }
-        }
         .main-area {
-            flex: 1;
-            min-width: 400px;
-        }
-        /* 모바일에서 main-area 너비 조정 */
-        @media (max-width: 767px) {
-            .main-area {
-                min-width: 100%;
-                max-width: 450px;
-            }
+            flex: 1 1 400px;
+            max-width: 100%;
         }
         .title {
             font-size: 3em;
@@ -59,32 +47,22 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             margin-bottom: 30px;
         }
-        /* 모바일에서 dice-area padding 감소 */
-        @media (max-width: 767px) {
-            .dice-area {
-                padding: 20px 15px;
-            }
-        }
         .dice-grid {
             display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
+            flex-wrap: nowrap;
+            gap: 8px;
+            justify-content: space-between;
             margin-bottom: 20px;
-        }
-        /* PC 화면에서는 주사위를 한 줄로 표시 */
-        @media (min-width: 768px) {
-            .dice-grid {
-                flex-wrap: nowrap;
-                gap: 20px;
-            }
+            width: 100%;
         }
         .dice-item {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 8px;
-            height: 145px;
+            flex: 1;
+            min-width: 0;
+            font-size: min(3.1vw, 22px);
         }
         .die-wrapper {
             display: flex;
@@ -102,8 +80,12 @@
             color: #fff;
             cursor: pointer;
             transition: all 0.2s ease;
-            min-width: 80px;
+            min-width: 0;
+            width: 100%;
             text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .keep-btn:hover {
             border-color: rgba(0, 255, 200, 0.6);
@@ -122,25 +104,11 @@
             font-weight: bold;
         }
         .die-container {
-            width: 90px;
-            height: 90px;
+            width: 5em;
+            height: 5em;
             position: relative;
             perspective: 1000px;
             transition: transform 0.3s ease;
-        }
-        /* PC 화면에서는 주사위 크기 확대 */
-        @media (min-width: 768px) {
-            .die-container {
-                width: 100px;
-                height: 100px;
-            }
-        }
-        /* 모바일에서 주사위 크기 추가 감소 */
-        @media (max-width: 767px) {
-            .die-container {
-                width: 80px;
-                height: 80px;
-            }
         }
         .die-container.locked {
             transform: translateY(-15px);
@@ -158,11 +126,11 @@
             height: 100%;
             background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(240,240,240,0.9));
             border: 2px solid rgba(200,200,200,0.5);
-            border-radius: 16px;
+            border-radius: 0.8em;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-template-rows: repeat(3, 1fr);
-            padding: 8px;
+            padding: 0.4em;
             backface-visibility: hidden;
             box-shadow: inset 0 0 15px rgba(0,0,0,0.05);
         }
@@ -172,12 +140,12 @@
         }
         
         /* 3D Face Transforms */
-        .face-1 { transform: rotateY(0deg) translateZ(50px); }
-        .face-6 { transform: rotateY(180deg) translateZ(50px); }
-        .face-2 { transform: rotateX(90deg) translateZ(50px); }
-        .face-5 { transform: rotateX(-90deg) translateZ(50px); }
-        .face-3 { transform: rotateY(90deg) translateZ(50px); }
-        .face-4 { transform: rotateY(-90deg) translateZ(50px); }
+        .face-1 { transform: rotateY(0deg) translateZ(2.5em); }
+        .face-6 { transform: rotateY(180deg) translateZ(2.5em); }
+        .face-2 { transform: rotateX(90deg) translateZ(2.5em); }
+        .face-5 { transform: rotateX(-90deg) translateZ(2.5em); }
+        .face-3 { transform: rotateY(90deg) translateZ(2.5em); }
+        .face-4 { transform: rotateY(-90deg) translateZ(2.5em); }
 
         .die.rolling {
             animation: roll3d 1.5s linear infinite;
@@ -187,8 +155,8 @@
             100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(360deg); }
         }
         .dot {
-            width: 18px;
-            height: 18px;
+            width: 0.9em;
+            height: 0.9em;
             background: #333;
             border-radius: 50%;
             transition: all 0.2s;
@@ -253,14 +221,42 @@
             padding: 30px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            min-width: 350px;
+            flex: 1 1 350px;
+            max-width: 100%;
             margin: 0 auto;
         }
-        /* 모바일에서 scorecard 최대 너비 */
-        @media (max-width: 767px) {
+
+        /* 모바일: 위아래로 쌓기 */
+        @media (max-width: 991px) {
+            .game-wrapper {
+                gap: 24px;
+            }
+
+            .main-area {
+                max-width: 480px;
+            }
+
             .scorecard-area {
-                min-width: 100%;
                 max-width: 450px;
+            }
+
+            .dice-area {
+                padding: 20px 12px;
+            }
+        }
+
+        /* 아주 작은 화면 (iPhone SE 등) */
+        @media (max-width: 480px) {
+            .game-wrapper {
+                gap: 16px;
+            }
+            
+            .dice-area {
+                padding: 16px 10px;
+            }
+            
+            .scorecard-area {
+                padding: 20px 12px;
             }
         }
         .scorecard-title {
@@ -425,6 +421,54 @@
                 font-size: 1.3em;
                 border-radius: 15px;
                 max-width: 85%;
+            }
+        }
+
+        /* 좁은 화면 최적화 (화면 꽉 채우기 & 주사위 2줄 배치) */
+        @media (max-width: 767px) {
+            body {
+                padding: 6px;
+            }
+
+            .game-wrapper {
+                width: 100%;
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+            }
+
+            .main-area {
+                max-width: 100%;
+            }
+            
+            .dice-area {
+                width: 100%;
+                max-width: 100%;
+                margin: 0 auto;
+                padding: 16px 2px;
+            }
+
+            .dice-grid {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+                width: 100%;
+                max-width: none;
+                margin: 0;
+                padding: 0;
+            }
+
+            .dice-item {
+                width: auto;
+                flex: 0 0 30%;
+                font-size: min(6vw, 22px);
+            }
+            
+            .keep-btn {
+                width: 100%;
+                font-size: 11px;
+                padding: 6px 0;
             }
         }
     </style>
