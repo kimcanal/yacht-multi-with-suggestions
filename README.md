@@ -26,12 +26,18 @@ python3 server.py
 ## 게임 규칙
 
 13개 카테고리에 주사위 5개를 굴려 최고 점수를 획득하는 게임입니다.
+2026.01 기준 주요 변경사항:
+ - 싱글/멀티 모두 반응형 UI 개선 (모바일/PC 모두 주사위가 컨테이너에 맞게 가변)
+ - 주사위 면과 점(dot) 비율 고정
+ - 점수판, 버튼 등 스타일 개선
+ - .gitignore에 *.log, *.backup 등 추가
+ - Single Straight → Small Straight로 명칭 통일
 
 ### 카테고리
 - **Ones ~ Sixes**: 해당 숫자의 합
 - **4 of a Kind**: 같은 숫자 4개 이상 (모든 주사위 합, 최대 30점)
 - **Full House**: 같은 숫자 3개 + 2개 (모든 주사위 합, 최대 30점)
-- **Single Straight**: 연속 4개 (15점)
+- **Small Straight**: 연속 4개 (15점)  ← 기존 Single Straight
 - **Large Straight**: 연속 5개 (30점)
 - **Yacht**: 같은 숫자 5개 (50점, 두 번째는 보너스 +100점)
 - **Choice**: 모든 주사위 합 (최대 30점)

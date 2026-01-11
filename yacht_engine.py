@@ -3,7 +3,7 @@ from collections import Counter
 
 CATS = {
     'Ones': 0, 'Twos': 1, 'Threes': 2, 'Fours': 3, 'Fives': 4, 'Sixes': 5,
-    'Choice': 6, '4 of a Kind': 7, 'Full House': 8, 'Single Straight': 9, 'Large Straight': 10, 'Yacht': 11
+    'Choice': 6, '4 of a Kind': 7, 'Full House': 8, 'Small Straight': 9, 'Large Straight': 10, 'Yacht': 11
 }
 
 OUTCOMES_CACHE = {}
@@ -45,7 +45,7 @@ def _calc_score_internal(dice, category_idx):
             return sum(dice)
         return 0
     
-    if category_idx == CATS['Single Straight']:
+    if category_idx == CATS['Small Straight']:
         # 연속 4개: 1-2-3-4, 2-3-4-5, 3-4-5-6 중 하나, 15점 고정
         s_dice = set(dice)
         straights = [{1,2,3,4}, {2,3,4,5}, {3,4,5,6}]
@@ -156,9 +156,9 @@ def solve_best_move(dice, rolls_left, open_categories):
             best_keep_indices = keep_indices
 
     # 2. 주요 족보별 최대 확률 Keep 찾기 (3-Kind 제거됨)
-    hand_cats = ['Yacht', '4 of a Kind', 'Full House', 'Large Straight', 'Single Straight']
+    hand_cats = ['Yacht', '4 of a Kind', 'Full House', 'Large Straight', 'Small Straight']
     # 우선순위(동률 시 점수가 높은 순)
-    hand_priority = {'Yacht': 5, 'Large Straight': 4, 'Full House': 3, '4 of a Kind': 2, 'Single Straight': 1}
+    hand_priority = {'Yacht': 5, 'Large Straight': 4, 'Full House': 3, '4 of a Kind': 2, 'Small Straight': 1}
     
     best_hand_moves = []
     
@@ -198,7 +198,7 @@ def solve_best_move(dice, rolls_left, open_categories):
         max_prob = -1.0
         best_k = []
         best_k_values = []
-        tie_sensitive = cat_name in ('Full House', 'Single Straight', 'Large Straight')
+        tie_sensitive = cat_name in ('Full House', 'Small Straight', 'Large Straight')
         tie_candidates = []
         
         for i in range(32):
@@ -248,7 +248,7 @@ def solve_best_move(dice, rolls_left, open_categories):
         max_prob = -1.0
         best_k = []
         best_k_values = []
-        tie_sensitive = cat_name in ('Full House', 'Single Straight', 'Large Straight')
+        tie_sensitive = cat_name in ('Full House', 'Small Straight', 'Large Straight')
         tie_candidates = []
 
         for i in range(32):
@@ -269,7 +269,7 @@ def solve_best_move(dice, rolls_left, open_categories):
             elif abs(prob - max_prob) <= EPS:
                 tie_candidates.append({'keep_indices': keep_indices, 'values': tie_values})
                 if tie_sensitive:
-                    if cat_name in ('Single Straight', 'Large Straight'):
+                    if cat_name in ('Small Straight', 'Large Straight'):
                         if (len(keep_indices) < len(best_k)) or (
                             len(keep_indices) == len(best_k) and tie_values > best_k_values
                         ):
@@ -281,7 +281,7 @@ def solve_best_move(dice, rolls_left, open_categories):
                             best_k_values = tie_values
         
         if max_prob > 0:
-            if tie_sensitive and cat_name in ('Single Straight', 'Large Straight'):
+            if tie_sensitive and cat_name in ('Small Straight', 'Large Straight'):
                 # Straight류: 같은 확률 중 가장 짧은 길이 선택
                 min_len = min(len(c['keep_indices']) for c in tie_candidates)
                 shortest_candidates = [c for c in tie_candidates if len(c['keep_indices']) == min_len]
@@ -343,7 +343,7 @@ def solve_best_move(dice, rolls_left, open_categories):
 
     # Breakdown 생성 (dice_recommendations 이전에 먼저 생성)
     breakdown = []
-    hand_cats_display = ['4 of a Kind', 'Full House', 'Single Straight', 'Large Straight', 'Yacht']
+    hand_cats_display = ['4 of a Kind', 'Full House', 'Small Straight', 'Large Straight', 'Yacht']
     
     for cat_name in hand_cats_display:
         cat_idx = CATS[cat_name]
@@ -456,14 +456,14 @@ def solve_best_move(dice, rolls_left, open_categories):
 
             def sort_key(item):
                 vals, vlen = item
-                if cat_name in ('Single Straight', 'Large Straight'):
+                if cat_name in ('Small Straight', 'Large Straight'):
                     return (vlen, vals)
                 else:
                     return (-vlen, vals)
 
-            items = sorted(uniq.items(), key=sort_key, reverse=(cat_name not in ('Single Straight', 'Large Straight')))
+            items = sorted(uniq.items(), key=sort_key, reverse=(cat_name not in ('Small Straight', 'Large Straight')))
 
-            if cat_name in ('Single Straight', 'Large Straight'):
+            if cat_name in ('Small Straight', 'Large Straight'):
                 min_len = min(vlen for (_, vlen) in items) if items else 0
                 min_items = [(vals, vlen) for (vals, vlen) in items if vlen == min_len]
                 min_items.sort(key=lambda x: x[0], reverse=True)
@@ -493,7 +493,7 @@ def solve_best_move(dice, rolls_left, open_categories):
             score_str = "50점 (확정)"
         elif cat_name == 'Large Straight':
             score_str = "30점 (확정)"
-        elif cat_name == 'Single Straight':
+        elif cat_name == 'Small Straight':
             score_str = "15점 (확정)"
         elif cat_name == 'Full House':
             score_str = "합계 점수"
@@ -511,7 +511,7 @@ def solve_best_move(dice, rolls_left, open_categories):
     
     # 족보가 모두 불가능하거나, 족보를 모두 채웠을 때 상단부 표시
     hand_rows = [b for b in breakdown if b.get("type") == "hand"]
-    hand_cats_idx = [CATS[name] for name in ['4 of a Kind', 'Full House', 'Single Straight', 'Large Straight', 'Yacht']]
+    hand_cats_idx = [CATS[name] for name in ['4 of a Kind', 'Full House', 'Small Straight', 'Large Straight', 'Yacht']]
     all_hands_filled = all(cat_idx not in open_categories for cat_idx in hand_cats_idx)
     
     if (hand_rows and all(b.get("prob") == 0 for b in hand_rows)) or all_hands_filled:
