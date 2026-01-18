@@ -213,7 +213,8 @@
         }
         .rolls-remaining {
             font-size: 1.5em;
-            margin-bottom: 15px;
+            margin-bottom: 2px;
+            line-height: 1.1;
         }
         .scorecard-area {
             background: rgba(255, 255, 255, 0.05);
@@ -485,6 +486,7 @@
                 
                 <div class="info-bar">
                     <div class="rolls-remaining">남은 Roll: <span id="rolls-left">3</span>/3</div>
+                    <div id="timer-bar" style="font-size:1.1em; color:#ff6b6b; margin:2px 0 0 0; font-weight:bold; display:none; line-height:2;">⏳<span id="timer-count">30</span>초 남았습니다</div>
                     <div id="game-status" style="color: #00ffcc; font-size: 0.9em; text-align: center;"></div>
                     <div id="ai-info-tip" style="padding: 8px 12px; background: rgba(0, 255, 204, 0.1); border-left: 3px solid #00ffcc; border-radius: 5px; font-size: 0.75em; color: #aaa; line-height: 1.4; display: none;">
                         💡 AI 추천: 고득점 족보(4 of a Kind, Full House, Straight, Yacht) 달성을 우선으로 고려합니다.<br>이들을 모두 완성한 후에는 상단 족보(Ones~Sixes)를 효율적으로 채울 수 있는 조합을 제안합니다.
@@ -512,6 +514,39 @@
     <div id="score-toast" class="toast-overlay"></div>
     <script src="/static/js/yacht_game.js"></script>
     <script>
+        // 타이머 관련 변수
+        let timerInterval = null;
+        let timerLeft = 30;
+
+        function startTurnTimer() {
+            clearTurnTimer();
+            if (rollsLeft > 0 && !gameOver) {
+                timerLeft = 30;
+                document.getElementById('timer-bar').style.display = 'block';
+                document.getElementById('timer-count').innerText = timerLeft;
+                timerInterval = setInterval(() => {
+                    timerLeft--;
+                    document.getElementById('timer-count').innerText = timerLeft;
+                    if (timerLeft <= 0) {
+                        clearTurnTimer();
+                        if (rollsLeft > 0 && !gameOver && !isRolling) {
+                            rollDice();
+                        }
+                    }
+                }, 1000);
+            } else {
+                document.getElementById('timer-bar').style.display = 'none';
+            }
+        }
+
+        function clearTurnTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            document.getElementById('timer-bar').style.display = 'none';
+        }
+
         // 싱글 플레이 모드 (멀티플레이어 기능 제거)
         const isMultiplayer = false;
         const username = localStorage.getItem('yacht_username') || 'Player';
@@ -520,6 +555,16 @@
         let gameOverToastShown = false;
         let connectionLostHandled = false;
         let syncFailures = 0;
+        function startRollTimer() {
+            clearRollTimer();
+            // The roll timer logic was commented out by the user, implying its removal.
+            // This function will now only clear any existing timer.
+        }
+
+        function clearRollTimer() {
+            // The roll timer logic was commented out by the user, implying its removal.
+            // This function will now only clear any existing timer.
+        }
 
         // 편의성 변수 (읽기 전용)
         let dice, kept, rollsLeft, myCard, oppCard, gameOver, aiRec;
@@ -567,6 +612,11 @@
         }
 
         function updateDice() {
+            if (rollsLeft > 0 && rollsLeft < 3 && !gameOver) {
+                startRollTimer();
+            } else {
+                clearRollTimer();
+            }
             const transforms = {
                 1: 'rotateX(0deg) rotateY(0deg)',
                 6: 'rotateX(180deg) rotateY(0deg)',
@@ -653,7 +703,12 @@
             document.getElementById('rolls-left').innerText = GameState.getRollsLeft();
             const waitingForOpponent = isMultiplayer && (!opponentName || roomPlayers.length < 2);
             document.getElementById('roll-btn').disabled = GameState.getRollsLeft() <= 0 || GameState.isGameOver() || isRolling || !isMyTurn() || waitingForOpponent;
-            
+            // 타이머 표시/숨김 처리
+            if (rollsLeft > 0 && !gameOver) {
+                document.getElementById('timer-bar').style.display = 'block';
+            } else {
+                document.getElementById('timer-bar').style.display = 'none';
+            }
             // 선공권 넘기기 버튼 표시 조건: 게임 시작 전 + 첫 굴림 이전(rollsLeft=3) + 내 턴 + 상대 입장 완료
             const passTurnBtn = document.getElementById('pass-turn-btn');
             if (passTurnBtn && isMultiplayer) {
@@ -665,15 +720,14 @@
 
         function toggleLock(i) {
             // 롤이 남았을 때만 락 토글 가능 (첫 롤 전에는 불가)
-            if (rollsLeft === 3 || gameOver || !isMyTurn()) return;
+            // 타이머가 동작 중일 때만 반응 (rollsLeft > 0, gameOver=false, isRolling=false)
+            if (rollsLeft === 3 || gameOver || !isMyTurn() || isRolling || !timerInterval) return;
             // 점수 선택 단계(rollsLeft=0)에서도 락을 걸어볼 수는 있게 함 (시각적 확인용)
-            
             kept[i] = kept[i] ? 0 : 1;
             // GameState에도 반영하여 UI가 즉시 올라가도록
             GameState.setKept(kept);
             updateDice();
             pushState();
-            
             // Keep 버튼 클릭 시 소리 재생
             playKeepSound();
         }
@@ -688,7 +742,8 @@
 
         async function rollDice() {
             if (rollsLeft <= 0 || gameOver || isRolling) return;
-            
+            clearTurnTimer(); // roll 시 타이머 정지
+
             // Web Audio API로 주사위 굴러가는 소리 생성
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -788,6 +843,7 @@
                     }
                     
                     await askAI();
+                    startTurnTimer(); // roll 후 타이머 재시작(rollsLeft 남아있으면)
                 } catch (e) {
                     console.error('Roll failed:', e);
                     isRolling = false;
@@ -797,7 +853,7 @@
 
         async function askAI() {
             // 싱글 모드: 게임이 끝나지 않았으면 항상 AI 추천 표시
-            if (gameOver) return;
+            if (gameOver || rollsLeft === 3) return;
             try {
                 // scorecard에서 null인 인덱스만 추출하여 open_categories 생성
                 const open_categories = myCard.map((v, i) => v === null ? i : null).filter(v => v !== null);
@@ -878,9 +934,14 @@
 
         function pickCategory(i) {
             if (rollsLeft === 3 || gameOver) return;
-            
+            clearTurnTimer(); // 점수 선택 시 타이머 정지
+
+            // 점수 선택 시 AI 추천 영역 즉시 초기화
+            const aiBreakdown = document.getElementById('ai-breakdown');
+            if (aiBreakdown) aiBreakdown.innerHTML = '';
+
             let score = calcScore(dice, i);
-            
+
             // Yacht 보너스 처리: Yacht 칸에 이미 50점이 기록되어 있고, 현재 주사위가 Yacht를 만족하는 경우
             if (calcScore(dice, 11) === 50 && myCard[11] >= 50 && i !== 11 && score > 0) {
                 // Yacht 칸에 100점 보너스 추가 (누적)
@@ -897,15 +958,16 @@
                 updateScorecard();
                 return;
             }
-            
+
             // 일반 점수 기록
             myCard[i] = score;
             showToast(CATS[i], score);
-            
+
             dice = [1,1,1,1,1];
             kept = [0,0,0,0,0];
             rollsLeft = 3;
             aiRec = null;
+            startTurnTimer(); // 점수 선택 후 타이머 재시작
 
             // 싱글 모드: 턴 전환 없음
 
@@ -1018,6 +1080,7 @@
             if (newGameBtn) newGameBtn.style.display = 'inline-block';
             
             refreshTurnUI();
+            startTurnTimer();
         }
 
         // 게임 초기화 시작
