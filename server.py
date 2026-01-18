@@ -526,5 +526,5 @@ if __name__ == '__main__':
     # ... (ngrok 전송 스레드 실행 부분) ...
     print("🎲 Yacht Game AI Server Starting...")
     print("🌐 External: https://app.yatch-game.cloud")
-    print("🌐 Local:    http://localhost:8080")
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    print("🌐 Local:    http://localhost:9999")
+    app.run(host='0.0.0.0', port=9999, debug=True)

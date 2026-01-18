@@ -17,7 +17,34 @@
       "total_score": 0,
       "games_played": 0,
       "created_at": "2026-01-11T08:13:51.289039"
+    },
+    "김윤하 컷": {
+      "username": "김윤하 컷",
+      "wins": 1,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 231,
+      "games_played": 1,
+      "created_at": "2026-01-17T05:45:51.957027"
+    },
+    "명규바보": {
+      "username": "명규바보",
+      "wins": 0,
+      "draws": 0,
+      "losses": 1,
+      "total_score": 190,
+      "games_played": 1,
+      "created_at": "2026-01-17T05:45:51.958080"
     }
   },
-  "games": []
+  "games": [
+    {
+      "player1": "김윤하 컷",
+      "score1": 231,
+      "player2": "명규바보",
+      "score2": 190,
+      "winner": "김윤하 컷",
+      "timestamp": "2026-01-17T05:45:59.983786"
+    }
+  ]
 }
