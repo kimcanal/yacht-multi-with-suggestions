@@ -520,7 +520,7 @@
 
         function startTurnTimer() {
             clearTurnTimer();
-            if (rollsLeft > 0 && !gameOver) {
+            if (rollsLeft > 0 && !gameOver && !isRolling) {
                 timerLeft = 30;
                 document.getElementById('timer-bar').style.display = 'block';
                 document.getElementById('timer-count').innerText = timerLeft;
@@ -531,6 +531,7 @@
                         clearTurnTimer();
                         if (rollsLeft > 0 && !gameOver && !isRolling) {
                             rollDice();
+                            timeOut();
                         }
                     }
                 }, 1000);
@@ -548,7 +549,7 @@
         }
 
         // 싱글 플레이 모드 (멀티플레이어 기능 제거)
-        const isMultiplayer = false;
+        // const isMultiplayer = false;
         const username = localStorage.getItem('yacht_username') || 'Player';
         localStorage.removeItem('yacht_room'); // 방 정보 제거
         let isRolling = false;
@@ -700,22 +701,15 @@
                     lbl.innerText = '';
                 }
             }
-            document.getElementById('rolls-left').innerText = GameState.getRollsLeft();
-            const waitingForOpponent = isMultiplayer && (!opponentName || roomPlayers.length < 2);
-            document.getElementById('roll-btn').disabled = GameState.getRollsLeft() <= 0 || GameState.isGameOver() || isRolling || !isMyTurn() || waitingForOpponent;
+            document.getElementById('rolls-left').innerText = GameState.getRollsLeft();            
+            document.getElementById('roll-btn').disabled = GameState.getRollsLeft() <= 0 || GameState.isGameOver() || isRolling || !isMyTurn();
             // 타이머 표시/숨김 처리
             if (rollsLeft > 0 && !gameOver) {
                 document.getElementById('timer-bar').style.display = 'block';
             } else {
                 document.getElementById('timer-bar').style.display = 'none';
             }
-            // 선공권 넘기기 버튼 표시 조건: 게임 시작 전 + 첫 굴림 이전(rollsLeft=3) + 내 턴 + 상대 입장 완료
-            const passTurnBtn = document.getElementById('pass-turn-btn');
-            if (passTurnBtn && isMultiplayer) {
-                const isGameStarted = GameState.getMyCard().some(v => v !== null) || GameState.getOppCard().some(v => v !== null);
-                const canPass = !isGameStarted && GameState.getRollsLeft() === 3 && isMyTurn() && opponentName && roomPlayers.length >= 2;
-                passTurnBtn.style.display = canPass ? 'inline-block' : 'none';
-            }
+   
         }
 
         function toggleLock(i) {
@@ -897,6 +891,34 @@
                 console.error(e);
             }
         }
+        
+        function timeOut(){
+            const toast = document.getElementById('score-toast');
+            toast.innerHTML = `<div class="toast-cat">⏰ 시간 초과!</div><div class="toast-score">자동 Roll이 실행됩니다...</div>`;
+            toast.classList.add('show');
+
+            // 알림음 재생
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioContext.currentTime;
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.frequency.value = 1000;
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } catch (e) {
+                console.warn('Toast audio failed:', e);
+            }
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 1500);
+
+        }
 
         function updateScorecard() {
             const el = document.getElementById('scorecard');
@@ -1041,7 +1063,7 @@
             // 첫 굴림 전(rollsLeft=3)이고 점수 기록이 하나도 없을 때만 허용
             const myEmpty = GameState.getMyCard().every(v => v === null);
             const oppEmpty = GameState.getOppCard().every(v => v === null);
-            if (!isMultiplayer || !opponentName || !isMyTurn() || GameState.getRollsLeft() !== 3 || !myEmpty || !oppEmpty) return;
+            if (GameState.getRollsLeft() !== 3 || !myEmpty || !oppEmpty) return;
             
             // 턴을 상대방에게 넘김
             turnOwner = opponentName;
