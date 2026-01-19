@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎲 Yacht - Single Player</title>
     <style>
+        /* 기존 스타일 그대로 유지 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             background: linear-gradient(135deg, #0f0f1e 0%, #1a1a3e 100%);
@@ -13,464 +14,147 @@
             min-height: 100vh;
             padding: 20px;
         }
-        /* 모바일에서 body padding 감소 */
-        @media (max-width: 995px) {
-            body {
-                padding: 10px;
-            }
-        }
+        @media (max-width: 995px) { body { padding: 10px; } }
         .game-wrapper {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            gap: 40px;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: flex-start;
+            max-width: 1400px; margin: 0 auto; display: flex; gap: 40px;
+            flex-wrap: wrap; justify-content: center; align-items: flex-start;
         }
-        .main-area {
-            flex: 1 1 400px;
-            max-width: 100%;
-        }
+        .main-area { flex: 1 1 400px; max-width: 100%; }
         .title {
-            font-size: 3em;
-            font-weight: 700;
-            margin-bottom: 30px;
-            text-shadow: 0 0 30px rgba(0, 255, 200, 0.3);
-            color: #00ffcc;
+            font-size: 3em; font-weight: 700; margin-bottom: 30px;
+            text-shadow: 0 0 30px rgba(0, 255, 200, 0.3); color: #00ffcc;
         }
         .dice-area {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            padding: 40px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 40px;
+            backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 30px;
         }
         .dice-grid {
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 8px;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            width: 100%;
+            display: flex; flex-wrap: nowrap; gap: 8px; justify-content: space-between;
+            margin-bottom: 20px; width: 100%;
         }
         .dice-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            min-width: 0;
-            font-size: min(3.1vw, 22px);
-        }
-        .die-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            flex: 1; min-width: 0; font-size: min(3.1vw, 22px);
         }
         .keep-btn {
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: bold;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            min-width: 0;
-            width: 100%;
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            padding: 6px 12px; font-size: 12px; font-weight: bold;
+            border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05); color: #fff; cursor: pointer;
+            transition: all 0.2s ease; min-width: 0; width: 100%;
+            text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        .keep-btn:hover {
-            border-color: rgba(0, 255, 200, 0.6);
-            background: rgba(0, 255, 200, 0.1);
-        }
-        .keep-btn.active-keep {
-            border-color: #00ff00;
-            background: rgba(0, 255, 0, 0.2);
-            color: #00ff00;
-            font-weight: bold;
-        }
-        .keep-btn.active-reroll {
-            border-color: #ff4444;
-            background: rgba(255, 68, 68, 0.2);
-            color: #ff4444;
-            font-weight: bold;
-        }
+        .keep-btn:hover { border-color: rgba(0, 255, 200, 0.6); background: rgba(0, 255, 200, 0.1); }
+        .keep-btn.active-keep { border-color: #00ff00; background: rgba(0, 255, 0, 0.2); color: #00ff00; font-weight: bold; }
         .die-container {
-            width: 5em;
-            height: 5em;
-            position: relative;
-            perspective: 1000px;
-            transition: transform 0.3s ease;
+            width: 5em; height: 5em; position: relative; perspective: 1000px; transition: transform 0.3s ease;
         }
-        .die-container.locked {
-            transform: translateY(-15px);
-        }
+        .die-container.locked { transform: translateY(-15px); }
         .die {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            transform-style: preserve-3d;
+            width: 100%; height: 100%; position: absolute; transform-style: preserve-3d;
             transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .die-face {
-            position: absolute;
-            width: 100%;
-            height: 100%;
+            position: absolute; width: 100%; height: 100%;
             background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(240,240,240,0.9));
-            border: 2px solid rgba(200,200,200,0.5);
-            border-radius: 0.8em;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            padding: 0.4em;
-            backface-visibility: hidden;
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.05);
+            border: 2px solid rgba(200,200,200,0.5); border-radius: 0.8em;
+            display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+            padding: 0.4em; backface-visibility: hidden; box-shadow: inset 0 0 15px rgba(0,0,0,0.05);
         }
-        .die-face .dot {
-            margin: auto;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
-        }
-        
-        /* 3D Face Transforms */
+        .die-face .dot { margin: auto; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); }
         .face-1 { transform: rotateY(0deg) translateZ(2.5em); }
         .face-6 { transform: rotateY(180deg) translateZ(2.5em); }
         .face-2 { transform: rotateX(90deg) translateZ(2.5em); }
         .face-5 { transform: rotateX(-90deg) translateZ(2.5em); }
         .face-3 { transform: rotateY(90deg) translateZ(2.5em); }
         .face-4 { transform: rotateY(-90deg) translateZ(2.5em); }
-
-        .die.rolling {
-            animation: roll3d 1.5s linear infinite;
-        }
+        .die.rolling { animation: roll3d 1.5s linear infinite; }
         @keyframes roll3d {
             0% { transform: rotateX(0) rotateY(0) rotateZ(0); }
             100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(360deg); }
         }
-        .dot {
-            width: 0.9em;
-            height: 0.9em;
-            background: #333;
-            border-radius: 50%;
-            transition: all 0.2s;
-        }
-        .dot.hidden {
-            opacity: 0;
-        }
-        
-        .lock-label {
-            font-size: 11px;
-            font-weight: bold;
-            color: #999;
-            min-height: 14px;
-        }
+        .dot { width: 0.9em; height: 0.9em; background: #333; border-radius: 50%; transition: all 0.2s; }
+        .dot.hidden { opacity: 0; }
         .controls {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-top: 10px;
-            margin-bottom: 30px;
+            display: flex; gap: 15px; justify-content: center; margin-top: 10px; margin-bottom: 30px;
         }
         .btn {
-            padding: 12px 30px;
-            font-size: 16px;
-            font-weight: 600;
-            border: none;
-            border-radius: 30px;
-            cursor: pointer;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            transition: all 0.3s ease;
+            padding: 12px 30px; font-size: 16px; font-weight: 600; border: none; border-radius: 30px;
+            cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;
         }
-        .btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
-        }
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .btn-reset {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-reset { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
         .info-bar {
-            background: rgba(0, 255, 204, 0.1);
-            border: 2px solid #00ffcc;
-            border-radius: 15px;
-            padding: 15px;
-            text-align: center;
-            font-size: 1.2em;
-            color: #00ffcc;
-            font-weight: bold;
+            background: rgba(0, 255, 204, 0.1); border: 2px solid #00ffcc; border-radius: 15px; padding: 15px;
+            text-align: center; font-size: 1.2em; color: #00ffcc; font-weight: bold;
         }
-        .rolls-remaining {
-            font-size: 1.5em;
-            margin-bottom: 2px;
-            line-height: 1.1;
-        }
+        .rolls-remaining { font-size: 1.5em; margin-bottom: 2px; line-height: 1.1; }
         .scorecard-area {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            padding: 30px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            flex: 1 1 350px;
-            max-width: 100%;
-            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 30px;
+            backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1);
+            flex: 1 1 350px; max-width: 100%; margin: 0 auto;
         }
-
-        /* 모바일: 위아래로 쌓기 */
         @media (max-width: 995px) {
-            .game-wrapper {
-                gap: 24px;
-            }
-
-            .main-area {
-                max-width: 480px;
-            }
-
-            .scorecard-area {
-                max-width: 450px;
-            }
-
-            .dice-area {
-                padding: 20px 12px;
-            }
+            .game-wrapper { gap: 24px; }
+            .main-area { max-width: 480px; }
+            .scorecard-area { max-width: 450px; }
+            .dice-area { padding: 20px 12px; }
         }
-
-        /* 아주 작은 화면 (iPhone SE 등) */
         @media (max-width: 480px) {
-            .game-wrapper {
-                gap: 16px;
-            }
-            
-            .dice-area {
-                padding: 16px 10px;
-            }
-            
-            .scorecard-area {
-                padding: 20px 12px;
-            }
+            .game-wrapper { gap: 16px; }
+            .dice-area { padding: 16px 10px; }
+            .scorecard-area { padding: 20px 12px; }
         }
-        .scorecard-title {
-            font-size: 1.8em;
-            font-weight: 700;
-            margin-bottom: 25px;
-            color: #00ffcc;
-            text-align: center;
-        }
+        .scorecard-title { font-size: 1.8em; font-weight: 700; margin-bottom: 25px; color: #00ffcc; text-align: center; }
         .score-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px 16px;
-            margin: 8px 0;
-            font-size: 1.05em;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-            position: relative;
+            display: flex; justify-content: space-between; align-items: center; padding: 14px 16px;
+            margin: 8px 0; font-size: 1.05em; background: rgba(255, 255, 255, 0.05); border-radius: 10px;
+            cursor: pointer; transition: all 0.3s ease; border-left: 4px solid transparent; position: relative;
         }
         .score-item:hover:not(.filled):not(.bonus) {
-            background: rgba(102, 126, 234, 0.3);
-            border-left-color: #667eea;
-            transform: translateX(5px);
+            background: rgba(102, 126, 234, 0.3); border-left-color: #667eea; transform: translateX(5px);
         }
-        .score-item.filled {
-            background: rgba(0, 255, 204, 0.15);
-            cursor: default;
-            border-left-color: #00ffcc;
-        }
-        .score-item.bonus {
-            background: rgba(255, 215, 0, 0.15);
-            border-left-color: #ffd700;
-            font-weight: bold;
-            cursor: default;
-        }
-        .score-name {
-            font-weight: 500;
-            font-size: 1.05em;
-            flex: 1;
-        }
-        .score-val {
-            font-weight: bold;
-            color: #ffd700;
-            font-size: 1.1em;
-            min-width: 60px;
-            text-align: right;
-        }
-        .score-preview {
-            font-size: 0.85em;
-            color: #00ffcc;
-            margin-left: 10px;
-            opacity: 0.8;
-        }
-        /* 커스텀 툴팁: 주사위는 크게, 설명은 가독성 있게 */
-        .custom-tip {
-            position: absolute;
-            left: 0;
-            bottom: 100%;
-            width: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            color: #fff;
-            padding: 10px 12px;
-            border-radius: 10px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-            z-index: 20;
-            pointer-events: none;
-        }
-        .custom-tip::before {
-            content: '';
-            position: absolute;
-            left: 20px;
-            bottom: -10px;
-            border: 8px solid transparent;
-            border-top-color: rgba(0, 0, 0, 0.9);
-        }
-        .custom-tip .tip-dice {
-            font-size: 1.4em;
-            line-height: 1.2;
-            margin-bottom: 6px;
-        }
-        .custom-tip .tip-desc {
-            font-size: 1.05em;
-            line-height: 1.5;
-            white-space: pre-line;
-        }
+        .score-item.filled { background: rgba(0, 255, 204, 0.15); cursor: default; border-left-color: #00ffcc; }
+        .score-item.bonus { background: rgba(255, 215, 0, 0.15); border-left-color: #ffd700; font-weight: bold; cursor: default; }
+        .score-name { font-weight: 500; font-size: 1.05em; flex: 1; }
+        .score-val { font-weight: bold; color: #ffd700; font-size: 1.1em; min-width: 60px; text-align: right; }
+        .score-preview { font-size: 0.85em; color: #00ffcc; margin-left: 10px; opacity: 0.8; }
         .total-score {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 2px solid rgba(255, 255, 255, 0.2);
-            display: flex;
-            justify-content: space-between;
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #ffd700;
+            margin-top: 20px; padding-top: 20px; border-top: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex; justify-content: space-between; font-size: 1.3em; font-weight: bold; color: #ffd700;
         }
         .ai-breakdown {
-            margin-top: 0;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            padding: 12px;
-            font-size: 0.9em;
-            text-align: left;
+            margin-top: 0; background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 12px; font-size: 0.9em; text-align: left;
         }
         .breakdown-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            gap: 10px;
+            display: flex; justify-content: space-between; align-items: center; padding: 8px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05); gap: 10px;
         }
         .breakdown-item:last-child { border-bottom: none; }
         .breakdown-val { color: #00ffcc; font-weight: bold; }
-        .spinner {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(0, 255, 204, 0.3);
-            border-radius: 50%;
-            border-top-color: #00ffcc;
-            animation: spin 1s ease-in-out infinite;
-            margin-left: 10px;
-            vertical-align: middle;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
         .toast-overlay {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.9);
-            background: rgba(20, 20, 40, 0.95);
-            color: #fff;
-            padding: 30px 50px;
-            border-radius: 20px;
-            font-size: 2em;
-            font-weight: 800;
-            text-align: center;
-            z-index: 2000;
-            pointer-events: none;
-            opacity: 0;
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
+            background: rgba(20, 20, 40, 0.95); color: #fff; padding: 30px 50px;
+            border-radius: 20px; font-size: 2em; font-weight: 800; text-align: center;
+            z-index: 2000; pointer-events: none; opacity: 0;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 2px solid #00ffcc;
-            box-shadow: 0 0 50px rgba(0, 255, 204, 0.4);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            border: 2px solid #00ffcc; box-shadow: 0 0 50px rgba(0, 255, 204, 0.4);
+            display: flex; flex-direction: column; gap: 10px;
         }
-        .toast-overlay.show {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-        }
+        .toast-overlay.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
         .toast-cat { font-size: 0.6em; color: #aaa; text-transform: uppercase; letter-spacing: 2px; }
         .toast-score { font-size: 1.5em; color: #ffd700; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
-        /* 모바일에서 토스트 크기 조정 */
+        @media (max-width: 995px) { .toast-overlay { padding: 20px 30px; font-size: 1.3em; border-radius: 15px; max-width: 85%; } }
+        /* 좁은 화면 최적화 */
         @media (max-width: 995px) {
-            .toast-overlay {
-                padding: 20px 30px;
-                font-size: 1.3em;
-                border-radius: 15px;
-                max-width: 85%;
-            }
-        }
-
-        /* 좁은 화면 최적화 (화면 꽉 채우기 & 주사위 2줄 배치) */
-        @media (max-width: 995px) {
-            body {
-                padding: 6px;
-            }
-
-            .game-wrapper {
-                width: 100%;
-                max-width: 100%;
-                padding: 0;
-                margin: 0;
-            }
-
-            .main-area {
-                max-width: 100%;
-            }
-            
-            .dice-area {
-                width: 100%;
-                max-width: 100%;
-                margin: 0 auto;
-                padding: 16px 2px;
-            }
-
-            .dice-grid {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 8px;
-                width: 100%;
-                max-width: none;
-                margin: 0;
-                padding: 0;
-            }
-
-            .dice-item {
-                width: auto;
-                flex: 0 0 30%;
-                font-size: min(6vw, 22px);
-            }
-            
-            .keep-btn {
-                width: 100%;
-                font-size: 11px;
-                padding: 6px 0;
-            }
+            body { padding: 6px; }
+            .game-wrapper { width: 100%; max-width: 100%; padding: 0; margin: 0; }
+            .main-area { max-width: 100%; }
+            .dice-area { width: 100%; max-width: 100%; margin: 0 auto; padding: 16px 2px; }
+            .dice-grid { flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; max-width: none; margin: 0; padding: 0; }
+            .dice-item { width: auto; flex: 0 0 30%; font-size: min(6vw, 22px); }
+            .keep-btn { width: 100%; font-size: 11px; padding: 6px 0; }
         }
     </style>
 </head>
@@ -481,8 +165,7 @@
             
             <div class="dice-area">
                 <div class="dice-grid" id="dice-grid">
-                    <!-- Dice generated by JS -->
-                </div>
+                    </div>
                 
                 <div class="info-bar">
                     <div class="rolls-remaining">남은 Roll: <span id="rolls-left">3</span>/3</div>
@@ -548,24 +231,13 @@
             document.getElementById('timer-bar').style.display = 'none';
         }
 
-        // 싱글 플레이 모드 (멀티플레이어 기능 제거)
-        // const isMultiplayer = false;
+        // 싱글 플레이 모드 설정
         const username = localStorage.getItem('yacht_username') || 'Player';
         localStorage.removeItem('yacht_room'); // 방 정보 제거
         let isRolling = false;
         let gameOverToastShown = false;
         let connectionLostHandled = false;
         let syncFailures = 0;
-        function startRollTimer() {
-            clearRollTimer();
-            // The roll timer logic was commented out by the user, implying its removal.
-            // This function will now only clear any existing timer.
-        }
-
-        function clearRollTimer() {
-            // The roll timer logic was commented out by the user, implying its removal.
-            // This function will now only clear any existing timer.
-        }
 
         // 편의성 변수 (읽기 전용)
         let dice, kept, rollsLeft, myCard, oppCard, gameOver, aiRec;
@@ -589,7 +261,6 @@
             window.location.replace('/');
         }
 
-        // 네트워크 오프라인 즉시 안내
         window.addEventListener('offline', () => {
             handleConnectionLost('네트워크 연결이 끊어졌습니다. 로비로 이동합니다.');
         });
@@ -597,7 +268,6 @@
         function showGameOverToast(myTotal, oppTotal) {
             if (gameOverToastShown) return;
             const toast = document.getElementById('score-toast');
-            // 싱글 모드
             toast.innerHTML = `<div class="toast-cat">🎉 게임 종료</div><div class="toast-score">최종 점수: ${myTotal}</div>`;
             toast.classList.add('show');
             playTurnToastSound();
@@ -608,16 +278,10 @@
         const isMyTurn = () => true; // 싱글 모드는 항상 내 턴
 
         function refreshTurnUI() {
-            // 싱글 모드는 UI 갱신만
             updateDice();
         }
 
         function updateDice() {
-            if (rollsLeft > 0 && rollsLeft < 3 && !gameOver) {
-                startRollTimer();
-            } else {
-                clearRollTimer();
-            }
             const transforms = {
                 1: 'rotateX(0deg) rotateY(0deg)',
                 6: 'rotateX(180deg) rotateY(0deg)',
@@ -632,14 +296,12 @@
                 const c = document.getElementById(`die-container-${i}`);
                 if (!d) continue;
                 
-                // 턴 시작(3회 남음) 시에는 계속 굴러가게 연출, 그 외에는 멈춤
                 if (rollsLeft === 3 && !gameOver) {
                     d.classList.add('rolling');
                 } else {
                     d.classList.remove('rolling');
                 }
 
-                // locked 클래스 토글
                 if (GameState.getKept()[i]) {
                     c.classList.add('locked');
                     d.querySelectorAll('.die-face').forEach(f => f.style.borderColor = '#00ffcc');
@@ -648,16 +310,14 @@
                     d.querySelectorAll('.die-face').forEach(f => f.style.borderColor = 'rgba(200,200,200,0.5)');
                 }
                 
-                const val = GameState.getDice()[i] || 1; // 안전장치
+                const val = GameState.getDice()[i] || 1; 
                 d.style.transform = transforms[val];
                 
-                // Keep 버튼 업데이트
                 const keepBtn = document.getElementById(`keep-${i}`);
                 const keepText = document.getElementById(`keep-text-${i}`);
                 if (keepBtn && keepText) {
                     keepBtn.className = 'keep-btn';
                     
-                    // 1. 버튼 활성화 상태 (룰 적용)
                     if (rollsLeft >= 3 || rollsLeft === 0 || gameOver || isRolling || !isMyTurn()) {
                         keepBtn.disabled = true;
                         keepBtn.style.opacity = '0.5';
@@ -668,129 +328,101 @@
                         keepBtn.style.cursor = 'pointer';
                     }
                     
-                    // 2. 사용자 선택 상태 반영 (우선순위 높음)
                     if (kept[i]) {
-                        keepBtn.classList.add('active-keep'); // 녹색 스타일
+                        keepBtn.classList.add('active-keep'); 
                         keepBtn.style.borderColor = '#00ff00';
                     } else {
                         keepBtn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
                     }
 
-                    // 3. AI 추천 정보 표시 (보조 정보)
                     let aiInfo = '';
-                    keepBtn.style.boxShadow = 'none'; // 초기화
+                    keepBtn.style.boxShadow = 'none'; 
 
                     if (aiRec?.dice_recommendations) {
                         const r = aiRec.dice_recommendations[i];
                         if (r) {
-                            // 추천(Keep)인데 내가 선택 안 했으면 강조
                             if (r.action === 'keep' && !kept[i]) {
-                                keepBtn.style.borderColor = '#00ffcc'; // 추천: Keep
-                                keepBtn.style.boxShadow = '0 0 10px rgba(0, 255, 204, 0.8)'; // 네온 효과
+                                keepBtn.style.borderColor = '#00ffcc';
+                                keepBtn.style.boxShadow = '0 0 10px rgba(0, 255, 204, 0.8)';
                             }
-                            aiInfo = '';
                         }
                     }
-                    
-                    // 텍스트 설정
                     keepText.innerHTML = (kept[i] ? '✓ KEEP' : 'KEEP') + aiInfo;
                 }
-                
                 const lbl = document.getElementById(`lock-${i}`);
-                if (lbl) {
-                    lbl.innerText = '';
-                }
+                if (lbl) lbl.innerText = '';
             }
             document.getElementById('rolls-left').innerText = GameState.getRollsLeft();            
             document.getElementById('roll-btn').disabled = GameState.getRollsLeft() <= 0 || GameState.isGameOver() || isRolling || !isMyTurn();
+            
             // 타이머 표시/숨김 처리
             if (rollsLeft > 0 && !gameOver) {
                 document.getElementById('timer-bar').style.display = 'block';
             } else {
                 document.getElementById('timer-bar').style.display = 'none';
             }
-   
         }
 
         function toggleLock(i) {
-            // 롤이 남았을 때만 락 토글 가능 (첫 롤 전에는 불가)
             // 타이머가 동작 중일 때만 반응 (rollsLeft > 0, gameOver=false, isRolling=false)
             if (rollsLeft === 3 || gameOver || !isMyTurn() || isRolling || !timerInterval) return;
-            // 점수 선택 단계(rollsLeft=0)에서도 락을 걸어볼 수는 있게 함 (시각적 확인용)
             kept[i] = kept[i] ? 0 : 1;
-            // GameState에도 반영하여 UI가 즉시 올라가도록
             GameState.setKept(kept);
             updateDice();
             pushState();
-            // Keep 버튼 클릭 시 소리 재생
             playKeepSound();
         }
 
-        // 싱글 모드에서는 서버 동기화 불필요
-        async function pushState() { /* 싱글 모드 - 동기화 불필요 */ }
-
-        // 싱글 모드: 서버 동기화 불필요
-        function applyRemoteState(state) { /* 싱글 모드 - 사용 안함 */ }
-        async function fetchRoomState() { /* 싱글 모드 - 사용 안함 */ }
-        function startSyncPolling() { /* 싱글 모드 - 사용 안함 */ }
+        // 싱글 모드에서는 서버 동기화 불필요 (빈 함수 처리)
+        async function pushState() {}
+        function applyRemoteState(state) {}
+        async function fetchRoomState() {}
+        function startSyncPolling() {}
 
         async function rollDice() {
             if (rollsLeft <= 0 || gameOver || isRolling) return;
             clearTurnTimer(); // roll 시 타이머 정지
 
-            // Web Audio API로 주사위 굴러가는 소리 생성
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const now = audioContext.currentTime;
                 const duration = 0.4;
-                
-                // 노이즈 생성 (주사위 굴러가는 소리)
                 const bufferSize = audioContext.sampleRate * duration;
                 const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
                 const output = noiseBuffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    output[i] = Math.random() * 2 - 1;
-                }
+                for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+                
                 const noiseSource = audioContext.createBufferSource();
                 noiseSource.buffer = noiseBuffer;
-                
-                // 노이즈용 게인
                 const noiseGain = audioContext.createGain();
                 noiseSource.connect(noiseGain);
                 noiseGain.connect(audioContext.destination);
                 noiseGain.gain.setValueAtTime(0.2, now);
                 noiseGain.gain.exponentialRampToValueAtTime(0.01, now + duration);
                 
-                // 빠르게 반복되는 톤 (딸깍딸깍딸깍 소리)
                 const beatDuration = 0.08;
                 for (let beat = 0; beat < 5; beat++) {
                     const osc = audioContext.createOscillator();
                     const gain = audioContext.createGain();
                     osc.type = 'square';
-                    // 낮아지는 주파수 (1200 -> 400)
                     const freqRange = 1200 - (beat * 160);
                     osc.frequency.value = Math.max(freqRange, 400);
                     osc.connect(gain);
                     gain.connect(audioContext.destination);
-                    
                     const startTime = now + (beat * 0.07);
                     gain.gain.setValueAtTime(0.12, startTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, startTime + beatDuration);
-                    
                     osc.start(startTime);
                     osc.stop(startTime + beatDuration);
                 }
-                
                 noiseSource.start(now);
                 noiseSource.stop(now + duration);
-            } catch (e) {
-                console.warn('Audio context failed:', e);
-            }
+            } catch (e) { console.warn('Audio context failed:', e); }
 
             isRolling = true;
-            aiRec = null; // 이전 추천 정보 즉시 삭제 (화면 불일치 방지)
+            aiRec = null; 
             document.getElementById('ai-breakdown').innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">🎲 계산 중...</div>';
-            updateDice(); // UI 갱신 (버튼 비활성화 및 이전 하이라이트 제거)
+            updateDice(); 
 
             for (let i = 0; i < 5; i++) {
                 if (!kept[i]) document.getElementById(`die-${i}`).classList.add('rolling');
@@ -798,7 +430,6 @@
             
             setTimeout(async () => {
                 try {
-                    // 싱글플레이 모드 - 클라이언트에서만 굴림
                     if (rollsLeft <= 0) {
                         alert('남은 굴림이 없습니다');
                         isRolling = false;
@@ -816,28 +447,22 @@
                     updateDice();
                     updateScorecard();
                     
-                    // Yacht 조건 체크 및 Toast 표시
                     if (calcScore(dice, 11) === 50) {
                         const toast = document.getElementById('score-toast');
                         if (myCard[11] >= 50) {
-                            // 이미 Yacht 50점 기록됨 → Bonus 가능 알림
                             toast.innerHTML = `<div class="toast-cat">🏆 YACHT BONUS 가능!</div><div class="toast-score" style="font-size:0.9em;">다른 칸에 점수 기록 시 +100점</div>`;
                         } else if (myCard[11] === 0) {
-                            // Yacht에 0점 기록됨 → Bonus 불가능 (슬픈 알림)
                             toast.innerHTML = `<div class="toast-cat" style="color:#ff6b6b;">😢 YACHT 성공이지만</div><div class="toast-score" style="color:#ff6b6b; font-size:0.85em;">Bonus 불가능 (0점 처리됨)</div>`;
                         } else {
-                            // 첫 Yacht (null) → 성공 알림
                             toast.innerHTML = `<div class="toast-cat">🎲 YACHT 성공!</div><div class="toast-score">50점</div>`;
                         }
                         toast.classList.add('show');
                         playTurnToastSound();
-                        setTimeout(() => {
-                            toast.classList.remove('show');
-                        }, 2000);
+                        setTimeout(() => toast.classList.remove('show'), 2000);
                     }
                     
                     await askAI();
-                    startTurnTimer(); // roll 후 타이머 재시작(rollsLeft 남아있으면)
+                    startTurnTimer(); // roll 후 타이머 재시작
                 } catch (e) {
                     console.error('Roll failed:', e);
                     isRolling = false;
@@ -846,10 +471,8 @@
         }
 
         async function askAI() {
-            // 싱글 모드: 게임이 끝나지 않았으면 항상 AI 추천 표시
             if (gameOver || rollsLeft === 3) return;
             try {
-                // scorecard에서 null인 인덱스만 추출하여 open_categories 생성
                 const open_categories = myCard.map((v, i) => v === null ? i : null).filter(v => v !== null);
                 const r = await fetch('/api/recommend', {
                     method: 'POST',
@@ -858,13 +481,10 @@
                 });
                 aiRec = await r.json();
                 
-                // AI 분석 리스트 표시
                 const bd = document.getElementById('ai-breakdown');
                 if (aiRec.breakdown && aiRec.breakdown.length > 0) {
                     bd.innerHTML = aiRec.breakdown.map(item => {
                         let color = '#ffd700';
-                        
-                        // 시각적 바 표현
                         const barWidth = Math.min(item.prob * 100, 100);
                         return `
                             <div class="breakdown-item">
@@ -885,19 +505,14 @@
                 } else {
                     bd.innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">대기 중...</div>';
                 }
-                
                 updateDice();
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error(e); }
         }
         
         function timeOut(){
             const toast = document.getElementById('score-toast');
             toast.innerHTML = `<div class="toast-cat">⏰ 시간 초과!</div><div class="toast-score">자동 Roll이 실행됩니다...</div>`;
             toast.classList.add('show');
-
-            // 알림음 재생
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const now = audioContext.currentTime;
@@ -910,20 +525,13 @@
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
                 osc.start(now);
                 osc.stop(now + 0.15);
-            } catch (e) {
-                console.warn('Toast audio failed:', e);
-            }
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 1500);
-
+            } catch (e) { console.warn('Toast audio failed:', e); }
+            setTimeout(() => toast.classList.remove('show'), 1500);
         }
 
         function updateScorecard() {
             const el = document.getElementById('scorecard');
             if (!el) return;
-            // 싱글 모드: 내 점수표만 표시
             el.innerHTML = renderCard(myCard, true, '점수표');
         }
 
@@ -931,8 +539,6 @@
             const toast = document.getElementById('score-toast');
             toast.innerHTML = `<div class="toast-cat">${category}</div><div class="toast-score">+${score}</div>`;
             toast.classList.add('show');
-            
-            // 알림음 재생
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const now = audioContext.currentTime;
@@ -945,30 +551,21 @@
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
                 osc.start(now);
                 osc.stop(now + 0.15);
-            } catch (e) {
-                console.warn('Toast audio failed:', e);
-            }
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 1500);
+            } catch (e) { console.warn('Toast audio failed:', e); }
+            setTimeout(() => toast.classList.remove('show'), 1500);
         }
 
         function pickCategory(i) {
             if (rollsLeft === 3 || gameOver) return;
-            clearTurnTimer(); // 점수 선택 시 타이머 정지
+            clearTurnTimer(); 
 
-            // 점수 선택 시 AI 추천 영역 즉시 초기화
             const aiBreakdown = document.getElementById('ai-breakdown');
             if (aiBreakdown) aiBreakdown.innerHTML = '';
 
             let score = calcScore(dice, i);
 
-            // Yacht 보너스 처리: Yacht 칸에 이미 50점이 기록되어 있고, 현재 주사위가 Yacht를 만족하는 경우
             if (calcScore(dice, 11) === 50 && myCard[11] >= 50 && i !== 11 && score > 0) {
-                // Yacht 칸에 100점 보너스 추가 (누적)
                 myCard[11] += 100;
-                // 선택한 칸에는 정상 점수 기록
                 myCard[i] = score;
                 showToast(`🏆 Yacht Bonus: ${CATS[i]} +${score}점, Yacht +100점`, score);
                 dice = [1,1,1,1,1];
@@ -981,7 +578,6 @@
                 return;
             }
 
-            // 일반 점수 기록
             myCard[i] = score;
             showToast(CATS[i], score);
 
@@ -989,28 +585,18 @@
             kept = [0,0,0,0,0];
             rollsLeft = 3;
             aiRec = null;
-            startTurnTimer(); // 점수 선택 후 타이머 재시작
+            startTurnTimer(); 
 
-            // 싱글 모드: 턴 전환 없음
-
-            // 게임 종료 체크 (점수표가 모두 채워졌을 때)
             const myDone = myCard.every(v => v !== null);
             if (myDone) {
                 gameOver = true;
                 const myTotal = calcTotals(myCard).total;
-                const resultMsg = `최종 점수: ${myTotal}`;
                 const statusEl = document.getElementById('game-status');
-                if (statusEl) statusEl.innerText = `🎉 게임 종료! ${resultMsg}`;
-
+                if (statusEl) statusEl.innerText = `🎉 게임 종료! 최종 점수: ${myTotal}`;
                 showGameOverToast(myTotal, 0);
-
-                // 게임 결과 저장
-                if (username) {
-                    saveGameResult(username, myTotal, null, 0);
-                }
+                if (username) saveGameResult(username, myTotal, null, 0);
             }
 
-            // 로컬 상태 동기화
             GameState.setState({
                 dice: [...dice],
                 kept: [...kept],
@@ -1059,45 +645,19 @@
             window.location.replace('/');
         }
 
-        function passTurn() {
-            // 첫 굴림 전(rollsLeft=3)이고 점수 기록이 하나도 없을 때만 허용
-            const myEmpty = GameState.getMyCard().every(v => v === null);
-            const oppEmpty = GameState.getOppCard().every(v => v === null);
-            if (GameState.getRollsLeft() !== 3 || !myEmpty || !oppEmpty) return;
-            
-            // 턴을 상대방에게 넘김
-            turnOwner = opponentName;
-            refreshTurnUI();
-            updateDice();
-            updateScorecard();
-            pushState();
-            
-            // 사용자 알림
-            const toast = document.getElementById('score-toast');
-            toast.innerHTML = `<div style="font-size:0.8em;">선공권을 ${opponentName}님에게 넘겼습니다</div>`;
-            toast.classList.add('show');
-            playTurnToastSound();
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 2000);
-        }
+        function passTurn() {}
 
-        // 비동기 초기화
         async function initializeGame() {
-            // 초기 화면 렌더링
             renderDice();
             updateScorecard();
             document.getElementById('ai-breakdown').innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">🎲 주사위를 굴려주세요</div>';
             
-            // Room label 숨기기
             const roomLabel = document.getElementById('room-label');
             if (roomLabel) roomLabel.textContent = '';
             
-            // 멀티플레이어 버튼 숨기기
             const multiControls = document.getElementById('multiplayer-controls');
             if (multiControls) multiControls.style.display = 'none';
             
-            // NEW GAME 버튼 표시
             const newGameBtn = document.getElementById('new-game-btn');
             if (newGameBtn) newGameBtn.style.display = 'inline-block';
             
@@ -1105,7 +665,6 @@
             startTurnTimer();
         }
 
-        // 게임 초기화 시작
         initializeGame().catch(e => console.error('Initialization error:', e));
     </script>
 </body>
