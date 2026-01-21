@@ -194,7 +194,6 @@ function renderCard(card, isMine, title) {
             h += `<div class="score-item subtotal" style="background:rgba(255,255,255,0.1); cursor:default;" data-desc="상단 항목의 점수 합계.\n목표는 63점 (각 숫자 3개씩)" data-dice="" onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"><span class="score-name">Subtotal (1-6)</span><span class="score-val">${totals.upper}/63</span></div>`;
             h += `<div class="score-item bonus" data-desc="상단 합계 63점 이상 \n→ 보너스 35점" data-dice="" onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"><span class="score-name">Upper Bonus</span><span class="score-val">+${totals.bonus}</span></div>`;
         }
-        // 전역 변수 참조: gameOver, rollsLeft, isMyTurn()
         const clickable = isMine && !gameOver && isMyTurn() && card[i] === null && rollsLeft < 3;
         const showPreview = !gameOver && card[i] === null && rollsLeft < 3 && ((isMine && isMyTurn()) || (!isMine && !isMyTurn()));
         const sc = calcScore(dice, i);
@@ -205,7 +204,7 @@ function renderCard(card, isMine, title) {
         const handlers = clickable
             ? `onclick="pickCategory(${i})" onmouseenter="showTip(this); previewScore(${i})" onmouseleave="hideTip(this); clearPreview()" ontouchstart="showTip(this); previewScore(${i})" ontouchend="hideTip(this); clearPreview()"`
             : `onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"`;
-        h += `<div class="${classes}" ${handlers} data-desc="${desc}" data-dice="${diceEx}"><span class="score-name">${c}</span><span class="score-val">${card[i] !== null ? card[i] : '-'}${p}</span></div>`;
+        h += `<div class="${classes}" ${handlers} data-desc="${desc}" data-dice="${diceEx}"><span class="score-name">${c}</span><span class="score-val">${card[i] !== null ? card[i] : '-'}${p}</span><div class="custom-tip" style="display:none;"></div></div>`;
     });
     h += `<div class="total-score"><span>TOTAL</span><span>${totals.total}</span></div>`;
     
@@ -216,19 +215,70 @@ function renderCard(card, isMine, title) {
 }
 
 function showTip(el) {
-    // 별도 설명 영역에만 표시
+    // 각 항목 위에 말풍선(div)로 표시
+    hideTip(el);
     const desc = el.getAttribute('data-desc') || '';
     const dice = el.getAttribute('data-dice') || '';
-    const descArea = document.getElementById('score-desc-area');
-    if (descArea && (desc || dice)) {
-        descArea.innerHTML = `<div class="tip-dice" style="font-size:1.15em; margin-bottom:6px;">${dice}</div><div class="tip-desc" style="font-size:1.05em; line-height:1.5; white-space:pre-line;">${desc}</div>`;
+    if (!desc && !dice) return;
+    const tip = el.querySelector('.custom-tip');
+    if (tip) {
+        tip.style.display = 'flex';
+        tip.style.flexDirection = 'column';
+        tip.style.alignItems = 'flex-start';
+        tip.innerHTML = `<div class="tip-dice" style="font-weight:bold; color:#00ffd0; font-size:1.08em; margin-bottom:2px;">${dice}</div><div class="tip-desc" style="font-size:1.04em; line-height:1.6; color:#fff;">${desc}</div>`;
+        tip.style.position = 'absolute';
+        tip.style.left = '60%';
+        //tip.style.top = '-64px';
+        const rect = el.getBoundingClientRect();
+        const tipHeight = 80; // 대략적인 툴팁 높이 예상값
+
+        // 요소가 화면 위쪽에 너무 붙어있으면(80px 미만), 툴팁을 요소 아래로 내립니다.
+        if (rect.top < tipHeight) {
+            tip.style.top = '100%'; // 요소 바로 아래
+            tip.style.marginTop = '10px'; // 약간의 간격
+            // 화살표 방향도 바꾸면 좋겠지만, JS 스타일로는 복잡하니 위치만 조정해도 충분합니다.
+        } else {
+            tip.style.top = '-64px'; // 기존 위치 유지
+            tip.style.marginTop = '0';
+        }
+        tip.style.transform = 'translateX(-50%)';
+        tip.style.background = 'linear-gradient(135deg, #23234a 80%, #1a1a2e 100%)';
+        tip.style.opacity = '0.97';
+        tip.style.color = '#fff';
+        tip.style.padding = '13px 20px 12px 20px';
+        tip.style.borderRadius = '13px';
+        tip.style.fontSize = '1em';
+        tip.style.boxShadow = '0 6px 32px 0 rgba(0,0,0,0.28), 0 1.5px 0 #00ffd0 inset';
+        tip.style.zIndex = '1500';
+        tip.style.whiteSpace = 'pre-line';
+        tip.style.pointerEvents = 'none';
+        tip.style.minWidth = '180px';
+        tip.style.maxWidth = '320px';
+        tip.style.width = 'max-content';
+        tip.style.height = 'auto';
+        tip.style.textAlign = 'left';
+        tip.style.fontFamily = 'inherit';
+        tip.style.overflowWrap = 'break-word';
+        tip.style.wordBreak = 'keep-all';
+        tip.style.border = '1.5px solid #00ffd0';
+        tip.style.overflow = 'visible';
+        tip.style.boxSizing = 'border-box';
+        // 모바일/좁은 화면 대응
+        if (window.innerWidth < 600) {
+            tip.style.fontSize = '0.98em';
+            tip.style.padding = '9px 8px 8px 8px';
+            tip.style.minWidth = '120px';
+            tip.style.maxWidth = '90vw';
+            tip.style.width = 'auto';
+            tip.style.top = '-54px';
+        }
     }
 }
 
 function hideTip(el) {
-    // 별도 설명 영역 초기화
-    const descArea = document.getElementById('score-desc-area');
-    if (descArea) descArea.innerHTML = '<div style="color:#999; text-align:center; padding:8px; font-size:0.95em;">점수 항목에 마우스를 올리면 설명이 표시됩니다.</div>';
+    // 말풍선 숨김
+    const tip = el.querySelector('.custom-tip');
+    if (tip) tip.style.display = 'none';
 }
 
 function previewScore(i) {
@@ -239,18 +289,25 @@ function previewScore(i) {
     temp[i] = sc;
     const newTotals = calcTotals(temp);
 
+    // TOTAL 예상점수
     const totalEl = document.querySelector('.scorecard-area .total-score span:last-child');
     if (totalEl) {
         const diff = newTotals.total - curTotals.total;
         totalEl.innerHTML = `${curTotals.total} <span style="color:#00ffcc; font-size:0.8em"> (+${diff}) ➜ ${newTotals.total}</span>`;
     }
 
-    if (i < 6) {
-        const bonusEl = document.querySelector('.score-item.bonus .score-val');
-        if (bonusEl && newTotals.bonus > curTotals.bonus) {
-            bonusEl.innerHTML = `+${curTotals.bonus} <span style="color:#ffd700; font-weight:bold"> (+35) ➜ ${newTotals.bonus}</span>`;
-            bonusEl.parentElement.style.background = 'rgba(255, 215, 0, 0.25)';
-        }
+    // SUBTOTAL(상단합계) 예상점수
+    const subtotalEl = document.querySelector('.score-item.subtotal .score-val');
+    if (subtotalEl) {
+        const diff = newTotals.upper - curTotals.upper;
+        subtotalEl.innerHTML = `${curTotals.upper}/63 <span style="color:#00ffcc; font-size:0.8em"> (+${diff}) ➜ ${newTotals.upper}/63</span>`;
+    }
+
+    // 보너스 예상점수
+    const bonusEl = document.querySelector('.score-item.bonus .score-val');
+    if (bonusEl && newTotals.bonus > curTotals.bonus) {
+        bonusEl.innerHTML = `+${curTotals.bonus} <span style="color:#ffd700; font-weight:bold"> (+35) ➜ ${newTotals.bonus}</span>`;
+        bonusEl.parentElement.style.background = 'rgba(255, 215, 0, 0.25)';
     }
 }
 
