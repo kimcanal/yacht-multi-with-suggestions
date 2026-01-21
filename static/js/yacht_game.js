@@ -34,7 +34,7 @@ const GameState = (() => {
     };
 })();
 
-const CATS = ['Ones','Twos','Threes','Fours','Fives','Sixes','Choice','4 of a Kind','Full House','Single Straight','Large Straight','Yacht'];
+const CATS = ['Ones','Twos','Threes','Fours','Fives','Sixes','Choice','4 of a Kind','Full House','Small Straight','Large Straight','Yacht'];
 
 const CAT_DESC = {
     'Ones': '1이 나온 주사위 눈의 총합 \n(최대 5점)',
@@ -46,7 +46,7 @@ const CAT_DESC = {
     'Choice': '주사위 눈 5개의 총합 (최대 30점)',
     '4 of a Kind': '동일한 주사위 눈이 4개 이상\n → 주사위 5개의 총합 \n(최대 30점)',
     'Full House': '같은 숫자 3개 + 같은 숫자 2개\n → 주사위 5개의 총합 \n(예: ⚄⚄ + ⚅⚅⚅ = 28점)',
-    'Single Straight': '연속된 주사위 눈 4개 이상\n → 고정 15점 \n(예: 1-2-3-4, 2-3-4-5, 3-4-5-6)',
+    'Small Straight': '연속된 주사위 눈 4개 이상\n → 고정 15점 \n(예: 1-2-3-4, 2-3-4-5, 3-4-5-6)',
     'Large Straight': '연속된 주사위 눈 5개\n → 고정 30점 \n(1-2-3-4-5 또는 2-3-4-5-6)',
     'Yacht': '동일한 주사위 눈 5개 → 고정 50점\n\n🏆 Yacht Bonus: 이미 Yacht 50점을 받은 후 다시 Yacht를 굴리면,\n다른 칸에 0이 아닌 점수를 기록할 때 추가로 +100점을 받습니다!'
 };
@@ -61,7 +61,7 @@ const CAT_DICE = {
     'Choice': '⚂⚃⚄⚅⚅ = 24점',
     '4 of a Kind': '⚄⚅⚅⚅⚅ = 29점',
     'Full House': '⚄⚄⚅⚅⚅ = 28점',
-    'Single Straight': '⚀⚁⚂⚃⚄ = 15점',
+    'Small Straight': '⚀⚁⚂⚃⚄ = 15점',
     'Large Straight': '⚁⚂⚃⚄⚅ = 30점',
     'Yacht': '⚀⚀⚀⚀⚀ = 50점'
 };
@@ -131,7 +131,7 @@ function calcScore(d, i) {
         if (v.length === 2 && v[0] === 2 && v[1] === 3) return d.reduce((a, b) => a + b);
         return 0;
     }
-    if (i === 9) { // Single Straight
+    if (i === 9) { // Small Straight
         const u = [...new Set(d)].sort((a,b) => a-b);
         const straights = [[1,2,3,4], [2,3,4,5], [3,4,5,6]];
         return straights.some(s => s.every(x => u.includes(x))) ? 15 : 0;
@@ -216,19 +216,19 @@ function renderCard(card, isMine, title) {
 }
 
 function showTip(el) {
-    hideTip(el);
+    // 별도 설명 영역에만 표시
     const desc = el.getAttribute('data-desc') || '';
     const dice = el.getAttribute('data-dice') || '';
-    if (!desc && !dice) return;
-    const tip = document.createElement('div');
-    tip.className = 'custom-tip';
-    tip.innerHTML = `<div class="tip-dice">${dice}</div><div class="tip-desc">${desc}</div>`;
-    el.appendChild(tip);
+    const descArea = document.getElementById('score-desc-area');
+    if (descArea && (desc || dice)) {
+        descArea.innerHTML = `<div class="tip-dice" style="font-size:1.15em; margin-bottom:6px;">${dice}</div><div class="tip-desc" style="font-size:1.05em; line-height:1.5; white-space:pre-line;">${desc}</div>`;
+    }
 }
 
 function hideTip(el) {
-    const tip = el.querySelector('.custom-tip');
-    if (tip) tip.remove();
+    // 별도 설명 영역 초기화
+    const descArea = document.getElementById('score-desc-area');
+    if (descArea) descArea.innerHTML = '<div style="color:#999; text-align:center; padding:8px; font-size:0.95em;">점수 항목에 마우스를 올리면 설명이 표시됩니다.</div>';
 }
 
 function previewScore(i) {
