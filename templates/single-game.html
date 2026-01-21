@@ -191,6 +191,7 @@
 
         <div class="scorecard-area">
             <div id="scorecard"></div>
+            <div id="score-desc-area" class="ai-breakdown" style="margin-top:18px;"></div>
         </div>
     </div>
 
@@ -203,7 +204,7 @@
 
         function startTurnTimer() {
             clearTurnTimer();
-            if (rollsLeft > 0 && !gameOver && !isRolling) {
+            if (rollsLeft !== 0 && rollsLeft !== 3 && !gameOver && !isRolling) {
                 timerLeft = 30;
                 document.getElementById('timer-bar').style.display = 'block';
                 document.getElementById('timer-count').innerText = timerLeft;
@@ -318,7 +319,7 @@
                 if (keepBtn && keepText) {
                     keepBtn.className = 'keep-btn';
                     
-                    if (rollsLeft >= 3 || rollsLeft === 0 || gameOver || isRolling || !isMyTurn()) {
+                    if (rollsLeft === 3 || rollsLeft === 0 || gameOver || isRolling || !isMyTurn()) {
                         keepBtn.disabled = true;
                         keepBtn.style.opacity = '0.5';
                         keepBtn.style.cursor = 'not-allowed';
@@ -356,7 +357,7 @@
             document.getElementById('roll-btn').disabled = GameState.getRollsLeft() <= 0 || GameState.isGameOver() || isRolling || !isMyTurn();
             
             // 타이머 표시/숨김 처리
-            if (rollsLeft > 0 && !gameOver) {
+            if (rollsLeft !== 0 && rollsLeft !== 3  && !gameOver) {
                 document.getElementById('timer-bar').style.display = 'block';
             } else {
                 document.getElementById('timer-bar').style.display = 'none';
@@ -421,7 +422,7 @@
 
             isRolling = true;
             aiRec = null; 
-            document.getElementById('ai-breakdown').innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">🎲 계산 중...</div>';
+            document.getElementById('ai-breakdown').innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:1.1em;">🎲 계산 중...</div>';
             updateDice(); 
 
             for (let i = 0; i < 5; i++) {
@@ -533,6 +534,9 @@
             const el = document.getElementById('scorecard');
             if (!el) return;
             el.innerHTML = renderCard(myCard, true, '점수표');
+            // 점수 설명 영역 초기화
+            const descArea = document.getElementById('score-desc-area');
+            if (descArea) descArea.innerHTML = '<div style="color:#999; text-align:center; padding:8px; font-size:0.95em;">점수 항목에 마우스를 올리면 설명이 표시됩니다.</div>';
         }
 
         function showToast(category, score) {
@@ -630,12 +634,7 @@
             })
             .then(r => r.json())
             .then(data => {
-                if (data.status === 'success') {
-                    setTimeout(() => {
-                        alert(`게임 종료!\n\n최종 점수: ${finalScore}점\n\n로비로 이동합니다.`);
-                        window.location.replace('/');
-                    }, 800);
-                }
+                console.log('Game saved:', data);
             })
             .catch(e => console.error('Failed to save game:', e));
         }

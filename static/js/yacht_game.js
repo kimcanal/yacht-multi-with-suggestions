@@ -34,7 +34,7 @@ const GameState = (() => {
     };
 })();
 
-const CATS = ['Ones','Twos','Threes','Fours','Fives','Sixes','Choice','4 of a Kind','Full House','Single Straight','Large Straight','Yacht'];
+const CATS = ['Ones','Twos','Threes','Fours','Fives','Sixes','Choice','4 of a Kind','Full House','Small Straight','Large Straight','Yacht'];
 
 const CAT_DESC = {
     'Ones': '1이 나온 주사위 눈의 총합 \n(최대 5점)',
@@ -46,7 +46,7 @@ const CAT_DESC = {
     'Choice': '주사위 눈 5개의 총합 (최대 30점)',
     '4 of a Kind': '동일한 주사위 눈이 4개 이상\n → 주사위 5개의 총합 \n(최대 30점)',
     'Full House': '같은 숫자 3개 + 같은 숫자 2개\n → 주사위 5개의 총합 \n(예: ⚄⚄ + ⚅⚅⚅ = 28점)',
-    'Single Straight': '연속된 주사위 눈 4개 이상\n → 고정 15점 \n(예: 1-2-3-4, 2-3-4-5, 3-4-5-6)',
+    'Small Straight': '연속된 주사위 눈 4개 이상\n → 고정 15점 \n(예: 1-2-3-4, 2-3-4-5, 3-4-5-6)',
     'Large Straight': '연속된 주사위 눈 5개\n → 고정 30점 \n(1-2-3-4-5 또는 2-3-4-5-6)',
     'Yacht': '동일한 주사위 눈 5개 → 고정 50점\n\n🏆 Yacht Bonus: 이미 Yacht 50점을 받은 후 다시 Yacht를 굴리면,\n다른 칸에 0이 아닌 점수를 기록할 때 추가로 +100점을 받습니다!'
 };
@@ -61,7 +61,7 @@ const CAT_DICE = {
     'Choice': '⚂⚃⚄⚅⚅ = 24점',
     '4 of a Kind': '⚄⚅⚅⚅⚅ = 29점',
     'Full House': '⚄⚄⚅⚅⚅ = 28점',
-    'Single Straight': '⚀⚁⚂⚃⚄ = 15점',
+    'Small Straight': '⚀⚁⚂⚃⚄ = 15점',
     'Large Straight': '⚁⚂⚃⚄⚅ = 30점',
     'Yacht': '⚀⚀⚀⚀⚀ = 50점'
 };
@@ -131,7 +131,7 @@ function calcScore(d, i) {
         if (v.length === 2 && v[0] === 2 && v[1] === 3) return d.reduce((a, b) => a + b);
         return 0;
     }
-    if (i === 9) { // Single Straight
+    if (i === 9) { // Small Straight
         const u = [...new Set(d)].sort((a,b) => a-b);
         const straights = [[1,2,3,4], [2,3,4,5], [3,4,5,6]];
         return straights.some(s => s.every(x => u.includes(x))) ? 15 : 0;
@@ -194,7 +194,6 @@ function renderCard(card, isMine, title) {
             h += `<div class="score-item subtotal" style="background:rgba(255,255,255,0.1); cursor:default;" data-desc="상단 항목의 점수 합계.\n목표는 63점 (각 숫자 3개씩)" data-dice="" onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"><span class="score-name">Subtotal (1-6)</span><span class="score-val">${totals.upper}/63</span></div>`;
             h += `<div class="score-item bonus" data-desc="상단 합계 63점 이상 \n→ 보너스 35점" data-dice="" onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"><span class="score-name">Upper Bonus</span><span class="score-val">+${totals.bonus}</span></div>`;
         }
-        // 전역 변수 참조: gameOver, rollsLeft, isMyTurn()
         const clickable = isMine && !gameOver && isMyTurn() && card[i] === null && rollsLeft < 3;
         const showPreview = !gameOver && card[i] === null && rollsLeft < 3 && ((isMine && isMyTurn()) || (!isMine && !isMyTurn()));
         const sc = calcScore(dice, i);
@@ -205,7 +204,7 @@ function renderCard(card, isMine, title) {
         const handlers = clickable
             ? `onclick="pickCategory(${i})" onmouseenter="showTip(this); previewScore(${i})" onmouseleave="hideTip(this); clearPreview()" ontouchstart="showTip(this); previewScore(${i})" ontouchend="hideTip(this); clearPreview()"`
             : `onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"`;
-        h += `<div class="${classes}" ${handlers} data-desc="${desc}" data-dice="${diceEx}"><span class="score-name">${c}</span><span class="score-val">${card[i] !== null ? card[i] : '-'}${p}</span></div>`;
+        h += `<div class="${classes}" ${handlers} data-desc="${desc}" data-dice="${diceEx}"><span class="score-name">${c}</span><span class="score-val">${card[i] !== null ? card[i] : '-'}${p}</span><div class="custom-tip" style="display:none;"></div></div>`;
     });
     h += `<div class="total-score"><span>TOTAL</span><span>${totals.total}</span></div>`;
     
@@ -216,19 +215,70 @@ function renderCard(card, isMine, title) {
 }
 
 function showTip(el) {
+    // 각 항목 위에 말풍선(div)로 표시
     hideTip(el);
     const desc = el.getAttribute('data-desc') || '';
     const dice = el.getAttribute('data-dice') || '';
     if (!desc && !dice) return;
-    const tip = document.createElement('div');
-    tip.className = 'custom-tip';
-    tip.innerHTML = `<div class="tip-dice">${dice}</div><div class="tip-desc">${desc}</div>`;
-    el.appendChild(tip);
+    const tip = el.querySelector('.custom-tip');
+    if (tip) {
+        tip.style.display = 'flex';
+        tip.style.flexDirection = 'column';
+        tip.style.alignItems = 'flex-start';
+        tip.innerHTML = `<div class="tip-dice" style="font-weight:bold; color:#00ffd0; font-size:1.08em; margin-bottom:2px;">${dice}</div><div class="tip-desc" style="font-size:1.04em; line-height:1.6; color:#fff;">${desc}</div>`;
+        tip.style.position = 'absolute';
+        tip.style.left = '60%';
+        //tip.style.top = '-64px';
+        const rect = el.getBoundingClientRect();
+        const tipHeight = 80; // 대략적인 툴팁 높이 예상값
+
+        // 요소가 화면 위쪽에 너무 붙어있으면(80px 미만), 툴팁을 요소 아래로 내립니다.
+        if (rect.top < tipHeight) {
+            tip.style.top = '100%'; // 요소 바로 아래
+            tip.style.marginTop = '10px'; // 약간의 간격
+            // 화살표 방향도 바꾸면 좋겠지만, JS 스타일로는 복잡하니 위치만 조정해도 충분합니다.
+        } else {
+            tip.style.top = '-64px'; // 기존 위치 유지
+            tip.style.marginTop = '0';
+        }
+        tip.style.transform = 'translateX(-50%)';
+        tip.style.background = 'linear-gradient(135deg, #23234a 80%, #1a1a2e 100%)';
+        tip.style.opacity = '0.97';
+        tip.style.color = '#fff';
+        tip.style.padding = '13px 20px 12px 20px';
+        tip.style.borderRadius = '13px';
+        tip.style.fontSize = '1em';
+        tip.style.boxShadow = '0 6px 32px 0 rgba(0,0,0,0.28), 0 1.5px 0 #00ffd0 inset';
+        tip.style.zIndex = '1500';
+        tip.style.whiteSpace = 'pre-line';
+        tip.style.pointerEvents = 'none';
+        tip.style.minWidth = '180px';
+        tip.style.maxWidth = '320px';
+        tip.style.width = 'max-content';
+        tip.style.height = 'auto';
+        tip.style.textAlign = 'left';
+        tip.style.fontFamily = 'inherit';
+        tip.style.overflowWrap = 'break-word';
+        tip.style.wordBreak = 'keep-all';
+        tip.style.border = '1.5px solid #00ffd0';
+        tip.style.overflow = 'visible';
+        tip.style.boxSizing = 'border-box';
+        // 모바일/좁은 화면 대응
+        if (window.innerWidth < 600) {
+            tip.style.fontSize = '0.98em';
+            tip.style.padding = '9px 8px 8px 8px';
+            tip.style.minWidth = '120px';
+            tip.style.maxWidth = '90vw';
+            tip.style.width = 'auto';
+            tip.style.top = '-54px';
+        }
+    }
 }
 
 function hideTip(el) {
+    // 말풍선 숨김
     const tip = el.querySelector('.custom-tip');
-    if (tip) tip.remove();
+    if (tip) tip.style.display = 'none';
 }
 
 function previewScore(i) {
@@ -239,18 +289,25 @@ function previewScore(i) {
     temp[i] = sc;
     const newTotals = calcTotals(temp);
 
+    // TOTAL 예상점수
     const totalEl = document.querySelector('.scorecard-area .total-score span:last-child');
     if (totalEl) {
         const diff = newTotals.total - curTotals.total;
         totalEl.innerHTML = `${curTotals.total} <span style="color:#00ffcc; font-size:0.8em"> (+${diff}) ➜ ${newTotals.total}</span>`;
     }
 
-    if (i < 6) {
-        const bonusEl = document.querySelector('.score-item.bonus .score-val');
-        if (bonusEl && newTotals.bonus > curTotals.bonus) {
-            bonusEl.innerHTML = `+${curTotals.bonus} <span style="color:#ffd700; font-weight:bold"> (+35) ➜ ${newTotals.bonus}</span>`;
-            bonusEl.parentElement.style.background = 'rgba(255, 215, 0, 0.25)';
-        }
+    // SUBTOTAL(상단합계) 예상점수
+    const subtotalEl = document.querySelector('.score-item.subtotal .score-val');
+    if (subtotalEl) {
+        const diff = newTotals.upper - curTotals.upper;
+        subtotalEl.innerHTML = `${curTotals.upper}/63 <span style="color:#00ffcc; font-size:0.8em"> (+${diff}) ➜ ${newTotals.upper}/63</span>`;
+    }
+
+    // 보너스 예상점수
+    const bonusEl = document.querySelector('.score-item.bonus .score-val');
+    if (bonusEl && newTotals.bonus > curTotals.bonus) {
+        bonusEl.innerHTML = `+${curTotals.bonus} <span style="color:#ffd700; font-weight:bold"> (+35) ➜ ${newTotals.bonus}</span>`;
+        bonusEl.parentElement.style.background = 'rgba(255, 215, 0, 0.25)';
     }
 }
 

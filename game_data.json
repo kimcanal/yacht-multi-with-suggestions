@@ -17,7 +17,215 @@
       "total_score": 0,
       "games_played": 0,
       "created_at": "2026-01-11T08:13:51.289039"
+    },
+    "ㅎㅇ": {
+      "username": "ㅎㅇ",
+      "wins": 0,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 0,
+      "games_played": 0,
+      "created_at": "2026-01-19T03:23:55.620192"
+    },
+    "윤하": {
+      "username": "윤하",
+      "wins": 0,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 0,
+      "games_played": 0,
+      "created_at": "2026-01-19T03:23:55.620895"
+    },
+    "ㅋㅋ": {
+      "username": "ㅋㅋ",
+      "wins": 0,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 0,
+      "games_played": 0,
+      "created_at": "2026-01-19T03:44:00.005775"
+    },
+    "ㅠㅠ": {
+      "username": "ㅠㅠ",
+      "wins": 0,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 0,
+      "games_played": 0,
+      "created_at": "2026-01-19T03:44:00.006154"
+    },
+    "rere": {
+      "username": "rere",
+      "wins": 0,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 0,
+      "games_played": 0,
+      "created_at": "2026-01-19T11:28:14.094308"
+    },
+    "re": {
+      "username": "re",
+      "wins": 0,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 0,
+      "games_played": 0,
+      "created_at": "2026-01-19T11:28:14.095413"
+    },
+    "ㅇㅇㅇ": {
+      "username": "ㅇㅇㅇ",
+      "wins": 0,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 0,
+      "games_played": 0,
+      "created_at": "2026-01-19T11:31:18.912007"
+    },
+    "ㅁㅁㅁ": {
+      "username": "ㅁㅁㅁ",
+      "wins": 0,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 0,
+      "games_played": 0,
+      "created_at": "2026-01-19T11:31:18.913183"
+    },
+    "Player": {
+      "username": "Player",
+      "wins": 5,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 334,
+      "games_played": 5,
+      "created_at": "2026-01-19T11:49:26.701868"
+    },
+    "방구맨": {
+      "username": "방구맨",
+      "wins": 1,
+      "draws": 1,
+      "losses": 0,
+      "total_score": 136,
+      "games_played": 2,
+      "created_at": "2026-01-21T15:12:11.500847"
+    },
+    "남도일": {
+      "username": "남도일",
+      "wins": 0,
+      "draws": 1,
+      "losses": 1,
+      "total_score": 109,
+      "games_played": 2,
+      "created_at": "2026-01-21T15:12:11.501844"
+    },
+    "LUCA": {
+      "username": "LUCA",
+      "wins": 1,
+      "draws": 0,
+      "losses": 1,
+      "total_score": 308,
+      "games_played": 2,
+      "created_at": "2026-01-21T15:28:49.184595"
+    },
+    "쫄튀규진": {
+      "username": "쫄튀규진",
+      "wins": 1,
+      "draws": 0,
+      "losses": 1,
+      "total_score": 301,
+      "games_played": 2,
+      "created_at": "2026-01-21T15:28:49.185728"
+    },
+    "333": {
+      "username": "333",
+      "wins": 0,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 0,
+      "games_played": 0,
+      "created_at": "2026-01-21T15:35:20.082617"
+    },
+    "123": {
+      "username": "123",
+      "wins": 0,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 0,
+      "games_played": 0,
+      "created_at": "2026-01-21T15:35:20.083876"
     }
   },
-  "games": []
+  "games": [
+    {
+      "player1": "Player",
+      "score1": 41,
+      "player2": null,
+      "score2": 0,
+      "winner": "Player",
+      "timestamp": "2026-01-19T11:58:31.549412"
+    },
+    {
+      "player1": "Player",
+      "score1": 38,
+      "player2": null,
+      "score2": 0,
+      "winner": "Player",
+      "timestamp": "2026-01-19T12:01:20.904697"
+    },
+    {
+      "player1": "Player",
+      "score1": 40,
+      "player2": null,
+      "score2": 0,
+      "winner": "Player",
+      "timestamp": "2026-01-19T12:02:32.784410"
+    },
+    {
+      "player1": "Player",
+      "score1": 33,
+      "player2": null,
+      "score2": 0,
+      "winner": "Player",
+      "timestamp": "2026-01-19T12:03:00.201635"
+    },
+    {
+      "player1": "방구맨",
+      "score1": 136,
+      "player2": "남도일",
+      "score2": 109,
+      "winner": "방구맨",
+      "timestamp": "2026-01-21T15:12:16.409659"
+    },
+    {
+      "player1": "Player",
+      "score1": 182,
+      "player2": null,
+      "score2": 0,
+      "winner": "Player",
+      "timestamp": "2026-01-21T15:16:01.595706"
+    },
+    {
+      "player1": "남도일",
+      "score1": 0,
+      "player2": "방구맨",
+      "score2": 0,
+      "winner": "방구맨",
+      "timestamp": "2026-01-21T15:19:42.436793"
+    },
+    {
+      "player1": "쫄튀규진",
+      "score1": 128,
+      "player2": "LUCA",
+      "score2": 125,
+      "winner": "쫄튀규진",
+      "timestamp": "2026-01-21T15:28:57.321864"
+    },
+    {
+      "player1": "LUCA",
+      "score1": 183,
+      "player2": "쫄튀규진",
+      "score2": 173,
+      "winner": "LUCA",
+      "timestamp": "2026-01-21T15:38:15.392686"
+    }
+  ]
 }

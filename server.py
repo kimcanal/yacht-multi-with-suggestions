@@ -48,6 +48,7 @@ def _default_room_state():
         "player_kept": {},  # username -> kept array
         "player_rolls_left": {},  # username -> rolls_left
         "turn": None,
+        "turn_start_time": None,  # 턴 시작 시각 (timestamp)
         "game_over": False,
         "ai_msg": "AI: 새 게임을 시작하세요",
         "version": 0,
@@ -220,6 +221,7 @@ def join_room(code):
         state["player_rolls_left"] = {host: 3, guest: 3}
         state["players"] = room["players"]
         state["turn"] = host  # 호스트가 먼저 시작
+        state["turn_start_time"] = time.time()
         state["game_over"] = False
         state["ai_msg"] = "AI: 새 게임을 시작하세요"
         state["version"] = old_state.get("version", 0) + 1  # 버전 증가로 강제 업데이트
@@ -259,11 +261,18 @@ def get_room(code):
         st['players'] = room['players']
         room['state'] = st
 
+    state = room.get("state", _default_room_state())
+    # 타이머 남은 시간 계산
+    turn_left_seconds = None
+    if state.get("turn_start_time"):
+        now = time.time()
+        turn_left_seconds = max(0, 30 - int(now - state["turn_start_time"]))
+    state["turn_left_seconds"] = turn_left_seconds
     return jsonify({
         "code": code,
         "host": room["host"],
         "players": room["players"],
-        "state": room.get("state", _default_room_state()),
+        "state": state,
     })
 
 
@@ -302,6 +311,15 @@ def sync_room(code):
     state.setdefault("player_rolls_left", {})[username] = rolls_left
 
     incoming_version = state.get("version", 0) + 1
+    # 턴 소유자 변경 또는 rolls_left가 3으로 초기화될 때 turn_start_time 갱신
+    prev_turn = state.get("turn")
+    new_turn = data.get("turn", state.get("turn"))
+    prev_rolls_left = state.get("rolls_left", 3)
+    new_rolls_left = rolls_left
+    turn_start_time = state.get("turn_start_time")
+    if (prev_turn != new_turn) or (prev_rolls_left != 3 and new_rolls_left == 3):
+        turn_start_time = time.time()
+
     new_state = {
         "dice": dice,
         "kept": kept,
@@ -310,7 +328,8 @@ def sync_room(code):
         "player_dice": state.get("player_dice", {}),
         "player_kept": state.get("player_kept", {}),
         "player_rolls_left": state.get("player_rolls_left", {}),
-        "turn": data.get("turn", state.get("turn")),
+        "turn": new_turn,
+        "turn_start_time": turn_start_time,
         "game_over": data.get("game_over", state["game_over"]),
         "players": state.get("players", room["players"]),
         "version": incoming_version,
@@ -372,9 +391,10 @@ def roll_dice(code):
     state["rolls_left"] = player_rolls_left[username]
     state["version"] = state.get("version", 0) + 1
     state["updated_by"] = username
+    state["turn_start_time"] = time.time()  # 턴 시작 시각 갱신
     room["state"] = state
     room["last_update"] = time.time()
-    
+
     return jsonify({"dice": new_dice, "rolls_left": state["rolls_left"], "state": state})
 
 @app.route('/api/rooms/<code>/leave', methods=['POST', 'GET'])
@@ -526,5 +546,5 @@ if __name__ == '__main__':
     # ... (ngrok 전송 스레드 실행 부분) ...
     print("🎲 Yacht Game AI Server Starting...")
     print("🌐 External: https://app.yatch-game.cloud")
-    print("🌐 Local:    http://localhost:8080")
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    print("🌐 Local:    http://localhost:9999")
+    app.run(host='0.0.0.0', port=9999, debug=True)
