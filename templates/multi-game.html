@@ -278,10 +278,9 @@
     <div class="game-wrapper">
         <div class="main-area">
             <div class="title">🎲 YACHT <span id="room-label" style="font-size:0.4em; color:#fff; opacity:0.8; margin-left:12px;"></span></div>
-            
+            <div id="observer-banner" class="observer-banner" style="display:none; background:rgba(255,80,80,0.2); border:1px solid #ff5050; color:#ffaaaa; padding:10px; border-radius:8px; text-align:center; margin-bottom:20px; font-weight:bold;">👁️ 관전자 모드: 실시간으로 게임을 구경 중입니다.</div>
             <div class="dice-area">
-                <div class="dice-grid" id="dice-grid">
-                    </div>
+                <div class="dice-grid" id="dice-grid"></div>
                 <div class="info-bar">
                     <div id="timer-bar" style="font-size:1.1em; color:#ff6b6b; margin:2px 0 0 0; font-weight:bold; display:none; line-height:2;">⏳<span id="timer-count">30</span>초 남았습니다</div>
                     <div class="rolls-remaining">남은 Roll: <span id="rolls-left">3</span>/3</div>
@@ -292,9 +291,12 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="controls">
+            <div class="controls" id="player-controls">
                 <button class="btn" onclick="rollDice()" id="roll-btn">🎲 ROLL</button>
+                <button class="btn" style="background:linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); box-shadow:0 4px 15px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
+            </div>
+            <div class="controls" id="observer-controls" style="display:none;">
+                <span style="color:#ffd700; font-size:1.1em;">👀 관전자 모드: 실시간으로 게임을 구경 중입니다.</span>
                 <button class="btn" style="background:linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); box-shadow:0 4px 15px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
             </div>
             
@@ -324,10 +326,74 @@
             localStorage.setItem('yacht_room', roomCode);
         }
 
-        const username = localStorage.getItem('yacht_username') || '';
+        let username = localStorage.getItem('yacht_username') || '';
+        var isObserver = false;
+        // 관전 모드 진입: ?mode=observer 파라미터가 있으면 관전자
+        if (params.get('mode') === 'observer') {
+            isObserver = true;
+            username = username || 'observer_' + Math.floor(Math.random()*10000);
+            localStorage.setItem('yacht_username', username);
+        }
         if (!username) {
             alert('닉네임 정보가 없습니다. 로비에서 다시 입장해주세요.');
             window.location.href = '/';
+        }
+                // --- [관전자 입장 처리] ---
+                async function tryObserveRoom() {
+                    if (!roomCode || !isObserver) return;
+                    try {
+                        const res = await fetch(`/api/rooms/${roomCode}/observe`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username })
+                        });
+                        if (!res.ok) {
+                            alert('관전 입장에 실패했습니다.');
+                            window.location.href = '/';
+                        }
+                    } catch (e) {
+                        alert('관전 입장 중 오류 발생.');
+                        window.location.href = '/';
+                    }
+                }
+                if (isObserver) {
+                    tryObserveRoom();
+                }
+                // --- [관전자 UI 처리] ---
+                function updateObserverUI() {
+                    if (isObserver) {
+                        document.getElementById('player-controls').style.display = 'none';
+                        document.getElementById('observer-controls').style.display = 'flex';
+                        const banner = document.getElementById('observer-banner');
+                        if (banner) banner.style.display = 'block';
+                    } else {
+                        document.getElementById('player-controls').style.display = 'flex';
+                        document.getElementById('observer-controls').style.display = 'none';
+                        const banner = document.getElementById('observer-banner');
+                        if (banner) banner.style.display = 'none';
+                    }
+                }
+                updateObserverUI();
+        // --- [관전자 입장 처리] ---
+        async function tryObserveRoom() {
+            if (!roomCode || !isObserver) return;
+            try {
+                const res = await fetch(`/api/rooms/${roomCode}/observe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                if (!res.ok) {
+                    alert('관전 입장에 실패했습니다.');
+                    window.location.href = '/';
+                }
+            } catch (e) {
+                alert('관전 입장 중 오류 발생.');
+                window.location.href = '/';
+            }
+        }
+        if (isObserver) {
+            tryObserveRoom();
         }
 
         let roomVersion = 0;
@@ -387,11 +453,18 @@
             }
             const timerBar = document.getElementById('timer-bar');
             timerBar.style.display = 'block';
-            
-            if (isMyTurn()) {
+
+            if (isObserver) {
+                // [수정됨] 관전자는 고정된 상대 이름이 아니라, 실시간 'turnOwner'를 표시
+                const currentTurnName = turnOwner || '플레이어';
+                timerBar.innerHTML = `⏳ ${currentTurnName} 턴: <span id="timer-count">${turnLeftSeconds}</span>초`;
+                timerBar.style.color = '#ffd700'; 
+            } else if (isMyTurn()) {
+                // [플레이어 - 내 턴]
                 timerBar.innerHTML = `⏳ <span id="timer-count">${turnLeftSeconds}</span>초 남았습니다`;
-                timerBar.style.color = '#ff6b6b';
+                timerBar.style.color = '#ff6b6b'; 
             } else {
+                // [플레이어 - 상대 턴]
                 const oppName = opponentName || '상대방';
                 timerBar.innerHTML = `⏳ ${oppName} 턴: <span id="timer-count">${turnLeftSeconds}</span>초`;
                 timerBar.style.color = '#ffd700';
@@ -485,7 +558,8 @@
                         if (data.players) {
                             const prevPlayerCount = roomPlayers.length;
                             roomPlayers = data.players;
-                            if (!roomPlayers.includes(username)) {
+                            // 관전자 모드에서는 강제 퇴장 없음
+                            if (!isObserver && !roomPlayers.includes(username)) {
                                 handleConnectionLost();
                                 resolve();
                                 return;
@@ -496,6 +570,18 @@
                                 console.log('상대 입장:', opp);
                             }
                         }
+                                // --- [관전자 UI 처리] ---
+                                function updateObserverUI() {
+                                    if (isObserver) {
+                                        document.getElementById('player-controls').style.display = 'none';
+                                        document.getElementById('observer-controls').style.display = 'flex';
+                                        // 추가로 점수판, 주사위 등 클릭/조작 이벤트 비활성화 필요시 구현
+                                    } else {
+                                        document.getElementById('player-controls').style.display = 'flex';
+                                        document.getElementById('observer-controls').style.display = 'none';
+                                    }
+                                }
+                                updateObserverUI();
                         if (data.state) {
                             turnLeftSeconds = data.state.turn_left_seconds != null ? data.state.turn_left_seconds : null;
                             applyRemoteState(data.state);
@@ -518,30 +604,42 @@
         function refreshTurnUI() {
             const statusEl = document.getElementById('game-status');
             if (!statusEl || GameState.isGameOver()) return;
-            if (!opponentName || roomPlayers.length < 2) {
-                statusEl.innerText = '⏳ 상대방 입장 대기 중...';
-            } else if (!isMyTurn()) {
-                statusEl.innerText = '⏸️ 상대 턴입니다';
+
+            // 타이머 일시정지 로직을 위한 변수
+            let timerPaused = false; 
+
+            if (isObserver) {
+                // [수정됨] 관전자: 현재 턴 주인의 이름을 표시
+                const currentTurnName = turnOwner || '플레이어';
+                statusEl.innerText = `🎲 ${currentTurnName} 님의 턴입니다`;
+                // 관전자는 선공권 넘기기 버튼 숨김
+                const passBtn = document.getElementById('pass-turn-btn');
+                if(passBtn) passBtn.style.display = 'none';
             } else {
-                statusEl.innerText = '🎲 주사위를 돌려주세요';
+                // [플레이어] 기존 로직 유지
+                if (!opponentName || roomPlayers.length < 2) {
+                    statusEl.innerText = '⏳ 상대방 입장 대기 중...';
+                } else if (!isMyTurn()) {
+                    statusEl.innerText = '⏸️ 상대 턴입니다';
+                } else {
+                    statusEl.innerText = '🎲 주사위를 돌려주세요';
+                }
+
+                // 선공권 넘기기 버튼 로직
+                const passBtn = document.getElementById('pass-turn-btn');
+                if (passBtn) {
+                    const myEmpty = GameState.getMyCard().every(v => v === null);
+                    const oppEmpty = GameState.getOppCard().every(v => v === null);
+                    if (myEmpty && oppEmpty && rollsLeft === 3 && !gameOver && opponentName && roomPlayers.length >= 2) {
+                        timerPaused = true;
+                    }
+                    const canPass = isMyTurn() && timerPaused;
+                    passBtn.style.display = canPass ? 'inline-flex' : 'none';
+                }
             }
 
-            // 선공권 넘기기 버튼 로직
-            const passBtn = document.getElementById('pass-turn-btn');
-            let timerPaused = false;
-            if (passBtn) {
-                const myEmpty = GameState.getMyCard().every(v => v === null);
-                const oppEmpty = GameState.getOppCard().every(v => v === null);
-                
-                if (myEmpty && oppEmpty && rollsLeft === 3 && !gameOver && opponentName && roomPlayers.length >= 2) {
-                    timerPaused = true;
-                }
-                
-                const canPass = isMyTurn() && timerPaused;
-                passBtn.style.display = canPass ? 'inline-flex' : 'none';
-            }
             updateDice();
-            
+            // timerPaused 변수 적용
             if (turnLeftSeconds != null && !gameOver && !timerPaused) {
                 startTurnTimer();
             } else {
@@ -624,7 +722,7 @@
         }
 
         function toggleLock(i) {
-            if (rollsLeft === 3 || gameOver || !isMyTurn()) return;
+            if (isObserver || rollsLeft === 3 || gameOver || !isMyTurn()) return;
             kept[i] = kept[i] ? 0 : 1;
             GameState.setKept(kept);
             updateDice();
@@ -660,126 +758,124 @@
             } catch (e) { console.warn('sync failed', e); }
         }
 
-        function applyRemoteState(state) {
-            if (!state) return;
-            if (typeof state.version === 'number' && state.version <= roomVersion) return;
-            isApplyingRemote = true;
-            roomVersion = state.version || roomVersion;
-            
-            const prevTurnOwner = turnOwner;
-            const playerDice = state.player_dice || {};
-            const playerKept = state.player_kept || {};
-            const playerRollsLeft = state.player_rolls_left || {};
+function applyRemoteState(state) {
+    if (!state) return;
+    if (typeof state.version === 'number' && state.version <= roomVersion) return;
+    isApplyingRemote = true;
+    roomVersion = state.version || roomVersion;
+    
+    const prevTurnOwner = turnOwner;
+    const playerDice = state.player_dice || {};
+    const playerKept = state.player_kept || {};
+    const playerRollsLeft = state.player_rolls_left || {};
 
-            if (!opponentName && state.players && state.players.length > 1) {
-                const opp = state.players.find(p => p !== username);
-                if (opp) opponentName = opp;
-            }
+    // 1. 관전자 모드일 때 플레이어 식별 (방장 vs 참가자)
+    let p1Name = roomPlayers[0]; // 보통 방장
+    let p2Name = roomPlayers[1]; // 참가자
 
-            const currentTurnOwner = state.turn;
-            const fallbackDice = [1,1,1,1,1];
-            const fallbackKept = [0,0,0,0,0];
+    // 2. 현재 턴 주인의 주사위 상태 가져오기
+    const currentTurnOwner = state.turn;
+    const fallbackDice = [1,1,1,1,1];
+    const fallbackKept = [0,0,0,0,0];
 
-            let diceToShow = GameState.getDice();
-            let keptToShow = GameState.getKept();
-            let rollsToShow = GameState.getRollsLeft();
-            if (currentTurnOwner && playerDice[currentTurnOwner]) {
-                diceToShow = playerDice[currentTurnOwner] || fallbackDice;
-                keptToShow = playerKept[currentTurnOwner] || fallbackKept;
-                rollsToShow = playerRollsLeft[currentTurnOwner] ?? 3;
-            }
+    let diceToShow = [1,1,1,1,1];
+    let keptToShow = [0,0,0,0,0];
+    let rollsToShow = 3;
 
-            GameState.setDice(diceToShow);
-            GameState.setKept(keptToShow);
-            GameState.setRollsLeft(rollsToShow);
-            GameState.setGameOver(state.game_over ?? GameState.isGameOver());
-            
-            const newPlayers = state.players || [];
-            const currentPlayerCount = newPlayers.length;
-            
-            // 상대 퇴장 시 게임 종료 처리
-            if (prevPlayerCount === 2 && currentPlayerCount === 1 && newPlayers.includes(username)) {
-                console.log('⚠️ 상대가 퇴장했습니다. 부전승!');
-                GameState.setGameOver(true);
-                const statusEl = document.getElementById('game-status');
-                if (statusEl) statusEl.innerText = '🚪 상대가 퇴장했습니다. 부전승!';
-                const myTotal = calcTotals(GameState.getMyCard()).total;
-                const oppTotal = calcTotals(GameState.getOppCard()).total;
-                setTimeout(() => showGameOverToast(myTotal, oppTotal), 500);
-            }
-            
-            roomPlayers = newPlayers;
-            prevPlayerCount = currentPlayerCount;
-            
-            if (!opponentName && roomPlayers.length > 1) {
-                const opp = roomPlayers.find(p => p !== username);
-                if (opp) opponentName = opp;
-            }
-            
-            if (state.turn) turnOwner = state.turn;
-            
-            const scores = state.scores || {};
-            const guessedOpp = Object.keys(scores).find(n => n !== username) || opponentName;
-            if (scores[username]) GameState.setMyCard(scores[username]);
-            if (guessedOpp && scores[guessedOpp]) {
-                opponentName = guessedOpp;
-                GameState.setOppCard(scores[guessedOpp]);
-            }
-            
-            GameState.setAiRec(state.ai_rec || null);
-            updateLocalVars();
-            
-            if (prevTurnOwner && prevTurnOwner !== username && turnOwner === username) {
-                const toast = document.getElementById('score-toast');
-                toast.innerHTML = `<div style="font-size:1.1em; font-weight:bold; color:#00ff00; text-shadow: 0 0 20px rgba(0, 255, 0, 0.8);">✨ 당신의 턴입니다!</div>`;
-                toast.classList.add('show');
-                playTurnToastSound();
-                setTimeout(() => toast.classList.remove('show'), 1500);
-            }
-            
-            const bd = document.getElementById('ai-breakdown');
-            const aiRec = GameState.getAiRec();
-            if (aiRec && aiRec.breakdown && aiRec.breakdown.length > 0) {
-                bd.innerHTML = aiRec.breakdown.map(item => {
-                    let color = '#ffd700';
-                    const barWidth = Math.min(item.prob * 100, 100);
-                    return `
-                        <div class="breakdown-item">
-                            <div style="flex: 1;">
-                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                                    <span style="font-size:1.3em; font-weight:bold; color:${color}">➤</span>
-                                    <span style="color:#ccc; font-weight:500">${item.name}</span>
-                                </div>
-                                <div style="font-size:0.9em; color:#aaa; margin-top:3px; margin-bottom:6px;">${item.keep_str}</div>
-                                <div style="background:rgba(0,0,0,0.3); border-radius:6px; height:6px; margin-right:8px;">
-                                    <div style="background:${color}; border-radius:6px; height:100%; width:${barWidth}%; transition:width 0.3s ease;"></div>
-                                </div>
-                            </div>
-                            <span class="breakdown-val" style="color:${color}; font-weight:bold; min-width:50px; text-align:right">${item.val_str}</span>
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                bd.innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">대기 중...</div>';
-            }
+    if (currentTurnOwner && playerDice[currentTurnOwner]) {
+        diceToShow = playerDice[currentTurnOwner] || fallbackDice;
+        keptToShow = playerKept[currentTurnOwner] || fallbackKept;
+        rollsToShow = playerRollsLeft[currentTurnOwner] ?? 3;
+    }
 
-            if (GameState.isGameOver()) {
-                const statusEl = document.getElementById('game-status');
-                if (statusEl) {
-                    const myTotal = calcTotals(GameState.getMyCard()).total;
-                    const oppTotal = calcTotals(GameState.getOppCard()).total;
-                    statusEl.innerText = `🎉 게임 종료! 나 ${myTotal} : 상대 ${oppTotal}`;
-                }
-                const myTotal = calcTotals(GameState.getMyCard()).total;
-                const oppTotal = calcTotals(GameState.getOppCard()).total;
-                showGameOverToast(myTotal, oppTotal);
-            }
-            
-            refreshTurnUI();
-            updateDice();
-            updateScorecard();
-            isApplyingRemote = false;
+    GameState.setDice(diceToShow);
+    GameState.setKept(keptToShow);
+    GameState.setRollsLeft(rollsToShow);
+    GameState.setGameOver(state.game_over ?? GameState.isGameOver());
+    
+    // 3. 플레이어 목록 업데이트
+    const newPlayers = state.players || [];
+    roomPlayers = newPlayers;
+    
+    // 상대방 이름 업데이트 (플레이어 입장에서)
+    if (!isObserver && !opponentName && roomPlayers.length > 1) {
+        const opp = roomPlayers.find(p => p !== username);
+        if (opp) opponentName = opp;
+    }
+    
+    if (state.turn) turnOwner = state.turn;
+    
+    // 4. 점수판 데이터 매핑 (가장 중요한 부분!)
+    const scores = state.scores || {};
+    
+    if (isObserver) {
+        // [관전자 로직] 나/상대 개념 없이 P1(왼쪽), P2(오른쪽) 고정
+        p1Name = roomPlayers[0] || 'Player 1';
+        p2Name = roomPlayers[1] || 'Player 2';
+        
+        if (scores[p1Name]) GameState.setMyCard(scores[p1Name]);
+        else GameState.setMyCard(Array(12).fill(null));
+
+        if (scores[p2Name]) GameState.setOppCard(scores[p2Name]);
+        else GameState.setOppCard(Array(12).fill(null));
+        
+    } else {
+        // [플레이어 로직] 기존 유지 (내 점수 vs 상대 점수)
+        if (scores[username]) GameState.setMyCard(scores[username]);
+        
+        const guessedOpp = Object.keys(scores).find(n => n !== username) || opponentName;
+        if (guessedOpp && scores[guessedOpp]) {
+            opponentName = guessedOpp;
+            GameState.setOppCard(scores[guessedOpp]);
         }
+    }
+    
+    // 5. AI 정보 및 기타 UI 업데이트
+    GameState.setAiRec(state.ai_rec || null);
+    updateLocalVars();
+    
+    // 내 턴 알림 (플레이어만)
+    if (!isObserver && prevTurnOwner && prevTurnOwner !== username && turnOwner === username) {
+        const toast = document.getElementById('score-toast');
+        toast.innerHTML = `<div style="font-size:1.1em; font-weight:bold; color:#00ff00;">✨ 당신의 턴입니다!</div>`;
+        toast.classList.add('show');
+        playTurnToastSound();
+        setTimeout(() => toast.classList.remove('show'), 1500);
+    }
+    
+    // AI Breakdown 표시
+    const bd = document.getElementById('ai-breakdown');
+    const aiRec = GameState.getAiRec();
+    if (aiRec && aiRec.breakdown && aiRec.breakdown.length > 0) {
+        bd.innerHTML = aiRec.breakdown.map(item => {
+            let color = '#ffd700';
+            const barWidth = Math.min(item.prob * 100, 100);
+            return `<div class="breakdown-item">
+                        <div style="flex:1;">
+                            <span style="color:#ccc;">${item.name}</span>
+                            <div style="background:rgba(0,0,0,0.3); height:4px; margin-top:4px;">
+                                <div style="background:${color}; height:100%; width:${barWidth}%;"></div>
+                            </div>
+                        </div>
+                        <span class="breakdown-val" style="color:${color};">${item.val_str}</span>
+                    </div>`;
+        }).join('');
+    } else {
+        bd.innerHTML = '<div style="color:#999; text-align:center;">대기 중...</div>';
+    }
+
+    // 게임 종료 처리
+    if (GameState.isGameOver()) {
+        const myTotal = calcTotals(GameState.getMyCard()).total;
+        const oppTotal = calcTotals(GameState.getOppCard()).total;
+        showGameOverToast(myTotal, oppTotal);
+    }
+    
+    refreshTurnUI();
+    updateDice();
+    updateScorecard(); // 여기서 이름표 업데이트
+    isApplyingRemote = false;
+}
 
         function startSyncPolling() {
             if (syncTimer) return;
@@ -931,16 +1027,72 @@
             } catch (e) { console.error(e); }
         }
 
-        function updateScorecard() {
-            const el = document.getElementById('scorecard');
-            if (!el) return;
-            const oppLabel = opponentName || '상대 대기 중';
-            el.innerHTML = `
-            <div style="display:flex; gap:16px; flex-wrap:wrap;">
-                <div style="flex:1; min-width:280px;">${renderCard(myCard, true, '나 (' + username + ')')}</div>
-                <div style="flex:1; min-width:280px;">${renderCard(oppCard, false, '상대 (' + oppLabel + ')')}</div>
-            </div>`;
-        }
+function updateScorecard() {
+    const el = document.getElementById('scorecard');
+    if (!el) return;
+
+    const safeMyCard = Array.isArray(myCard) ? myCard : Array(12).fill(null);
+    const safeOppCard = Array.isArray(oppCard) ? oppCard : Array(12).fill(null);
+
+    if (isObserver) {
+        // [관전자 모드]
+        const p1 = (roomPlayers && roomPlayers[0]) ? roomPlayers[0] : 'Player 1';
+        const p2 = (roomPlayers && roomPlayers[1]) ? roomPlayers[1] : 'Waiting...';
+
+        // 1. 기본 렌더링 (일단 둘 다 기본 색상으로 그리기)
+        const html1 = renderCard(safeMyCard, false, p1);
+        const html2 = renderCard(safeOppCard, false, p2);
+
+        // ID를 부여하여 영역을 확실히 구분
+        el.innerHTML = `
+        <div style="display:flex; gap:16px; flex-wrap:wrap;">
+            <div id="p1-card" style="flex:1; min-width:280px;">${html1}</div>
+            <div id="p2-card" style="flex:1; min-width:280px;">${html2}</div>
+        </div>`;
+
+        // 2. DOM 요소를 직접 찾아서 스타일 변경 (가장 안전한 방법)
+        const p1Title = el.querySelector('#p1-card .scorecard-title');
+        const p2Title = el.querySelector('#p2-card .scorecard-title');
+        
+        // 형광 초록 스타일
+        const activeStyle = { 
+            color: '#00ff00', 
+            textShadow: '0 0 20px rgba(0, 255, 0, 0.8)', 
+            fontWeight: 'bold' 
+        };
+        // 기본 스타일
+        const defaultStyle = { 
+            color: '#00ffcc', 
+            textShadow: 'none', 
+            fontWeight: 'bold' // 원래 폰트 굵기 유지
+        };
+
+        // 턴 주인에 따라 스타일 적용
+        if (p1Title) Object.assign(p1Title.style, (turnOwner === p1) ? activeStyle : defaultStyle);
+        if (p2Title) Object.assign(p2Title.style, (turnOwner === p2) ? activeStyle : defaultStyle);
+
+    } else {
+        // [플레이어 모드] - 기존 유지
+        const oppLabel = opponentName || '상대 대기 중';
+        // 디버깅: rollsLeft, dice, isMyTurn()
+        console.log('[updateScorecard] rollsLeft:', rollsLeft, 'dice:', dice, 'isMyTurn:', (typeof isMyTurn === 'function' ? isMyTurn() : isMyTurn));
+        el.innerHTML = `
+        <div style="display:flex; gap:16px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:280px;">${renderCard(myCard, true, '나 (' + username + ')')}</div>
+            <div style="flex:1; min-width:280px;">${renderCard(oppCard, false, '상대 (' + oppLabel + ')')}</div>
+        </div>`;
+    }
+}
+
+// 게임 중(게임오버 전)에 페이지를 떠나려 할 때 경고창 띄우기
+window.addEventListener('beforeunload', (e) => {
+    // 관전자거나 게임이 끝났으면 경고 없이 이동
+    if (isObserver || gameOver) return;
+    
+    // 표준 방식: 사용자에게 확인 메시지 유도
+    e.preventDefault();
+    e.returnValue = '';
+});
 
         function showToast(category, score) {
             const toast = document.getElementById('score-toast');
