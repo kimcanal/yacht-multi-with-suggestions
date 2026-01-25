@@ -4,15 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎲 Yacht - Single Player</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <style>
-        /* 기존 스타일 그대로 유지 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a3e 100%);
-            color: #fff; 
+        body {
+            background: #0f0f1e;
+            color: #fff;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
+            overflow-x: hidden;
+        }
+        .background-fx {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: linear-gradient(125deg, #0a0a1f, #141432, #1f1f45, #0f0f1e);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
         @media (max-width: 995px) { body { padding: 10px; } }
         .game-wrapper {
@@ -159,43 +174,48 @@
     </style>
 </head>
 <body>
-    <div class="game-wrapper">
-        <div class="main-area">
-            <div class="title">🎲 YACHT <span id="room-label" style="font-size:0.4em; color:#fff; opacity:0.8; margin-left:12px;"></span></div>
-            
-            <div class="dice-area">
-                <div class="dice-grid" id="dice-grid">
-                    </div>
-                
-                <div class="info-bar">
-                    <div class="rolls-remaining">남은 Roll: <span id="rolls-left">3</span>/3</div>
+    <div class="background-fx"></div>
+    <div class="game-wrapper" style="max-width:1400px; margin:0 auto; display:flex; gap:60px; flex-wrap:wrap; justify-content:center; align-items:flex-start;">
+        <div class="main-area" style="flex:1 1 480px; max-width:100%;">
+            <div class="title" style="font-size:3.5em; font-weight:800; text-align:center; margin-bottom:40px; text-shadow:0 0 40px rgba(0,255,200,0.4); color:#00ffcc; letter-spacing:-1px;">🎲 YACHT</div>
+            <div class="dice-area" style="background:rgba(255,255,255,0.07); border-radius:28px; padding:48px 36px; box-shadow:0 8px 40px rgba(0,255,204,0.08); border:1.5px solid rgba(255,255,255,0.12); margin-bottom:36px;">
+                <div class="dice-grid" id="dice-grid"></div>
+                <div class="info-bar" style="background:rgba(0,255,204,0.12); border:2px solid #00ffcc; border-radius:18px; padding:18px; text-align:center; font-size:1.25em; color:#00ffcc; font-weight:700; margin-top:18px;">
+                    <div class="rolls-remaining" style="font-size:1.5em; margin-bottom:2px; line-height:1.1;">남은 Roll: <span id="rolls-left">3</span>/3</div>
                     <div id="timer-bar" style="font-size:1.1em; color:#ff6b6b; margin:2px 0 0 0; font-weight:bold; display:none; line-height:2;">⏳<span id="timer-count">30</span>초 남았습니다</div>
-                    <div id="game-status" style="color: #00ffcc; font-size: 0.9em; text-align: center;"></div>
-                    <div id="ai-info-tip" style="padding: 8px 12px; background: rgba(0, 255, 204, 0.1); border-left: 3px solid #00ffcc; border-radius: 5px; font-size: 0.75em; color: #aaa; line-height: 1.4; display: none;">
-                        💡 AI 추천: 고득점 족보(4 of a Kind, Full House, Straight, Yacht) 달성을 우선으로 고려합니다.<br>이들을 모두 완성한 후에는 상단 족보(Ones~Sixes)를 효율적으로 채울 수 있는 조합을 제안합니다.
-                    </div>
+                    <div id="game-status" style="color:#00ffcc; font-size:0.95em; text-align:center; min-height:24px;"></div>
+                    <div id="ai-info-tip" style="margin-top:8px; padding:8px 12px; background:rgba(0,255,204,0.08); border-left:3px solid #00ffcc; border-radius:5px; font-size:0.85em; color:#aaa; line-height:1.4; display:none;">💡 AI 추천: 고득점 족보(4 of a Kind, Full House, Straight, Yacht) 달성을 우선으로 고려합니다.<br>이들을 모두 완성한 후에는 상단 족보(Ones~Sixes)를 효율적으로 채울 수 있는 조합을 제안합니다.</div>
                     <div id="ai-breakdown" class="ai-breakdown"></div>
                 </div>
             </div>
-            
-            <div class="controls">
-                <button class="btn" onclick="rollDice()" id="roll-btn">🎲 ROLL</button>
-                <button class="btn btn-reset" onclick="resetGame()" id="new-game-btn">🔄 NEW GAME</button>
-                <button class="btn" style="background:linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); box-shadow:0 4px 15px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
-            </div>
-            
-            <div class="controls" style="margin-top:10px; display:none;" id="multiplayer-controls">
-                <button class="btn" style="background:linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%); box-shadow:0 4px 15px rgba(78,205,196,0.4); display:none;" id="pass-turn-btn" onclick="passTurn()">🔁 선공권 넘기기</button>
+            <div class="controls" style="display:flex; gap:18px; justify-content:center; margin-top:10px; margin-bottom:36px;">
+                <button class="btn" onclick="rollDice()" id="roll-btn" style="padding:14px 36px; font-size:1.15em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; box-shadow:0 6px 25px rgba(102,126,234,0.5);">🎲 ROLL</button>
+                <button class="btn btn-reset" onclick="resetGame()" id="new-game-btn" style="padding:14px 36px; font-size:1.15em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%); color:white; box-shadow:0 6px 25px rgba(245,87,108,0.5);">🔄 RESET</button>
+                <button class="btn" style="padding:14px 36px; font-size:1.15em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#ff6b6b 0%,#c92a2a 100%); color:white; box-shadow:0 6px 25px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
             </div>
         </div>
-
-        <div class="scorecard-area">
+        <div class="scorecard-area" style="background:rgba(255,255,255,0.07); border-radius:28px; padding:38px 30px; box-shadow:0 8px 40px rgba(0,255,204,0.08); border:1.5px solid rgba(255,255,255,0.12); flex:1 1 350px; max-width:100%; margin:0 auto;">
             <div id="scorecard"></div>
             <div id="score-desc-area" class="ai-breakdown" style="margin-top:18px;"></div>
+            <div class="footer-credit" style="text-align:center; margin-top:38px; font-size:0.98em; color:rgba(180,220,255,0.6);">
+                Made by <a href="https://kimcanal.github.io/" target="_blank" style="color:#00e6c3; font-weight:600; text-decoration:underline dotted;">kimcanal</a>
+            </div>
         </div>
     </div>
-
     <div id="score-toast" class="toast-overlay"></div>
+            <!-- 싱글 랭킹 저장 모달 -->
+            <div id="save-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:3000; align-items:center; justify-content:center;">
+                <div style="background:#181824; border-radius:18px; padding:38px 32px; box-shadow:0 8px 40px rgba(0,255,204,0.13); border:2px solid #00ffcc; min-width:320px; max-width:90vw; text-align:center;" onclick="event.stopPropagation();">
+                        <!-- 바깥 클릭 시 닫기 -->
+                        <script>document.getElementById('save-modal').onclick = function(e) { if(e.target === this) closeSaveModal(); };</script>
+                    <div style="font-size:1.3em; font-weight:700; color:#00ffcc; margin-bottom:18px;">🏆 랭킹에 등록하시겠습니까?</div>
+                    <input id="modal-username" type="text" maxlength="12" placeholder="닉네임 (2~12자)" style="padding:12px 18px; border-radius:8px; border:1.5px solid #00ffcc; font-size:1.1em; margin-bottom:18px; width:80%; max-width:220px;">
+                    <div style="margin-bottom:18px; color:#aaa; font-size:0.95em;">최종 점수: <span id="modal-score" style="color:#ffd700; font-weight:700;"></span></div>
+                    <button onclick="saveSingleLeaderboard()" style="padding:12px 32px; font-size:1.1em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#00ffcc 0%,#00b894 100%); color:#181824; border:none; margin-right:10px;">저장</button>
+                    <button onclick="closeSaveModal()" style="padding:12px 32px; font-size:1.1em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%); color:white; border:none;">취소</button>
+                    <div id="modal-error" style="color:#ff6b6b; margin-top:12px; font-size:0.95em;"></div>
+                </div>
+            </div>
     <script src="/static/js/yacht_game.js"></script>
     <script>
         // 타이머 관련 변수
@@ -266,6 +286,68 @@
             handleConnectionLost('네트워크 연결이 끊어졌습니다. 로비로 이동합니다.');
         });
 
+
+        // 싱글 랭킹 저장 모달 관련 함수 (전역)
+        function showSaveModal(score) {
+            const name = localStorage.getItem('yacht_username') || '';
+            if (!name || name.length < 2) {
+                alert('닉네임이 2자 이상이어야 랭킹에 자동 등록됩니다.\n로비에서 닉네임을 먼저 입력해 주세요.');
+                window.location.href = '/';
+                return;
+            }
+            // 토스트가 먼저 보이도록 2초 후 랭킹 저장
+            setTimeout(() => {
+                fetch('/api/leaderboard/single', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: name, score: parseInt(score)})
+                })
+                .then(r => r.json())
+                .then(data => {
+                    const toast = document.getElementById('score-toast');
+                    let rankingMsg = '';
+                    if (!username || username === 'Player' || username.length < 2) {
+                        rankingMsg = '<div class="toast-cat" style="color:#ff6b6b; margin-top:10px;">닉네임이 2자 이상이어야 랭킹 등록이 가능합니다</div>';
+                        // 기존 토스트에만 메시지 추가, showGameOverToast에서 토스트가 이미 뜨므로 show만 보장
+                        toast.classList.add('show');
+                        toast.innerHTML += rankingMsg;
+                        setTimeout(() => toast.classList.remove('show'), 3200);
+                        return;
+                    }
+                    fetch('/api/leaderboard/single', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({username: username, score: parseInt(score)})
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            rankingMsg = '<div class="toast-cat" style="color:#00ffcc; margin-top:10px;">랭킹에 등록되었습니다!</div>';
+                        } else {
+                            rankingMsg = `<div class="toast-cat" style="color:#ff6b6b; margin-top:10px;">랭킹 등록 실패: ${data.error || '저장 실패'}</div>`;
+                        }
+                        toast.classList.add('show');
+                        toast.innerHTML += rankingMsg;
+                        setTimeout(() => toast.classList.remove('show'), 3200);
+                    })
+                    .catch(e => {
+                        rankingMsg = '<div class="toast-cat" style="color:#ff6b6b; margin-top:10px;">랭킹 등록 실패: 저장 중 오류 발생</div>';
+                        toast.classList.add('show');
+                        toast.innerHTML += rankingMsg;
+                        setTimeout(() => toast.classList.remove('show'), 3200);
+                    });
+                })
+                .catch(e => {
+                    const toast = document.getElementById('score-toast');
+                    toast.innerHTML = `<div class="toast-cat" style="color:#ff6b6b">랭킹 등록 실패</div><div class="toast-score" style="font-size:1.1rem">저장 중 오류 발생</div>`;
+                    toast.classList.add('show');
+                    setTimeout(() => toast.classList.remove('show'), 3200);
+                });
+            }, 2000);
+        }
+        function closeSaveModal() {}
+        function saveSingleLeaderboard() {}
+
         function showGameOverToast(myTotal, oppTotal) {
             if (gameOverToastShown) return;
             const toast = document.getElementById('score-toast');
@@ -273,7 +355,8 @@
             toast.classList.add('show');
             playTurnToastSound();
             gameOverToastShown = true;
-            setTimeout(() => toast.classList.remove('show'), 2800);
+            showSaveModal(myTotal);
+            setTimeout(() => { toast.classList.remove('show'); }, 1800);
         }
 
         const isMyTurn = () => true; // 싱글 모드는 항상 내 턴
@@ -422,7 +505,7 @@
 
             isRolling = true;
             aiRec = null; 
-            document.getElementById('ai-breakdown').innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:1.1em;">🎲 계산 중...</div>';
+            document.getElementById('ai-breakdown').innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">🎲 계산 중...</div>';
             updateDice(); 
 
             for (let i = 0; i < 5; i++) {

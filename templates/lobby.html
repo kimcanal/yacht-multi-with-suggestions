@@ -4,473 +4,499 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎲 Yacht - 로비</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    
     <style>
+        /* [기본 스타일] */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a3e 100%);
-            color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        @media (max-width: 995px) { body { padding: 10px; } }
-        .lobby-container {
-            max-width: 600px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 30px;
-            padding: 50px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
-        }
-        @media (max-width: 995px) { .lobby-container { padding: 25px 15px; border-radius: 20px; } }
-        .title {
-            font-size: 3em; font-weight: 700; margin-bottom: 40px;
-            text-shadow: 0 0 30px rgba(0, 255, 200, 0.3); color: #00ffcc;
-        }
-        .input-group { margin-bottom: 30px; }
-        .input-group label {
-            display: block; margin-bottom: 10px; font-size: 1.1em;
-            color: #00ffcc; font-weight: 600;
-        }
-        .input-group input {
-            width: 100%; padding: 15px; font-size: 1em;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px; color: #fff; transition: all 0.3s ease;
-        }
-        .input-group input:focus {
-            outline: none; border-color: #00ffcc;
-            background: rgba(0, 255, 204, 0.1);
-            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
-        }
-        .buttons { display: flex; gap: 15px; margin-top: 40px; }
-        .btn {
-            flex: 1; padding: 15px 30px; font-size: 1em; font-weight: 600;
-            border: none; border-radius: 30px; cursor: pointer;
-            transition: all 0.3s ease; color: white;
-        }
-        @media (max-width: 995px) { .btn { padding: 18px 20px; font-size: 1.1em; } }
-        .btn-single {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-        .btn-single:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6); }
-        .btn-multi {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
-        }
-        .btn-multi:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(245, 87, 108, 0.6); }
+        body { background: #0f0f1e; color: #e0e0e0; font-family: 'Pretendard', sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         
-        .leaderboard { margin-top: 50px; padding-top: 30px; border-top: 2px solid rgba(255, 255, 255, 0.1); }
-        .leaderboard-title { font-size: 1.5em; margin-bottom: 20px; color: #ffd700; }
-        .leaderboard-item {
-            display: flex; justify-content: space-between; padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        /* 배경: 더 깊이감 있게 */
+        .background-fx { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; 
+            background: radial-gradient(circle at 50% 50%, #1a1a3e 0%, #050510 100%);
+            animation: pulseBg 10s infinite alternate;
         }
-        .leaderboard-item:last-child { border-bottom: none; }
-        .leaderboard-name { color: #00ffcc; font-weight: 600; }
-        .leaderboard-stats { color: #aaa; font-size: 0.9em; }
-        .error { color: #ff6666; margin-top: 10px; font-size: 0.9em; }
+        @keyframes pulseBg {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        /* 메인 컨테이너 */
+        .lobby-container { 
+            width: 95%; max-width: 1500px; height: 92vh; 
+            background: rgba(20, 20, 35, 0.7); /* 반투명도 조절 */
+            border-radius: 24px; padding: 35px; 
+            backdrop-filter: blur(25px); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5); 
+            display: flex; flex-direction: column;
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 헤더 */
+        .header-area { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .title { font-family: 'Rajdhani', sans-serif; font-size: 3.2rem; font-weight: 800; color: #fff; margin: 0; text-shadow: 0 0 25px rgba(0,255,204,0.5); letter-spacing: 2px; }
+        .control-bar { display: flex; gap: 15px; align-items: center; }
+
+        /* 패널 공통 */
+        .main-content-grid { flex: 1; display: grid; grid-template-columns: 340px 1fr 340px; gap: 25px; overflow: hidden; }
+        .col-wrapper { display: flex; flex-direction: column; gap: 25px; height: 100%; min-height: 0; }
         
-        .system-status {
-            margin-top: 25px; padding: 20px; background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px; border: 1px solid rgba(0, 255, 200, 0.2);
+        .panel { 
+            background: rgba(0, 0, 0, 0.25); 
+            border-radius: 18px; 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            display: flex; flex-direction: column; overflow: hidden; 
+            flex: 1; min-height: 0;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+            transition: transform 0.2s, border-color 0.2s;
         }
-        .system-status-title {
-            font-size: 1.2em; margin-bottom: 15px; color: #00ffcc;
-            font-weight: 600; text-align: center;
+        .panel:hover { border-color: rgba(255,255,255,0.15); }
+
+        .panel-header { 
+            padding: 18px 22px; background: rgba(255, 255, 255, 0.03); 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
+            font-weight: 700; color: #00ffcc; font-size: 1.15em; 
+            display: flex; justify-content: space-between; align-items: center;
+            letter-spacing: 0.5px;
         }
-        .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .status-item {
-            background: rgba(255, 255, 255, 0.05); padding: 12px;
-            border-radius: 10px; border-left: 3px solid #00ffcc;
+
+        .panel-body { flex: 1; overflow-y: auto; padding: 15px; position: relative; }
+        .panel-body::-webkit-scrollbar { width: 6px; }
+        .panel-body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+
+        /* [NEW] 빈 상태 꾸미기 */
+        .empty-state {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; color: #666; text-align: center; gap: 15px;
         }
-        .status-label { font-size: 0.85em; color: #aaa; margin-bottom: 5px; }
-        .status-value { font-size: 1.3em; color: #00ffcc; font-weight: bold; }
-        .status-bar {
-            width: 100%; height: 6px; background: rgba(0, 0, 0, 0.3);
-            border-radius: 3px; margin-top: 8px; overflow: hidden;
+        .empty-icon { font-size: 3rem; opacity: 0.3; filter: grayscale(100%); margin-bottom: 5px; }
+        .empty-text { font-size: 0.95em; color: #777; line-height: 1.4; }
+
+        /* 방 목록 아이템 */
+        .room-item { 
+            background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+            padding: 16px 20px; margin-bottom: 10px; border-radius: 12px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s; 
         }
-        .status-bar-fill {
-            height: 100%; background: linear-gradient(90deg, #00ffcc, #00ff88);
-            transition: width 0.3s ease;
+        .room-item:hover { 
+            background: linear-gradient(90deg, rgba(0, 255, 204, 0.1) 0%, rgba(0,0,0,0) 100%);
+            border-color: rgba(0,255,204,0.3); transform: translateX(5px); 
         }
-        .status-bar-fill.warning { background: linear-gradient(90deg, #ffaa00, #ff8800); }
-        .status-bar-fill.danger { background: linear-gradient(90deg, #ff4444, #cc0000); }
+        .room-code { color: #fff; font-weight: 700; font-size: 1.2em; font-family:'Rajdhani'; }
+        
+        /* 유저 배지 */
+        .user-badge { 
+            display: flex; align-items: center; gap: 10px; 
+            background: rgba(0, 255, 204, 0.05); 
+            border: 1px solid rgba(0, 255, 204, 0.2); 
+            padding: 8px 18px; border-radius: 50px; margin-right: 15px; 
+        }
+        .user-name-display { font-weight: 700; color: #fff; text-shadow: 0 0 10px rgba(0, 255, 204, 0.4); }
+        
+        /* 버튼들 */
+        .btn-mini { padding: 12px 24px; border-radius: 12px; border: none; font-weight: 700; color: white; cursor: pointer; transition: 0.2s; font-size: 0.95rem; }
+        .btn-mini:hover { transform: translateY(-2px); filter: brightness(1.2); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .btn-p { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .btn-s { background: linear-gradient(135deg, #00b894, #00cec9); color:#00332c; }
+        .btn-c { background: linear-gradient(135deg, #ec4899, #f43f5e); }
+        .btn-logout { background: none; border: 1px solid #ff6b6b; color: #ff6b6b; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; transition:0.2s; }
+        .btn-logout:hover { background: rgba(255, 107, 107, 0.1); }
+
+        .input-mini { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 12px 16px; border-radius: 12px; width: 150px; font-size: 1rem; text-align:center; letter-spacing:1px; }
+        .input-mini:focus { border-color: #00ffcc; outline: none; }
+
+        /* 기타 요소들 */
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 12px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.95em; }
+        .rank-badge { color: #00ffcc; font-weight: bold; width: 24px; display: inline-block; font-family:'Rajdhani'; }
+        
+        .status-row { margin-bottom: 18px; }
+        /* [수정] 라벨을 상단 정렬 */
+        .status-label { font-size: 0.85em; color: #ccc; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+        .bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; background: #00ffcc; width: 0%; transition: width 0.5s; box-shadow: 0 0 10px rgba(0,255,204,0.5); }
+        
+        .rank-tabs { display: flex; gap: 8px; }
+        .rank-tab { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #888; padding: 4px 10px; border-radius: 15px; cursor: pointer; font-size: 0.75em; transition: 0.2s; }
+        .rank-tab.active { background: rgba(0,255,204,0.15); border-color: #00ffcc; color: #00ffcc; font-weight: bold; }
+
+        .status-badge { font-size:0.7em; padding:2px 8px; border-radius:10px; margin-left:8px; font-weight:600; }
+        .badge-wait { background:rgba(255,255,255,0.1); color:#aaa; }
+        .badge-game { background:rgba(0, 184, 148, 0.2); color:#00ffcc; border:1px solid rgba(0, 255, 204, 0.3); }
+
+        /* 로그인 오버레이 */
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10, 10, 20, 0.85); backdrop-filter: blur(12px); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .login-box { text-align: center; background: rgba(30, 30, 50, 0.6); padding: 60px; border-radius: 40px; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); }
+        .login-title { font-family: 'Rajdhani', sans-serif; font-size: 5rem; font-weight: 800; color: #fff; margin-bottom: 40px; text-shadow: 0 0 40px rgba(0,255,204,0.6); }
+        .login-input { width: 100%; padding: 20px 30px; font-size: 1.3rem; background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.15); color: #fff; border-radius: 15px; margin-bottom: 25px; text-align: center; transition: 0.3s; }
+        .login-input:focus { border-color: #00ffcc; outline: none; box-shadow: 0 0 25px rgba(0, 255, 204, 0.2); }
+        .login-btn { width: 100%; padding: 20px; font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg, #00b894, #00cec9); border: none; border-radius: 15px; color: #00332c; cursor: pointer; transition: 0.2s; box-shadow: 0 10px 30px rgba(0, 184, 148, 0.3); }
+        .login-btn:hover { transform: scale(1.03); filter: brightness(1.1); }
+
+        @media (max-width: 1200px) {
+            .lobby-container { height: auto; max-height: 95vh; overflow-y: auto; }
+            .main-content-grid { display: flex; flex-direction: column; overflow: visible; }
+            .panel { height: 350px; flex: none; }
+        }
     </style>
 </head>
 <body>
-    <div class="lobby-container">
-        <div class="title">🎲 YACHT</div>
-        
-        <div class="input-group">
-            <label>닉네임 입력</label>
-            <input type="text" id="username" placeholder="이름을 입력해주세요" maxlength="20">
-        </div>
+    <div class="background-fx"></div>
 
-        <div class="buttons">
-            <button class="btn btn-single" onclick="startGame('single')">
-                🎮 싱글 플레이
-            </button>
-            <button class="btn btn-multi" onclick="createRoom()">
-                ➕ 방 만들기
-            </button>
-        </div>
-
-        <div class="input-group" style="margin-top:10px;">
-            <label>친구 방 코드로 입장</label>
-            <div style="display:flex; gap:10px;">
-                <input type="text" id="room-code" placeholder="예: ABC123" maxlength="10" style="flex:1; text-transform:uppercase;">
-                <button class="btn btn-multi" style="flex:0 0 140px;" onclick="joinRoom()">🚪 입장</button>
-            </div>
-        </div>
-
-        <div class="room-list-section" style="margin-top:30px; padding-top:20px; border-top:2px solid rgba(255,255,255,0.1);">
-            <div style="font-size:1.3em; margin-bottom:15px; color:#00ffcc; font-weight:600;">📜 방 목록</div>
-            <div id="room-list" style="max-height:200px; overflow-y:auto;"></div>
-        </div>
-
-        <div id="room-status" style="margin-top:12px; color:#00ffcc; font-weight:600;"></div>
-        <div id="error" class="error"></div>
-
-        <div class="system-status">
-            <div class="system-status-title">📊 서버 상태 <span style="font-size:0.75em; color:#888; font-weight:400;">(3초마다 갱신)</span></div>
-            <div class="status-grid">
-                <div class="status-item">
-                    <div class="status-label">현재 접속자 수</div>
-                    <div class="status-value" id="online-count">-</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">활성 방</div>
-                    <div class="status-value" id="active-rooms">-</div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">CPU 사용률</div>
-                    <div class="status-value" id="cpu-usage">-</div>
-                    <div class="status-bar">
-                        <div class="status-bar-fill" id="cpu-bar" style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="status-item">
-                    <div class="status-label">메모리 사용률</div>
-                    <div class="status-value" id="memory-usage">-</div>
-                    <div class="status-bar">
-                        <div class="status-bar-fill" id="memory-bar" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="system-status" style="margin-top: 20px;">
-            <div class="system-status-title">🤖 AI 추천 시스템</div>
-            <div style="padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; font-size: 0.9em; line-height: 1.6; color: #ccc;">
-                <div style="margin-bottom: 10px;">모든 플레이 모드에서 AI 추천 기능을 사용할 수 있습니다.</div>
-                <div style="padding-left: 15px;">
-                    <div style="margin-bottom: 8px;">
-                        • <strong style="color: #00ffcc;">전략:</strong><br>
-                        &nbsp;&nbsp;다음 턴만 고려하여 최적의 선택을 추천합니다
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        • <strong style="color: #00ffcc;">아래 족보 우선:</strong><br>
-                        &nbsp;&nbsp;4 of a Kind, Full House, Single/Large Straight, Yacht 등<br>
-                        &nbsp;&nbsp;고득점 족보의 달성 확률을 최대화하는 주사위 조합을 추천합니다
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="leaderboard">
-            <div class="leaderboard-title" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                <span>🏆 랭킹</span>
-                <button class="btn btn-multi" style="padding:6px 12px; font-size:0.85em;" onclick="resetLeaderboard()">🗑 랭킹 지우기</button>
-            </div>
-            <div id="leaderboard-list"></div>
+    <div id="login-overlay">
+        <div class="login-box">
+            <div class="login-title">🎲 YACHT</div>
+            <div style="margin-bottom:15px; color:#aaa; font-size:1.1em;">오늘의 닉네임은 무엇인가요?</div>
+            <input type="text" id="login-username" class="login-input" placeholder="Player Name" maxlength="12" autofocus>
+            <button class="login-btn" onclick="submitLogin()">GAME START</button>
         </div>
     </div>
 
+    <div class="lobby-container">
+        <div class="header-area">
+            <div class="title">🎲 YACHT <span style="font-size:0.5em; color:#aaa; vertical-align:middle;">ONLINE</span></div>
+            <div class="control-bar">
+                <div class="user-badge">
+                    <span style="font-size:0.9em; color:#aaa;">PLAYER</span>
+                    <span id="display-username" class="user-name-display">Guest</span>
+                    <button class="btn-logout" onclick="logout()">✕</button>
+                </div>
+                <div style="width:1px; height:30px; background:rgba(255,255,255,0.15); margin:0 5px;"></div>
+                <button class="btn-mini btn-p" onclick="startGame('single')">🎮 혼자하기</button>
+                <div style="width:1px; height:30px; background:rgba(255,255,255,0.15); margin:0 5px;"></div>
+                <input type="text" id="room-code" class="input-mini" placeholder="CODE" maxlength="10" style="text-transform:uppercase;">
+                <button class="btn-mini btn-s" onclick="joinRoomById()">입장</button>
+                <button class="btn-mini btn-c" onclick="createRoom()">방 생성</button>
+            </div>
+        </div>
+
+        <div class="main-content-grid">
+
+            <div class="col-wrapper">
+                <div class="panel" style="flex: 1.5;">
+                    <div class="panel-header">
+                        <span>👥 접속자 현황</span>
+                    </div>
+                    <div class="panel-body" id="lobby-user-list">
+                        <div class="empty-state">
+                            <div class="empty-icon">🔭</div>
+                            <div class="empty-text">접속자를 찾는 중...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" style="flex: 1;">
+                    <div class="panel-header">📊 서버 상태</div>
+                    <div class="panel-body">
+                        <div class="status-row">
+                            <div class="status-label"><span>Active Users</span> <span id="online-count" style="color:#fff; font-weight:700;">-</span></div>
+                        </div>
+                        <div class="status-row">
+                            <div class="status-label"><span>Active Games</span> <span id="active-rooms" style="color:#fff; font-weight:700;">-</span></div>
+                        </div>
+                        <div class="status-row">
+                            <div class="status-label"><span>CPU Usage (Intel N100)</span> <span id="cpu-usage">-</span></div>
+                            <div class="bar-bg"><div class="bar-fill" id="cpu-bar"></div></div>
+                        </div>
+                        <div class="status-row">
+                            <div class="status-label">
+                                <span>Memory</span> 
+                                <div style="text-align:right;">
+                                    <span id="memory-usage" style="display:block;">-</span>
+                                    <span id="memory-actual" style="font-size:0.75em; color:#888; font-weight:400;"></span>
+                                </div>
+                            </div>
+                            <div class="bar-bg"><div class="bar-fill" id="memory-bar"></div></div>
+                        </div>
+                        <div style="margin-top:15px; text-align:center; font-size:0.75em; color:#555; font-family:'Rajdhani'">ID: <span id="client-id-disp">...</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-wrapper">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>📜 대기실 목록</span>
+                        <span style="font-size:0.8em; color:#aaa; font-weight:400;">Real-time</span>
+                    </div>
+                    <div class="panel-body" id="room-list">
+                        <div class="empty-state">
+                            <div class="empty-icon">🎲</div>
+                            <div class="empty-text">생성된 방이 없습니다.<br>새로운 방을 만들어보세요!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-wrapper">
+                <div class="panel" style="flex: 2;">
+                    <div class="panel-header">
+                        <span>🏆 명예의 전당</span>
+                        <div class="rank-tabs">
+                            <button class="rank-tab active" onclick="switchRank('multi')" id="tab-multi">멀티</button>
+                            <button class="rank-tab" onclick="switchRank('single')" id="tab-single">싱글</button>
+                        </div>
+                    </div>
+                    <div class="panel-body" id="leaderboard-list">
+                        <div class="empty-state">
+                            <div class="empty-icon">🏆</div>
+                            <div class="empty-text">아직 기록이 없습니다.<br>첫 승리의 주인공이 되세요!</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" style="flex: 1;">
+                    <div class="panel-header">💡 Game Tip</div>
+                    <div class="panel-body" style="display:flex; align-items:center;">
+                        <div style="font-size:0.9em; color:#ccc; line-height:1.6;">
+                            <strong style="color:#00ffcc;">Yacht (50점)</strong>은 주사위 5개가 모두 같은 숫자일 때 획득할 수 있는 최고의 족보입니다. AI 추천을 활용해보세요!
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div id="error" style="color:#ff6b6b; text-align:center; margin-top:10px; font-weight:bold;"></div>
+    </div>
+
+    <footer style="position:fixed; bottom:15px; width:100%; text-align:center; pointer-events:none;">
+        <span style="background:rgba(0,0,0,0.6); padding:5px 15px; border-radius:20px; color:#555; font-size:0.8em;">Developed by <a href="https://github.com/kimcanal" target="_blank" style="color:#00ffcc; text-decoration:none; font-weight:600;">kimcanal</a></span>
+    </footer>
+
     <script>
-        // 클라이언트 ID 생성 (세션마다 고유)
         let clientId = localStorage.getItem('yacht_client_id');
         if (!clientId) {
             clientId = 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             localStorage.setItem('yacht_client_id', clientId);
         }
+        document.getElementById('client-id-disp').textContent = clientId.substr(-6);
 
-        // Heartbeat 전송 (로비 접속 유지)
-        function sendHeartbeat() {
-            fetch('/api/lobby-heartbeat', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({client_id: clientId})
-            }).catch(err => console.warn('Heartbeat failed:', err));
-        }
+        let myUsername = localStorage.getItem('yacht_username');
+        let isLoggedIn = false;
 
-        function ensureName() {
-            const username = document.getElementById('username').value.trim();
-            const errorEl = document.getElementById('error');
-            if (!username) {
-                errorEl.textContent = '❌ 닉네임을 입력해주세요';
-                return null;
+        function checkLogin() {
+            if (myUsername && myUsername.length >= 2) {
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('display-username').textContent = myUsername;
+                isLoggedIn = true;
+                startPolling();
+            } else {
+                document.getElementById('login-overlay').style.display = 'flex';
+                document.getElementById('login-username').focus();
             }
-            if (username.length < 2) {
-                errorEl.textContent = '❌ 닉네임은 2글자 이상이어야 합니다';
-                return null;
-            }
-            errorEl.textContent = '';
-            return username;
         }
 
-        // lobby.html 의 startGame 함수 최적화
-        function startGame(mode) {
-            if (mode === 'single') {
-                localStorage.setItem('yacht_username', 'Player');
-                localStorage.setItem('yacht_mode', mode);
-                localStorage.removeItem('yacht_room');
-                window.location.href = '/game/single';
-            }
-            // else 분기는 dead code이므로 삭제
-        }
-
-        function createRoom() {
-            const username = ensureName();
-            if (!username) return;
-            const statusEl = document.getElementById('room-status');
-            statusEl.textContent = '방을 만드는 중...';
-
-            fetch('/api/rooms', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username})
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.error) {
-                    statusEl.textContent = `❌ ${data.error}`;
-                    return;
-                }
-                const code = data.code;
-                statusEl.textContent = `✅ 방 코드: ${code}`;
-                localStorage.setItem('yacht_username', username);
-                localStorage.setItem('yacht_mode', 'multi');
-                localStorage.setItem('yacht_room', code);
-                window.location.href = `/game/multi?room=${code}`;
-            })
-            .catch(() => statusEl.textContent = '❌ 방 생성 실패');
-        }
-
-        function joinRoom() {
-            const username = ensureName();
-            if (!username) return;
-            const code = document.getElementById('room-code').value.trim().toUpperCase();
-            const statusEl = document.getElementById('room-status');
-            if (!code) {
-                statusEl.textContent = '❌ 방 코드를 입력하세요';
+        function submitLogin() {
+            const name = document.getElementById('login-username').value.trim();
+            if (!name || name.length < 2) {
+                alert('닉네임을 2글자 이상 입력해주세요!');
                 return;
             }
-            statusEl.textContent = '방에 입장 중...';
-
-            fetch(`/api/rooms/${code}/join`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username})
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.error) {
-                    statusEl.textContent = `❌ ${data.error}`;
-                    return;
-                }
-                statusEl.textContent = `✅ ${code} 방 입장 완료`;
-                localStorage.setItem('yacht_username', username);
-                localStorage.setItem('yacht_mode', 'multi');
-                localStorage.setItem('yacht_room', code);
-                window.location.href = `/game/multi?room=${code}`;
-            })
-            .catch(() => statusEl.textContent = '❌ 입장 실패');
+            myUsername = name;
+            localStorage.setItem('yacht_username', name);
+            document.getElementById('display-username').textContent = name;
+            
+            const overlay = document.getElementById('login-overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                isLoggedIn = true;
+                sendHeartbeat(); 
+                startPolling();  
+            }, 300);
         }
 
-        function joinRoomById(code) {
-            const username = ensureName();
-            if (!username) return;
-            const statusEl = document.getElementById('room-status');
-            statusEl.textContent = '방에 입장 중...';
-
-            fetch(`/api/rooms/${code}/join`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username})
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.error) {
-                    statusEl.textContent = `❌ ${data.error}`;
-                    return;
-                }
-                statusEl.textContent = `✅ ${code} 방 입장 완료`;
-                localStorage.setItem('yacht_username', username);
-                localStorage.setItem('yacht_mode', 'multi');
-                localStorage.setItem('yacht_room', code);
-                window.location.href = `/game/multi?room=${code}`;
-            })
-            .catch(() => statusEl.textContent = '❌ 입장 실패');
-        }
-
-        // --- 관전 입장 함수 (Script 내부에 올바르게 위치함) ---
-        // lobby.html 내의 joinAsObserver 함수 수정
-
-async function joinAsObserver(code) {
-    // 1. 입력된 닉네임 가져오기
-    let username = document.getElementById('username').value.trim();
-    
-    // 2. 닉네임이 없으면 'Guest_숫자'로 자동 생성 (관전자 편의성)
-    if (!username) {
-        username = 'Guest_' + Math.floor(Math.random() * 10000);
-    }
-    
-    // 3. 로컬 스토리지에 저장 (게임 페이지에서 사용)
-    localStorage.setItem('yacht_username', username);
-
-    const statusEl = document.getElementById('room-status');
-    if(statusEl) statusEl.textContent = '관전 입장 중...';
-
-    try {
-        const res = await fetch(`/api/rooms/${code}/observe`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ username })
-        });
-        
-        if(res.ok) {
-            localStorage.setItem('yacht_room', code);
-            // mode=observer 파라미터 추가
-            window.location.href = `/game/multi?room=${code}&mode=observer`;
-        } else {
-            const err = await res.json();
-            if(res.status === 409) {
-                if(confirm('이미 플레이어로 등록된 방입니다. 플레이어로 접속하시겠습니까?')) {
-                    window.location.href = `/game/multi?room=${code}`;
-                }
-            } else {
-                alert(err.error || '관전 입장 실패');
+        function logout() {
+            if(confirm('로그아웃 하시겠습니까?')) {
+                localStorage.removeItem('yacht_username');
+                location.reload(); 
             }
-            // 방 목록 새로고침
-            if(typeof loadRoomList === 'function') loadRoomList();
-            else if(typeof loadRooms === 'function') loadRooms();
         }
-    } catch(e) {
-        console.error(e);
-        alert('관전 입장 오류');
-    }
-}
+
+        document.getElementById('login-username').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitLogin();
+        });
+
+        let currentRankMode = 'multi'; 
+
+        function startGame() {
+            localStorage.setItem('yacht_username', myUsername); 
+            localStorage.removeItem('yacht_room');
+            location.href = '/game/single';
+        }
+
+        async function createRoom() {
+            if(!myUsername) return;
+            try {
+                const res = await fetch('/api/rooms', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:myUsername})});
+                const data = await res.json();
+                if(data.code) { localStorage.setItem('yacht_room', data.code); location.href=`/game/multi?room=${data.code}`; }
+            } catch(e) { alert('오류'); }
+        }
+
+        async function joinRoomById() {
+            const code = document.getElementById('room-code').value.trim().toUpperCase();
+            if(!code) return alert('방 코드를 입력하세요');
+            try {
+                const res = await fetch(`/api/rooms/${code}/join`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:myUsername})});
+                const data = await res.json();
+                if(res.ok) { localStorage.setItem('yacht_room', code); location.href=`/game/multi?room=${code}`; }
+                else document.getElementById('error').innerText = data.error;
+            } catch(e) {}
+        }
+
+        async function joinAsObserver(code) {
+            const obsName = 'Guest_' + Math.floor(Math.random()*1000);
+            try {
+                const res = await fetch(`/api/rooms/${code}/observe`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: obsName})
+                });
+                if(res.ok) {
+                    localStorage.setItem('yacht_username', obsName); 
+                    localStorage.setItem('yacht_room', code);
+                    location.href = `/game/multi?room=${code}&mode=observer`;
+                } else {
+                    const d = await res.json();
+                    alert(d.error || '실패');
+                }
+            } catch(e) { alert('오류'); }
+        }
+
+        function loadLobbyUsers() {
+            if (!isLoggedIn) return; 
+            fetch('/api/online-users').then(r=>r.json()).then(users=>{
+                const list = document.getElementById('lobby-user-list');
+                if(!users.length) {
+                    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔭</div><div class="empty-text">접속자 없음</div></div>';
+                    return;
+                }
+                list.innerHTML = users.map(u => {
+                    let name = (u.username && u.username !== 'undefined') ? u.username : '익명';
+                    const isMe = name === myUsername;
+                    const nameColor = isMe ? '#ffd700' : '#00ffcc';
+                    const meLabel = isMe ? '<span style="color:#aaa; font-size:0.8em; margin-left:4px;">(나)</span>' : '';
+                    
+                    let statusBadge = '';
+                    if(u.status === '게임중') statusBadge = '<span class="status-badge badge-game">게임중</span>';
+                    else statusBadge = '<span class="status-badge badge-wait">대기중</span>';
+
+                    return `
+                    <div style="padding:10px 0; color:${nameColor}; font-weight:600; font-size:1.05em; display:flex; align-items:center; border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <span style="font-size:0.6em; margin-right:10px;">●</span>
+                        ${name} ${meLabel}
+                        <div style="margin-left:auto;">${statusBadge}</div>
+                    </div>`;
+                }).join('');
+            }).catch(()=>{});
+        }
 
         function loadRoomList() {
-            fetch('/api/rooms', {cache:'no-store'})
-                .then(r => r.json())
-                .then(rooms => {
-                    const list = document.getElementById('room-list');
-                    if (!rooms.length) {
-                        list.innerHTML = '<p style="color:#aaa; padding:15px; text-align:center;">대기 중인 방이 없습니다</p>';
-                        return;
-                    }
-                    list.innerHTML = rooms.map(room => {
-                        const isFull = room.players.length >= 2;
-                        let playerNames = '';
-                        if (room.players.length === 1) {
-                            playerNames = `<span style='color:#00ffcc;'>${room.players[0]}</span>`;
-                        } else if (room.players.length === 2) {
-                            playerNames = `<span style='color:#00ffcc;'>${room.players[0]}</span> <span style='color:#aaa;'>vs</span> <span style='color:#00ffcc;'>${room.players[1]}</span>`;
-                        } else {
-                            playerNames = `<span style='color:#aaa;'>참가자 없음</span>`;
-                        }
-                        
-                        // 관전 버튼과 입장 버튼 분기 처리
-                        return `
-                        <div style="background:rgba(255,255,255,0.05); padding:12px 16px; margin:8px 0; border-radius:10px; display:flex; justify-content:space-between; align-items:center; border-left:3px solid #00ffcc;">
-                            <div>
-                                <div style="font-weight:600; color:#00ffcc; font-size:1.1em;">🎮 ${room.code}</div>
-                                <div style="font-size:0.95em; color:#ffd700; margin-top:4px;">${playerNames} <span style='color:#aaa; font-size:0.92em;'>(${room.players.length}/2)</span></div>
-                            </div>
-                            ${isFull
-                                ? `<button class='btn btn-multi' style='background:#e17055; margin-left:8px;' onclick='joinAsObserver("${room.code}")'>👁️ 관전</button>`
-                                : `<button class='btn btn-multi' style='padding:8px 20px; font-size:0.9em;' onclick='joinRoomById("${room.code}")'>입장</button>`}
+            fetch('/api/rooms', {cache:'no-store'}).then(r=>r.json()).then(rooms=>{
+                const list = document.getElementById('room-list');
+                if(!rooms.length) { 
+                    list.innerHTML='<div class="empty-state"><div class="empty-icon">🎲</div><div class="empty-text">대기 중인 방 없음<br>새로운 방을 생성해보세요!</div></div>'; 
+                    return; 
+                }
+                list.innerHTML = rooms.map(r=>{
+                    const isFull = r.players.length >= 2;
+                    let pInfo = r.players.length === 0 ? '대기 중' :
+                                r.players.length === 1 ? `<span style="color:#00ffcc">${r.players[0]}</span>` :
+                                `<span style="color:#00ffcc">${r.players[0]}</span> vs <span style="color:#ff6b6b">${r.players[1]}</span>`;
+                    
+                    return `
+                    <div class="room-item">
+                        <div>
+                            <div class="room-code">🎮 ${r.code}</div>
+                            <div style="font-size:0.9em; color:#aaa; margin-top:2px;">${pInfo}</div>
                         </div>
-                        `;
-                    }).join('');
-                })
-                .catch(() => {
-                    document.getElementById('room-list').innerHTML = '<p style="color:#ff6666; padding:15px; text-align:center;">방 목록 로드 실패</p>';
-                });
+                        ${isFull 
+                            ? `<button class="btn-mini" style="background:#e17055; padding:6px 12px; font-size:0.8em;" onclick="joinAsObserver('${r.code}')">👁️ 관전</button>`
+                            : `<button class="btn-mini btn-s" style="padding:6px 12px; font-size:0.8em;" onclick="joinRoom('${r.code}')">참가</button>`
+                        }
+                    </div>`;
+                }).join('');
+            }).catch(()=>{});
+        }
+        window.joinRoom = function(code) { document.getElementById('room-code').value=code; joinRoomById(); }
+
+        function switchRank(mode) {
+            currentRankMode = mode;
+            document.getElementById('tab-multi').className = mode === 'multi' ? 'rank-tab active' : 'rank-tab';
+            document.getElementById('tab-single').className = mode === 'single' ? 'rank-tab active' : 'rank-tab';
+            loadLeaderboard();
         }
 
         function loadLeaderboard() {
-            fetch('/api/leaderboard', {cache:'no-store'})
-                .then(r => r.json())
-                .then(data => {
-                    const list = document.getElementById('leaderboard-list');
-                    if (data.length === 0) {
-                        list.innerHTML = '<p style="color:#aaa;">아직 기록이 없습니다</p>';
-                        return;
-                    }
-                    list.innerHTML = data.slice(0, 5).map((user, idx) => `
-                        <div class="leaderboard-item">
-                            <span class="leaderboard-name">${idx + 1}. ${user.username}</span>
-                                <span class="leaderboard-stats">${user.wins}승 ${user.draws || 0}무 ${user.losses}패 (최고: ${user.high_score || 0}점)</span>
-                        </div>
-                    `).join('');
-                });
-        }
-
-        function resetLeaderboard() {
-            if (!confirm('정말 랭킹을 초기화할까요?')) return;
-            fetch('/api/leaderboard/reset', {method:'POST'})
-                .then(r => r.json())
-                .then(() => loadLeaderboard());
+            if (!isLoggedIn) return;
+            const endpoint = currentRankMode === 'multi' ? '/api/leaderboard/multi' : '/api/leaderboard/single';
+            fetch(endpoint).then(r=>r.json()).then(users=>{
+                const list = document.getElementById('leaderboard-list');
+                if(!users.length) { 
+                    list.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-text">기록 없음<br>첫 승리의 주인공이 되세요!</div></div>'; 
+                    return; 
+                }
+                
+                list.innerHTML = users.slice(0,20).map((u, i) => {
+                    let detail = '';
+                    if(currentRankMode === 'multi') detail = `${u.wins}승 ${u.losses}패`;
+                    else detail = `${u.score}점`; 
+                    
+                    return `
+                    <div class="leaderboard-item">
+                        <div style="font-weight:500; color:#eee;"><span class="rank-badge">${i+1}</span> ${u.username}</div>
+                        <div style="color:#aaa; font-family:'Rajdhani'">${detail}</div>
+                    </div>`;
+                }).join('');
+            }).catch(()=>{});
         }
 
         function loadSystemStatus() {
-            fetch('/api/system-status', {cache: 'no-store'})
-                .then(r => r.json())
-                .then(data => {
-                    document.getElementById('online-count').textContent = data.online_count || 0;
-                    document.getElementById('active-rooms').textContent = data.active_rooms || 0;
-                    
-                    const cpuPercent = data.cpu_percent || 0;
-                    document.getElementById('cpu-usage').textContent = `${cpuPercent}%`;
-                    const cpuBar = document.getElementById('cpu-bar');
-                    cpuBar.style.width = `${cpuPercent}%`;
-                    cpuBar.className = 'status-bar-fill';
-                    if (cpuPercent > 80) cpuBar.classList.add('danger');
-                    else if (cpuPercent > 60) cpuBar.classList.add('warning');
-                    
-                    const memPercent = data.memory_percent || 0;
-                    const memUsed = data.memory_used_gb || 0;
-                    const memTotal = data.memory_total_gb || 0;
-                    document.getElementById('memory-usage').textContent = `${memPercent}% (${memUsed.toFixed(1)}/${memTotal.toFixed(1)} GB)`;
-                    const memBar = document.getElementById('memory-bar');
-                    memBar.style.width = `${memPercent}%`;
-                    memBar.className = 'status-bar-fill';
-                    if (memPercent > 80) memBar.classList.add('danger');
-                    else if (memPercent > 60) memBar.classList.add('warning');
-                })
-                .catch(err => console.error('Failed to load system status:', err));
+            fetch('/api/system-status').then(r=>r.json()).then(data=>{
+                document.getElementById('online-count').textContent=data.online_count;
+                document.getElementById('active-rooms').textContent=data.active_rooms;
+                document.getElementById('cpu-bar').style.width=data.cpu_percent+'%';
+                document.getElementById('memory-bar').style.width=data.memory_percent+'%';
+                
+                // 숫자도 함께 표시
+                document.getElementById('cpu-usage').textContent = data.cpu_percent + '%';
+                document.getElementById('memory-usage').textContent = data.memory_percent + '%';
+                
+                // [NEW] 실제 메모리 사용량(GB)도 표시
+                if (data.memory_used_gb !== undefined && data.memory_total_gb !== undefined) {
+                    document.getElementById('memory-actual').textContent = `(${data.memory_used_gb}GB / ${data.memory_total_gb}GB)`;
+                } else {
+                    document.getElementById('memory-actual').textContent = '';
+                }
+            }).catch(()=>{});
         }
 
-        document.getElementById('username').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') startGame('single');
-        });
+        function sendHeartbeat() {
+            if (!isLoggedIn) return;
+            fetch('/api/lobby-heartbeat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({client_id:clientId, username:myUsername})}).catch(()=>{});
+        }
 
-        loadLeaderboard();
-        loadRoomList();
-        loadSystemStatus();
-        sendHeartbeat();
-        setInterval(loadRoomList, 2000);
-        setInterval(loadSystemStatus, 3000);
-        setInterval(sendHeartbeat, 10000);
+        document.getElementById('room-code').addEventListener('keypress', (e) => { if(e.key === 'Enter') joinRoomById(); });
+
+        function startPolling() {
+            loadLobbyUsers();
+            loadRoomList();
+            loadLeaderboard();
+            loadSystemStatus();
+            sendHeartbeat();
+            
+            setInterval(loadLobbyUsers, 3000);
+            setInterval(loadRoomList, 3000);
+            setInterval(loadSystemStatus, 3000);
+            setInterval(sendHeartbeat, 10000);
+        }
+
+        checkLogin();
+
     </script>
 </body>
 </html>

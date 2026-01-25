@@ -7,12 +7,16 @@ DATA_FILE = 'game_data.json'
 def load_data():
     """게임 데이터 로드"""
     if not os.path.exists(DATA_FILE):
-        return {'users': {}, 'games': []}
+        # 싱글/멀티 분리 구조로 초기화
+        return {'users': {}, 'games': [], 'single_leaderboard': []}
     try:
-        with open(DATA_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        data = json.load(open(DATA_FILE, 'r', encoding='utf-8'))
+        # 마이그레이션: single_leaderboard 필드가 없으면 추가
+        if 'single_leaderboard' not in data:
+            data['single_leaderboard'] = []
+        return data
     except:
-        return {'users': {}, 'games': []}
+        return {'users': {}, 'games': [], 'single_leaderboard': []}
 
 def save_data(data):
     """게임 데이터 저장"""
@@ -88,12 +92,32 @@ def save_game_result(player1_name, player1_score, player2_name, player2_score):
 
 def get_leaderboard():
     """리더보드 조회"""
+
     data = load_data()
     users = list(data['users'].values())
     for u in users:
         u.setdefault('draws', 0)
     users.sort(key=lambda x: (x['wins'], x['draws'], x['total_score']), reverse=True)
     return users
+
+def save_single_leaderboard(username, score):
+    """싱글 랭킹 저장"""
+    data = load_data()
+    entry = {
+        'username': username,
+        'score': score,
+        'timestamp': datetime.now().isoformat()
+    }
+    data['single_leaderboard'].append(entry)
+    # 상위 20개만 유지
+    data['single_leaderboard'] = sorted(data['single_leaderboard'], key=lambda x: x['score'], reverse=True)[:20]
+    save_data(data)
+    return True
+
+def get_single_leaderboard():
+    """싱글 랭킹 조회"""
+    data = load_data()
+    return sorted(data.get('single_leaderboard', []), key=lambda x: x['score'], reverse=True)
 
 
 def reset_leaderboard():

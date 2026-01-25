@@ -92,11 +92,11 @@
     },
     "Player": {
       "username": "Player",
-      "wins": 7,
+      "wins": 13,
       "draws": 0,
       "losses": 0,
-      "total_score": 677,
-      "games_played": 7,
+      "total_score": 973,
+      "games_played": 13,
       "created_at": "2026-01-19T11:49:26.701868"
     },
     "방구맨": {
@@ -198,42 +198,6 @@
       "games_played": 1,
       "created_at": "2026-01-21T16:38:38.205120"
     },
-    "지면3cm": {
-      "username": "지면3cm",
-      "wins": 1,
-      "draws": 0,
-      "losses": 0,
-      "total_score": 248,
-      "games_played": 1,
-      "created_at": "2026-01-21T16:38:38.208894"
-    },
-    "재메이햄": {
-      "username": "재메이햄",
-      "wins": 0,
-      "draws": 0,
-      "losses": 1,
-      "total_score": 128,
-      "games_played": 1,
-      "created_at": "2026-01-21T16:47:29.590985"
-    },
-    "윤석열": {
-      "username": "윤석열",
-      "wins": 1,
-      "draws": 0,
-      "losses": 0,
-      "total_score": 153,
-      "games_played": 1,
-      "created_at": "2026-01-21T16:47:29.592415"
-    },
-    "애미추": {
-      "username": "애미추",
-      "wins": 0,
-      "draws": 0,
-      "losses": 1,
-      "total_score": 149,
-      "games_played": 1,
-      "created_at": "2026-01-21T16:56:27.169472"
-    },
     "진사람 평생 솔로": {
       "username": "진사람 평생 솔로",
       "wins": 1,
@@ -314,6 +278,60 @@
       "total_score": 342,
       "games_played": 1,
       "created_at": "2026-01-22T11:45:45.465466"
+    },
+    "gdd": {
+      "username": "gdd",
+      "wins": 0,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 0,
+      "games_played": 0,
+      "created_at": "2026-01-22T12:17:16.112455"
+    },
+    "gd": {
+      "username": "gd",
+      "wins": 0,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 0,
+      "games_played": 0,
+      "created_at": "2026-01-22T12:17:16.114570"
+    },
+    "하남": {
+      "username": "하남",
+      "wins": 0,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 0,
+      "games_played": 0,
+      "created_at": "2026-01-25T15:11:26.780651"
+    },
+    "킴치": {
+      "username": "킴치",
+      "wins": 0,
+      "draws": 0,
+      "losses": 1,
+      "total_score": 0,
+      "games_played": 1,
+      "created_at": "2026-01-25T15:11:26.782139"
+    },
+    "와우": {
+      "username": "와우",
+      "wins": 3,
+      "draws": 0,
+      "losses": 0,
+      "total_score": 121,
+      "games_played": 3,
+      "created_at": "2026-01-25T15:29:50.612053"
+    },
+    "동우게이": {
+      "username": "동우게이",
+      "wins": 1,
+      "draws": 1,
+      "losses": 2,
+      "total_score": 217,
+      "games_played": 4,
+      "created_at": "2026-01-25T15:41:14.471450"
     }
   },
   "games": [
@@ -476,6 +494,142 @@
       "score2": 326,
       "winner": "김소라",
       "timestamp": "2026-01-22T11:46:04.168947"
+    },
+    {
+      "player1": "Player",
+      "score1": 50,
+      "player2": null,
+      "score2": 0,
+      "winner": "Player",
+      "timestamp": "2026-01-25T14:48:22.601870"
+    },
+    {
+      "player1": "Player",
+      "score1": 29,
+      "player2": null,
+      "score2": 0,
+      "winner": "Player",
+      "timestamp": "2026-01-25T14:50:52.602609"
+    },
+    {
+      "player1": "Player",
+      "score1": 21,
+      "player2": null,
+      "score2": 0,
+      "winner": "Player",
+      "timestamp": "2026-01-25T14:52:19.751808"
+    },
+    {
+      "player1": "Player",
+      "score1": 50,
+      "player2": null,
+      "score2": 0,
+      "winner": "Player",
+      "timestamp": "2026-01-25T14:59:55.531430"
+    },
+    {
+      "player1": "Player",
+      "score1": 106,
+      "player2": null,
+      "score2": 0,
+      "winner": "Player",
+      "timestamp": "2026-01-25T15:00:58.577666"
+    },
+    {
+      "player1": "Player",
+      "score1": 40,
+      "player2": null,
+      "score2": 0,
+      "winner": "Player",
+      "timestamp": "2026-01-25T15:29:22.674801"
+    },
+    {
+      "player1": "와우",
+      "score1": 52,
+      "player2": null,
+      "score2": 0,
+      "winner": "와우",
+      "timestamp": "2026-01-25T15:31:14.090399"
+    },
+    {
+      "player1": "와우",
+      "score1": 31,
+      "player2": null,
+      "score2": 0,
+      "winner": "와우",
+      "timestamp": "2026-01-25T15:32:32.728270"
+    },
+    {
+      "player1": "와우",
+      "score1": 38,
+      "player2": null,
+      "score2": 0,
+      "winner": "와우",
+      "timestamp": "2026-01-25T15:33:35.009551"
+    },
+    {
+      "player1": "동우게이",
+      "score1": 16,
+      "player2": "노봉하",
+      "score2": 20,
+      "winner": "노봉하",
+      "timestamp": "2026-01-25T15:43:08.121722"
+    },
+    {
+      "player1": "노봉하",
+      "score1": 0,
+      "player2": "동우게이",
+      "score2": 0,
+      "winner": "동우게이",
+      "timestamp": "2026-01-25T15:43:55.428146"
+    },
+    {
+      "player1": "동우게이",
+      "score1": 188,
+      "player2": "노봉하",
+      "score2": 194,
+      "winner": "노봉하",
+      "timestamp": "2026-01-25T15:54:45.073481"
+    },
+    {
+      "player1": "킴치",
+      "score1": 0,
+      "player2": "동우게이",
+      "score2": 13,
+      "winner": "동우게이",
+      "timestamp": "2026-01-25T16:11:19.948280"
+    }
+  ],
+  "single_leaderboard": [
+    {
+      "username": "킴치",
+      "score": 106,
+      "timestamp": "2026-01-25T15:01:04.103097"
+    },
+    {
+      "username": "와우",
+      "score": 72,
+      "timestamp": "2026-01-25T15:29:52.616120"
+    },
+    {
+      "username": "와우",
+      "score": 52,
+      "timestamp": "2026-01-25T15:31:16.096133"
+    },
+    {
+      "username": "와우",
+      "score": 38,
+      "timestamp": "2026-01-25T15:33:37.017555"
+    },
+    {
+      "username": "와우",
+      "score": 38,
+      "timestamp": "2026-01-25T15:33:37.110826"
+    },
+    {
+      "username": "와우",
+      "score": 31,
+      "timestamp": "2026-01-25T15:32:34.730503"
     }
   ]
 }

@@ -511,8 +511,8 @@
             if (connectionLostHandled) return;
             connectionLostHandled = true;
             localStorage.removeItem('yacht_room');
-            alert(msg);
-            window.location.replace('/');
+            showToast(msg, 0);
+            setTimeout(() => window.location.replace('/'), 1500);
         }
 
         window.addEventListener('offline', () => {
@@ -1214,13 +1214,13 @@ window.addEventListener('beforeunload', (e) => {
                 }
                 localStorage.removeItem('yacht_room');
                 gameOverToastShown = true;
-                alert('로비로 이동합니다');
+                showToast('로비로 이동합니다', 0);
             } catch (e) {
                 console.error('Leave failed', e);
-                alert('나가기 실패');
+                showToast('나가기 실패', 0);
                 return;
             }
-            window.location.replace('/');
+            setTimeout(() => { window.location.replace('/'); }, 1000);
         }
 
         function passTurn() {
