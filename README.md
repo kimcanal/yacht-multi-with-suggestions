@@ -6,8 +6,15 @@ https://app.yatch-game.cloud/
 
 <img width="706" height="1606" alt="image" src="https://github.com/user-attachments/assets/a3744c82-24be-47e0-ae42-f476fbd7cf0f" />
 
-
+(구버전UI)
 <img width="1497" height="1159" alt="image" src="https://github.com/user-attachments/assets/62ca51fa-3b80-458c-bff2-683739c4c4fe" />
+
+(신버전UI)
+![Uploading image.png…]()
+
+
+<img width="3420" height="1920" alt="image" src="https://github.com/user-attachments/assets/0c79e8b3-1f01-4409-87d8-8d1fcae7d5ad" />
+
 
 
 ## 기능
