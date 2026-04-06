@@ -2,6 +2,10 @@ Flask 기반 웹 요트 다이스 게임 wtih 확률 분석
 
 https://app.yatch-game.cloud/
 
+추가 문서:
+
+- API 문서: [API.md](./API.md)
+
 (구버전UI)
 <img width="706" height="1606" alt="image" src="https://github.com/user-attachments/assets/a3744c82-24be-47e0-ae42-f476fbd7cf0f" />
 
@@ -15,10 +19,13 @@ https://app.yatch-game.cloud/
 
 - 싱글플레이 모드: AI 추천 기능 포함
 - 멀티플레이 모드: 실시간 2인 대전
+- 관전 모드: 멀티 1대1 경기 관전 가능
 - 리더보드: 최고 점수 기록
 - 서버 모니터링:  CPU, RAM, 접속자 수 실시간 표시
 - 타이머 : 30초 타이머가 돌아갑니다. 시간이 다할시 auto roll이 수행됩니다.
 - 싱글/멀티 모두 AI 추천 시스템이 작동하고 있습니다.
+- 추천 모드: `안전형` / `한방형`
+- 판세 흐름: 남은 점수표 기준의 흐름 추정 그래프
 
 ## 설치 및 실행
 
@@ -78,6 +85,21 @@ python3 server.py
 - **Game Engine**: Python (확률 계산 기반 AI)
 - **Monitoring**: psutil
 
+## 주요 API
+
+- `POST /api/recommend`: 현재 주사위 기준 추천
+- `GET /api/rooms`: 활성 방 목록
+- `POST /api/rooms`: 방 생성
+- `POST /api/rooms/<code>/join`: 방 입장
+- `POST /api/rooms/<code>/observe`: 관전 입장
+- `POST /api/rooms/<code>/roll`: 주사위 굴리기
+- `POST /api/rooms/<code>/sync`: 상태 동기화
+- `POST /api/rooms/<code>/leave`: 방 이탈 / 부전승 처리
+- `GET /api/leaderboard`: 멀티 리더보드
+- `GET/POST /api/leaderboard/single`: 싱글 리더보드 조회/저장
+
+자세한 요청/응답 예시는 [API.md](./API.md) 참고
+
 ## 파일 구조
 
 ```
@@ -98,15 +120,19 @@ yacht_game/
 ├── server.py
 ├── static
 │   └── js
+│       ├── ai_panel.js
+│       ├── dom_utils.js
+│       ├── game_state.js
+│       ├── score_utils.js
+│       ├── winprob.js
 │       └── yacht_game.js
 ├── templates
-│   ├── index.html
 │   ├── lobby.html
 │   ├── multi-game.html
 │   └── single-game.html
 └── yacht_engine.py
 
-6 directories, 18 files
+6 directories, 22 files
 ```
 
 ## 라이센스

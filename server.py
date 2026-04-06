@@ -17,6 +17,8 @@ rooms = {}
 # lobby_clients: { client_id: { 'last_seen': time, 'username': name } }
 lobby_clients = {}
 CLIENT_TIMEOUT = 30  # 30초 미활동 클라이언트 정리
+PLAYER_ROOM_TIMEOUT = 10
+OBSERVER_ROOM_TIMEOUT = 60
 USERNAME_RE = re.compile(r"^[A-Za-z0-9가-힣_]{2,12}$")
 RESET_ADMIN_TOKEN = os.getenv("YACHT_ADMIN_TOKEN", "").strip()
 
@@ -104,6 +106,39 @@ def _score_total(card):
     bonus = 35 if upper >= 63 else 0
     lower = sum((v or 0) for v in card[6:])
     return upper + bonus + lower
+
+def _prune_room_activity(code, room, now=None):
+    now = now or time.time()
+
+    player_last_seen = room.setdefault('player_last_seen', {})
+    stale_players = [
+        player for player in list(room.get('players', []))
+        if player_last_seen.get(player, 0) < now - PLAYER_ROOM_TIMEOUT
+    ]
+    for player in stale_players:
+        if player in room.get('players', []):
+            room['players'].remove(player)
+        room.get('player_tokens', {}).pop(player, None)
+        player_last_seen.pop(player, None)
+
+    observer_last_seen = room.setdefault('observer_last_seen', {})
+    stale_observers = [
+        observer for observer in list(room.get('observers', []))
+        if observer_last_seen.get(observer, 0) < now - OBSERVER_ROOM_TIMEOUT
+    ]
+    for observer in stale_observers:
+        if observer in room.get('observers', []):
+            room['observers'].remove(observer)
+        observer_last_seen.pop(observer, None)
+
+    state = room.get('state')
+    if isinstance(state, dict):
+        state['players'] = room.get('players', [])
+
+    if len(room.get('players', [])) == 0:
+        rooms.pop(code, None)
+        return None
+    return room
 
 # --- 라우트 (페이지) ---
 @app.route('/')
@@ -311,25 +346,8 @@ def _generate_room_code(length: int = 6) -> str:
 @app.route('/api/rooms', methods=['GET'])
 def list_rooms():
     now = time.time()
-    to_delete = []
-    
     for code, info in list(rooms.items()):
-        pls = info.setdefault('player_last_seen', {})
-        stale_threshold = 10.0
-        
-        stale_players = [p for p in list(info.get('players', [])) 
-                         if (p in pls) and (pls.get(p, 0) < now - stale_threshold)]
-        
-        if stale_players:
-            for p in stale_players:
-                if p in info['players']: info['players'].remove(p)
-            info['state']['players'] = info['players']
-            
-        if len(info.get('players', [])) == 0:
-            to_delete.append(code)
-            
-    for code in to_delete:
-        del rooms[code]
+        _prune_room_activity(code, info, now)
 
     return jsonify([
         {
@@ -369,6 +387,7 @@ def create_room():
         "last_update": time.time(),
         "started_full": False,
         "player_last_seen": {username: time.time()},
+        "observer_last_seen": {},
     }
     return jsonify({"code": code, "players": rooms[code]["players"], "player_token": player_token})
 
@@ -428,6 +447,7 @@ def observe_room(code):
         
     if username not in room.get("observers", []):
         room.setdefault("observers", []).append(username)
+    room.setdefault("observer_last_seen", {})[username] = time.time()
         
     return jsonify({"code": code, "observers": room["observers"], "players": room["players"], "state": room["state"]})
 
@@ -437,11 +457,17 @@ def get_room(code):
     if not room: return jsonify({"error": "방 없음"}), 404
     
     now = time.time()
+    room = _prune_room_activity(code, room, now)
+    if not room:
+        return jsonify({"error": "방 없음"}), 404
+
     u = request.args.get('u')
     pt = request.args.get('pt')
     if u and (u in room.get('players', [])) and _is_valid_player(room, u, pt):
         room.setdefault('player_last_seen', {})[u] = now
         room['last_update'] = now
+    elif u and u in room.get('observers', []):
+        room.setdefault('observer_last_seen', {})[u] = now
 
     state = room.get("state", _default_room_state())
     turn_left = None
