@@ -142,6 +142,17 @@
         .ai-breakdown {
             margin-top: 0; background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 12px; font-size: 0.9em; text-align: left;
         }
+        .ai-mode-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:10px 0 12px; }
+        .ai-mode-btn {
+            border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:#dbe4ee;
+            border-radius:999px; padding:7px 14px; font-size:0.85rem; font-weight:700; cursor:pointer; transition:0.2s ease;
+        }
+        .ai-mode-btn.active { background:#59f0c2; color:#07251d; border-color:#59f0c2; }
+        .ai-panel-head { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:10px; }
+        .ai-panel-title { font-weight:800; color:#f4f7fb; }
+        .ai-summary-line { margin-bottom:10px; color:#9ab0c2; line-height:1.4; font-size:0.9em; }
+        .ai-perspective { color:#59f0c2; font-size:0.8em; font-weight:700; }
+        .ai-reason { margin-top:6px; color:#76dcb6; font-size:0.84em; }
         .breakdown-item {
             display: flex; justify-content: space-between; align-items: center; padding: 8px 10px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05); gap: 10px;
@@ -171,6 +182,17 @@
             .dice-item { width: auto; flex: 0 0 30%; font-size: min(6vw, 22px); }
             .keep-btn { width: 100%; font-size: 11px; padding: 6px 0; }
         }
+        @media (max-width: 768px) {
+            .game-wrapper { display: block !important; max-width: 100% !important; margin: 0 !important; }
+            .main-area, .scorecard-area { width: 100% !important; max-width: 100% !important; flex: none !important; }
+            .title { font-size: 2rem !important; margin-bottom: 16px !important; text-align: center; }
+            .dice-area { padding: 16px 10px !important; border-radius: 18px !important; margin-bottom: 16px !important; }
+            .scorecard-area { padding: 16px 10px !important; border-radius: 18px !important; }
+            .controls { flex-wrap: wrap; gap: 10px !important; margin-bottom: 18px !important; }
+            .controls .btn { flex: 1 1 calc(50% - 6px); min-width: 130px; padding: 11px 14px !important; font-size: 0.98rem !important; }
+            .rolls-remaining { font-size: 1.2rem; }
+            .score-item { padding: 11px 10px; font-size: 0.95em; }
+        }
     </style>
 </head>
 <body>
@@ -185,6 +207,10 @@
                     <div id="timer-bar" style="font-size:1.1em; color:#ff6b6b; margin:2px 0 0 0; font-weight:bold; display:none; line-height:2;">⏳<span id="timer-count">30</span>초 남았습니다</div>
                     <div id="game-status" style="color:#00ffcc; font-size:0.95em; text-align:center; min-height:24px;"></div>
                     <div id="ai-info-tip" style="margin-top:8px; padding:8px 12px; background:rgba(0,255,204,0.08); border-left:3px solid #00ffcc; border-radius:5px; font-size:0.85em; color:#aaa; line-height:1.4; display:none;">💡 AI 추천: 고득점 족보(4 of a Kind, Full House, Straight, Yacht) 달성을 우선으로 고려합니다.<br>이들을 모두 완성한 후에는 상단 족보(Ones~Sixes)를 효율적으로 채울 수 있는 조합을 제안합니다.</div>
+                    <div class="ai-mode-row">
+                        <button class="ai-mode-btn" data-ai-mode="safe">안전형</button>
+                        <button class="ai-mode-btn" data-ai-mode="aggressive">한방형</button>
+                    </div>
                     <div id="ai-breakdown" class="ai-breakdown"></div>
                 </div>
             </div>
@@ -216,7 +242,7 @@
                     <div id="modal-error" style="color:#ff6b6b; margin-top:12px; font-size:0.95em;"></div>
                 </div>
             </div>
-    <script src="/static/js/yacht_game.js"></script>
+    <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260406-2') }}"></script>
     <script>
         // 타이머 관련 변수
         let timerInterval = null;
@@ -305,37 +331,12 @@
                 .then(r => r.json())
                 .then(data => {
                     const toast = document.getElementById('score-toast');
-                    let rankingMsg = '';
-                    if (!username || username === 'Player' || username.length < 2) {
-                        rankingMsg = '<div class="toast-cat" style="color:#ff6b6b; margin-top:10px;">닉네임이 2자 이상이어야 랭킹 등록이 가능합니다</div>';
-                        // 기존 토스트에만 메시지 추가, showGameOverToast에서 토스트가 이미 뜨므로 show만 보장
-                        toast.classList.add('show');
-                        toast.innerHTML += rankingMsg;
-                        setTimeout(() => toast.classList.remove('show'), 3200);
-                        return;
-                    }
-                    fetch('/api/leaderboard/single', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({username: username, score: parseInt(score)})
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.success) {
-                            rankingMsg = '<div class="toast-cat" style="color:#00ffcc; margin-top:10px;">랭킹에 등록되었습니다!</div>';
-                        } else {
-                            rankingMsg = `<div class="toast-cat" style="color:#ff6b6b; margin-top:10px;">랭킹 등록 실패: ${data.error || '저장 실패'}</div>`;
-                        }
-                        toast.classList.add('show');
-                        toast.innerHTML += rankingMsg;
-                        setTimeout(() => toast.classList.remove('show'), 3200);
-                    })
-                    .catch(e => {
-                        rankingMsg = '<div class="toast-cat" style="color:#ff6b6b; margin-top:10px;">랭킹 등록 실패: 저장 중 오류 발생</div>';
-                        toast.classList.add('show');
-                        toast.innerHTML += rankingMsg;
-                        setTimeout(() => toast.classList.remove('show'), 3200);
-                    });
+                    const rankingMsg = data.success
+                        ? '<div class="toast-cat" style="color:#00ffcc; margin-top:10px;">랭킹에 등록되었습니다!</div>'
+                        : `<div class="toast-cat" style="color:#ff6b6b; margin-top:10px;">랭킹 등록 실패: ${data.error || '저장 실패'}</div>`;
+                    toast.classList.add('show');
+                    toast.innerHTML += rankingMsg;
+                    setTimeout(() => toast.classList.remove('show'), 3200);
                 })
                 .catch(e => {
                     const toast = document.getElementById('score-toast');
@@ -505,7 +506,7 @@
 
             isRolling = true;
             aiRec = null; 
-            document.getElementById('ai-breakdown').innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">🎲 계산 중...</div>';
+            renderAiStatus('ai-breakdown', '🎲 계산 중...');
             updateDice(); 
 
             for (let i = 0; i < 5; i++) {
@@ -561,36 +562,19 @@
                 const r = await fetch('/api/recommend', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({dice, rolls_left: rollsLeft, scorecard: myCard, open_categories})
+                    body: JSON.stringify({dice, rolls_left: rollsLeft, scorecard: myCard, open_categories, strategy_mode: getAiMode()})
                 });
-                aiRec = await r.json();
-                
-                const bd = document.getElementById('ai-breakdown');
-                if (aiRec.breakdown && aiRec.breakdown.length > 0) {
-                    bd.innerHTML = aiRec.breakdown.map(item => {
-                        let color = '#ffd700';
-                        const barWidth = Math.min(item.prob * 100, 100);
-                        return `
-                            <div class="breakdown-item">
-                                <div style="flex: 1;">
-                                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                                        <span style="font-size:1.3em; font-weight:bold; color:${color}">➤</span>
-                                        <span style="color:#ccc; font-weight:500">${item.name}</span>
-                                    </div>
-                                    <div style="font-size:0.9em; color:#aaa; margin-top:3px; margin-bottom:6px;">${item.keep_str}</div>
-                                    <div style="background:rgba(0,0,0,0.3); border-radius:6px; height:6px; margin-right:8px;">
-                                        <div style="background:${color}; border-radius:6px; height:100%; width:${barWidth}%; transition:width 0.3s ease;"></div>
-                                    </div>
-                                </div>
-                                <span class="breakdown-val" style="color:${color}; font-weight:bold; min-width:50px; text-align:right">${item.val_str}</span>
-                            </div>
-                        `;
-                    }).join('');
-                } else {
-                    bd.innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">대기 중...</div>';
+                const payload = await r.json();
+                if (!r.ok || payload.error) {
+                    throw new Error(payload.error || 'AI 추천 요청 실패');
                 }
+                aiRec = payload;
+                renderAiPanel('ai-breakdown', aiRec, { perspective: '내 턴 기준' });
                 updateDice();
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error(e);
+                renderAiStatus('ai-breakdown', `추천 실패: ${e.message || '잠시 후 다시 시도해 주세요.'}`, 'error');
+            }
         }
         
         function timeOut(){
@@ -732,7 +716,10 @@
         async function initializeGame() {
             renderDice();
             updateScorecard();
-            document.getElementById('ai-breakdown').innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">🎲 주사위를 굴려주세요</div>';
+            renderAiStatus('ai-breakdown', '🎲 주사위를 굴려주세요');
+            bindAiModeControls(() => {
+                if (!gameOver && rollsLeft < 3) askAI();
+            });
             
             const roomLabel = document.getElementById('room-label');
             if (roomLabel) roomLabel.textContent = '';

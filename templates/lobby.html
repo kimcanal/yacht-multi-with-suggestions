@@ -142,6 +142,20 @@
             .main-content-grid { display: flex; flex-direction: column; overflow: visible; }
             .panel { height: 350px; flex: none; }
         }
+        @media (max-width: 768px) {
+            body { height: auto; min-height: 100vh; align-items: flex-start; overflow-y: auto; }
+            .lobby-container { width: 100%; max-width: none; border-radius: 0; min-height: 100vh; height: auto; padding: 16px 12px 32px; }
+            .header-area { flex-direction: column; align-items: stretch; gap: 12px; }
+            .title { font-size: 2rem; text-align: center; }
+            .control-bar { flex-wrap: wrap; justify-content: center; gap: 10px; }
+            .control-bar > div[style*="width:1px"] { display: none; }
+            .btn-mini, .input-mini { width: calc(50% - 6px); min-width: 140px; }
+            .btn-mini.btn-p { width: 100%; }
+            .panel { height: 300px; }
+            .login-box { width: min(92vw, 420px); padding: 28px 20px; border-radius: 20px; }
+            .login-title { font-size: 2.3rem; margin-bottom: 20px; }
+            .login-input, .login-btn { padding: 14px 16px; font-size: 1rem; }
+        }
     </style>
 </head>
 <body>
@@ -268,6 +282,19 @@
     </footer>
 
     <script>
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function roomTokenKey(code) {
+            return `yacht_player_token_${code}`;
+        }
+
         let clientId = localStorage.getItem('yacht_client_id');
         if (!clientId) {
             clientId = 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -292,8 +319,9 @@
 
         function submitLogin() {
             const name = document.getElementById('login-username').value.trim();
-            if (!name || name.length < 2) {
-                alert('닉네임을 2글자 이상 입력해주세요!');
+            const valid = /^[A-Za-z0-9가-힣_]{2,12}$/.test(name);
+            if (!valid) {
+                alert('닉네임은 2~12자, 한글/영문/숫자/_만 사용 가능합니다.');
                 return;
             }
             myUsername = name;
@@ -334,7 +362,11 @@
             try {
                 const res = await fetch('/api/rooms', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:myUsername})});
                 const data = await res.json();
-                if(data.code) { localStorage.setItem('yacht_room', data.code); location.href=`/game/multi?room=${data.code}`; }
+                if(data.code) {
+                    if (data.player_token) localStorage.setItem(roomTokenKey(data.code), data.player_token);
+                    localStorage.setItem('yacht_room', data.code);
+                    location.href=`/game/multi?room=${data.code}`;
+                }
             } catch(e) { alert('오류'); }
         }
 
@@ -344,7 +376,11 @@
             try {
                 const res = await fetch(`/api/rooms/${code}/join`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:myUsername})});
                 const data = await res.json();
-                if(res.ok) { localStorage.setItem('yacht_room', code); location.href=`/game/multi?room=${code}`; }
+                if(res.ok) {
+                    if (data.player_token) localStorage.setItem(roomTokenKey(code), data.player_token);
+                    localStorage.setItem('yacht_room', code);
+                    location.href=`/game/multi?room=${code}`;
+                }
                 else document.getElementById('error').innerText = data.error;
             } catch(e) {}
         }
@@ -376,8 +412,9 @@
                     return;
                 }
                 list.innerHTML = users.map(u => {
-                    let name = (u.username && u.username !== 'undefined') ? u.username : '익명';
-                    const isMe = name === myUsername;
+                    const rawName = (u.username && u.username !== 'undefined') ? u.username : '익명';
+                    const name = escapeHtml(rawName);
+                    const isMe = rawName === myUsername;
                     const nameColor = isMe ? '#ffd700' : '#00ffcc';
                     const meLabel = isMe ? '<span style="color:#aaa; font-size:0.8em; margin-left:4px;">(나)</span>' : '';
                     
@@ -405,13 +442,13 @@
                 list.innerHTML = rooms.map(r=>{
                     const isFull = r.players.length >= 2;
                     let pInfo = r.players.length === 0 ? '대기 중' :
-                                r.players.length === 1 ? `<span style="color:#00ffcc">${r.players[0]}</span>` :
-                                `<span style="color:#00ffcc">${r.players[0]}</span> vs <span style="color:#ff6b6b">${r.players[1]}</span>`;
+                                r.players.length === 1 ? `<span style="color:#00ffcc">${escapeHtml(r.players[0])}</span>` :
+                                `<span style="color:#00ffcc">${escapeHtml(r.players[0])}</span> vs <span style="color:#ff6b6b">${escapeHtml(r.players[1])}</span>`;
                     
                     return `
                     <div class="room-item">
                         <div>
-                            <div class="room-code">🎮 ${r.code}</div>
+                            <div class="room-code">🎮 ${escapeHtml(r.code)}</div>
                             <div style="font-size:0.9em; color:#aaa; margin-top:2px;">${pInfo}</div>
                         </div>
                         ${isFull 
@@ -448,7 +485,7 @@
                     
                     return `
                     <div class="leaderboard-item">
-                        <div style="font-weight:500; color:#eee;"><span class="rank-badge">${i+1}</span> ${u.username}</div>
+                        <div style="font-weight:500; color:#eee;"><span class="rank-badge">${i+1}</span> ${escapeHtml(u.username)}</div>
                         <div style="color:#aaa; font-family:'Rajdhani'">${detail}</div>
                     </div>`;
                 }).join('');

@@ -5,6 +5,11 @@ CATS = {
     'Ones': 0, 'Twos': 1, 'Threes': 2, 'Fours': 3, 'Fives': 4, 'Sixes': 5,
     'Choice': 6, '4 of a Kind': 7, 'Full House': 8, 'Small Straight': 9, 'Large Straight': 10, 'Yacht': 11
 }
+HAND_FIXED_SCORES = {
+    'Yacht': 50,
+    'Large Straight': 30,
+    'Small Straight': 15,
+}
 
 OUTCOMES_CACHE = {}
 EPS = 1e-12
@@ -100,6 +105,38 @@ def get_category_expected_value(kept_dice, category_idx, num_reroll):
         ev += prob * score
     return ev
 
+def _hand_score_hint(cat_name, move):
+    if cat_name in HAND_FIXED_SCORES:
+        return HAND_FIXED_SCORES[cat_name]
+    if cat_name == 'Full House':
+        return 22
+    if cat_name == '4 of a Kind':
+        return int(round(move.get('conditional_ev', 20)))
+    return 0
+
+def _build_reason(cat_name, prob, mode):
+    pct = f"{prob * 100:.1f}%"
+    if mode == 'aggressive':
+        return f"고점 우선: {cat_name} 완성 확률 {pct}"
+    if prob >= 0.75:
+        return f"안정적 선택: {cat_name} 성공 확률 {pct}"
+    if prob >= 0.35:
+        return f"균형 선택: {cat_name} 성공 확률 {pct}"
+    return f"도전 선택: {cat_name} 완성 확률 {pct}"
+
+def _build_summary(best_item, mode):
+    if not best_item:
+        return "추천 없음: 다시 굴리며 다음 기회를 보는 편이 좋습니다."
+    style_label = "안전형" if mode != 'aggressive' else "한방형"
+    return f"{style_label} 추천: {best_item['name']} 확률 {best_item['val_str']}"
+
+def _mode_rank(move, mode):
+    score_hint = _hand_score_hint(move['name'], move)
+    prob = move.get('prob', 0)
+    if mode == 'aggressive':
+        return (score_hint * (0.45 + prob), prob, move.get('priority', 0), move.get('tie_values', []))
+    return (prob, move.get('priority', 0), move.get('tie_values', []))
+
 def _find_4kind_keeps(dice):
     """4 of a Kind를 keep할 수 있는 경우 찾기: 4개 이상 또는 3개"""
     from collections import Counter
@@ -122,7 +159,8 @@ def _find_4kind_keeps(dice):
     
     return candidates
 
-def solve_best_move(dice, rolls_left, open_categories):
+def solve_best_move(dice, rolls_left, open_categories, strategy_mode='safe'):
+    mode = strategy_mode if strategy_mode in ('safe', 'aggressive') else 'safe'
     # 1. 기본 EV 계산 (점수형 카테고리나 족보 실패 시를 대비한 베이스라인)
     best_ev = -1
     best_keep_indices = []
@@ -319,7 +357,7 @@ def solve_best_move(dice, rolls_left, open_categories):
                     move['tie_keeps'] = []
         
         # 확률, 우선순위, 그리고 동률 시 더 큰 눈을 선호
-        best_hand_moves.sort(key=lambda x: (x['prob'], x['priority'], x.get('tie_values', [])), reverse=True)
+        best_hand_moves.sort(key=lambda x: _mode_rank(x, mode), reverse=True)
         best_strategy = best_hand_moves[0]
         # 선택된 족보 전략의 EV를 계산하여 베이스라인보다 과도하게 낮으면 유지하지 않음
         strategy_keep = best_strategy['keep_indices']
@@ -365,7 +403,8 @@ def solve_best_move(dice, rolls_left, open_categories):
                 "val_str": "",
                 "type": "hand",
                 "keep_str": keep_str,
-                "keep_indices": []
+                "keep_indices": [],
+                "reason": "현재 턴에는 이 족보를 현실적으로 노리기 어렵습니다."
             })
             continue
         
@@ -379,7 +418,8 @@ def solve_best_move(dice, rolls_left, open_categories):
                 "val_str": "",
                 "type": "hand",
                 "keep_str": "불가능",
-                "keep_indices": []
+                "keep_indices": [],
+                "reason": "이번 상태에선 완성 경로가 없습니다."
             })
             continue
         
@@ -410,7 +450,8 @@ def solve_best_move(dice, rolls_left, open_categories):
                 "val_str": f"{move['prob'] * 100:.2f}%",
                 "type": "hand",
                 "keep_str": keep_str,
-                "keep_indices": move['keep_indices']
+                "keep_indices": move['keep_indices'],
+                "reason": _build_reason(cat_name, move['prob'], mode)
             })
             continue
         
@@ -431,7 +472,8 @@ def solve_best_move(dice, rolls_left, open_categories):
                 "val_str": f"{move['prob'] * 100:.2f}%",
                 "type": "hand",
                 "keep_str": f"{final_keep} → {score_str}",
-                "keep_indices": move['keep_indices']
+                "keep_indices": move['keep_indices'],
+                "reason": _build_reason(cat_name, move['prob'], mode)
             })
             continue
 
@@ -506,7 +548,8 @@ def solve_best_move(dice, rolls_left, open_categories):
             "val_str": f"{move['prob'] * 100:.2f}%",
             "type": "hand",
             "keep_str": f"{keep_str if 'Keep 후보' in keep_str else (keep_str if keep_str == '모두 굴리기' else keep_str + ' keep')} → {score_str}",
-            "keep_indices": move['keep_indices']
+            "keep_indices": move['keep_indices'],
+            "reason": _build_reason(cat_name, move['prob'], mode)
         })
     
     # 족보가 모두 불가능하거나, 족보를 모두 채웠을 때 상단부 표시
@@ -540,7 +583,8 @@ def solve_best_move(dice, rolls_left, open_categories):
                 "val_str": f"{prob_get_more * 100:.2f}%",
                 "type": "upper",
                 "keep_str": f"현재 나온 {target_val}들을 모두 Keep → {target_val}{josa} 적어도 하나 더 뜰 확률",
-                "keep_indices": [i for i, d in enumerate(dice) if d == target_val]
+                "keep_indices": [i for i, d in enumerate(dice) if d == target_val],
+                "reason": f"안전하게 상단 점수를 쌓을 수 있는 확률 {prob_get_more * 100:.1f}%"
             })
 
     # breakdown에서 확률이 가장 높은 항목(not upper)을 추천
@@ -553,7 +597,10 @@ def solve_best_move(dice, rolls_left, open_categories):
         # keep이 있는 족보 중에서 확률이 가장 높은 것 선택
         hand_with_keep = [b for b in hand_breakdown if b.get('keep_indices')]
         if hand_with_keep:
-            best_hand = max(hand_with_keep, key=lambda x: x.get('prob', 0))
+            if mode == 'aggressive':
+                best_hand = max(hand_with_keep, key=lambda x: _mode_rank(x, mode))
+            else:
+                best_hand = max(hand_with_keep, key=lambda x: x.get('prob', 0))
             best_keep_indices = best_hand['keep_indices']
             kept_vals = [str(dice[i]) for i in sorted(best_keep_indices)]
             rec_msg = f"[{', '.join(kept_vals)}] Keep"
@@ -577,5 +624,8 @@ def solve_best_move(dice, rolls_left, open_categories):
         "expected_value": round(best_ev, 2),
         "dice_recommendations": dice_recommendations,
         "message": rec_msg,
-        "breakdown": breakdown
+        "breakdown": breakdown,
+        "strategy_mode": mode,
+        "primary_target": best_hand['name'] if hand_breakdown and 'best_hand' in locals() else None,
+        "summary": _build_summary(best_hand if hand_breakdown and 'best_hand' in locals() else None, mode)
     }

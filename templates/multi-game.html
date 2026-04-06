@@ -244,6 +244,30 @@
             margin-top: 15px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;
             padding: 12px; font-size: 0.9em; text-align: left;
         }
+        .ai-mode-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:10px 0 0; }
+        .ai-mode-btn {
+            border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:#dbe4ee;
+            border-radius:999px; padding:7px 14px; font-size:0.85rem; font-weight:700; cursor:pointer; transition:0.2s ease;
+        }
+        .ai-mode-btn.active { background:#59f0c2; color:#07251d; border-color:#59f0c2; }
+        .ai-panel-head { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:10px; }
+        .ai-panel-title { font-weight:800; color:#f4f7fb; }
+        .ai-summary-line { margin-bottom:10px; color:#9ab0c2; line-height:1.4; font-size:0.9em; }
+        .ai-perspective { color:#59f0c2; font-size:0.8em; font-weight:700; }
+        .ai-reason { margin-top:6px; color:#76dcb6; font-size:0.84em; }
+        .winprob-panel {
+            margin-top: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 14px;
+        }
+        .winprob-head { display:flex; justify-content:space-between; align-items:flex-end; gap:10px; margin-bottom:10px; }
+        .winprob-title { color:#f4f7fb; font-weight:800; }
+        .winprob-sub { color:#93a3b8; font-size:0.8em; }
+        .winprob-bar { display:flex; width:100%; height:30px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,0.06); margin-bottom:8px; }
+        .winprob-left, .winprob-right { display:flex; align-items:center; white-space:nowrap; font-size:0.82em; font-weight:800; }
+        .winprob-left { justify-content:flex-start; background:#59f0c2; color:#06231b; padding-left:10px; }
+        .winprob-right { justify-content:flex-end; background:#ff9f6e; color:#2b1307; padding-right:10px; }
+        .winprob-meta { color:#93a3b8; font-size:0.82em; margin-bottom:8px; }
+        .winprob-graph { width:100%; height:96px; display:block; }
         .breakdown-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 8px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); gap: 10px;
@@ -272,6 +296,17 @@
             .dice-item { width: auto; flex: 0 0 30%; font-size: min(6vw, 22px); }
             .keep-btn { width: 100%; font-size: 11px; padding: 6px 0; }
         }
+        @media (max-width: 768px) {
+            .game-wrapper { display: block !important; max-width: 100% !important; margin: 0 !important; }
+            .main-area, .scorecard-area { width: 100% !important; max-width: 100% !important; flex: none !important; }
+            .title { font-size: 2rem !important; margin-bottom: 16px !important; text-align: center; }
+            .dice-area { padding: 16px 10px !important; border-radius: 18px !important; margin-bottom: 16px !important; }
+            .scorecard-area { padding: 16px 10px !important; border-radius: 18px !important; }
+            .controls { flex-wrap: wrap; gap: 10px !important; margin-bottom: 18px !important; }
+            .controls .btn { flex: 1 1 calc(50% - 6px); min-width: 130px; padding: 11px 14px !important; font-size: 0.98rem !important; }
+            .rolls-remaining { font-size: 1.2rem; }
+            .score-item { padding: 11px 10px; font-size: 0.95em; }
+        }
     </style>
 </head>
 <body>
@@ -286,9 +321,14 @@
                     <div class="rolls-remaining">남은 Roll: <span id="rolls-left">3</span>/3</div>
                     <div id="game-status" style="margin-top: 10px; color: #00ffcc; font-size: 0.9em; text-align: center; min-height: 24px;"></div>
                     <div id="ai-breakdown" class="ai-breakdown"></div>
+                    <div class="ai-mode-row" id="ai-mode-row">
+                        <button class="ai-mode-btn" data-ai-mode="safe">안전형</button>
+                        <button class="ai-mode-btn" data-ai-mode="aggressive">한방형</button>
+                    </div>
                     <div id="ai-info-tip" style="margin-top: 8px; padding: 8px 12px; background: rgba(0, 255, 204, 0.1); border-left: 3px solid #00ffcc; border-radius: 5px; font-size: 0.75em; color: #aaa; line-height: 1.4; display: none;">
                         💡 AI 추천: 고득점 족보(4 of a Kind, Full House, Straight, Yacht) 달성을 우선으로 고려합니다.<br>이들을 모두 완성한 후에는 상단 족보(Ones~Sixes)를 효율적으로 채울 수 있는 조합을 제안합니다.
                     </div>
+                    <div id="win-prob-panel" class="winprob-panel"></div>
                 </div>
             </div>
             <div class="controls" id="player-controls">
@@ -311,12 +351,13 @@
     </div>
 
     <div id="score-toast" class="toast-overlay"></div>
-    <script src="/static/js/yacht_game.js"></script>
+    <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260406-2') }}"></script>
     <script>
         // --- [전역 변수 설정] ---
         // 멀티플레이 전용이므로 관련 변수를 간소화합니다.
         const params = new URLSearchParams(window.location.search);
         let roomCode = params.get('room') || localStorage.getItem('yacht_room') || '';
+        const roomTokenKey = (code) => `yacht_player_token_${code}`;
         
         // 방 정보가 없으면 즉시 퇴장
         if (!roomCode) {
@@ -338,42 +379,11 @@
             alert('닉네임 정보가 없습니다. 로비에서 다시 입장해주세요.');
             window.location.href = '/';
         }
-                // --- [관전자 입장 처리] ---
-                async function tryObserveRoom() {
-                    if (!roomCode || !isObserver) return;
-                    try {
-                        const res = await fetch(`/api/rooms/${roomCode}/observe`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ username })
-                        });
-                        if (!res.ok) {
-                            alert('관전 입장에 실패했습니다.');
-                            window.location.href = '/';
-                        }
-                    } catch (e) {
-                        alert('관전 입장 중 오류 발생.');
-                        window.location.href = '/';
-                    }
-                }
-                if (isObserver) {
-                    tryObserveRoom();
-                }
-                // --- [관전자 UI 처리] ---
-                function updateObserverUI() {
-                    if (isObserver) {
-                        document.getElementById('player-controls').style.display = 'none';
-                        document.getElementById('observer-controls').style.display = 'flex';
-                        const banner = document.getElementById('observer-banner');
-                        if (banner) banner.style.display = 'block';
-                    } else {
-                        document.getElementById('player-controls').style.display = 'flex';
-                        document.getElementById('observer-controls').style.display = 'none';
-                        const banner = document.getElementById('observer-banner');
-                        if (banner) banner.style.display = 'none';
-                    }
-                }
-                updateObserverUI();
+        let playerToken = isObserver ? '' : localStorage.getItem(roomTokenKey(roomCode));
+        if (!isObserver && !playerToken) {
+            alert('플레이어 인증 정보가 없습니다. 로비에서 다시 입장해주세요.');
+            window.location.href = '/';
+        }
         // --- [관전자 입장 처리] ---
         async function tryObserveRoom() {
             if (!roomCode || !isObserver) return;
@@ -395,6 +405,25 @@
         if (isObserver) {
             tryObserveRoom();
         }
+        // --- [관전자 UI 처리] ---
+        function updateObserverUI() {
+            if (isObserver) {
+                document.getElementById('player-controls').style.display = 'none';
+                document.getElementById('observer-controls').style.display = 'flex';
+                const banner = document.getElementById('observer-banner');
+                if (banner) banner.style.display = 'block';
+                const aiModeRow = document.getElementById('ai-mode-row');
+                if (aiModeRow) aiModeRow.style.display = 'none';
+            } else {
+                document.getElementById('player-controls').style.display = 'flex';
+                document.getElementById('observer-controls').style.display = 'none';
+                const banner = document.getElementById('observer-banner');
+                if (banner) banner.style.display = 'none';
+                const aiModeRow = document.getElementById('ai-mode-row');
+                if (aiModeRow) aiModeRow.style.display = 'flex';
+            }
+        }
+        updateObserverUI();
 
         let roomVersion = 0;
         let syncTimer = null;
@@ -407,6 +436,7 @@
         let gameOverToastShown = false;
         let connectionLostHandled = false;
         let syncFailures = 0;
+        let matchWinHistory = [];
 
         // 편의성 변수 (읽기 전용)
         let dice, kept, rollsLeft, myCard, oppCard, gameOver, aiRec;
@@ -545,8 +575,11 @@
         // --- [서버 동기화] ---
         async function fetchRoomState() {
             if (!roomCode) return Promise.resolve();
+            const qs = new URLSearchParams();
+            qs.set('u', username);
+            if (!isObserver && playerToken) qs.set('pt', playerToken);
             return new Promise((resolve) => {
-                fetch(`/api/rooms/${roomCode}?u=${encodeURIComponent(username)}`)
+                fetch(`/api/rooms/${roomCode}?${qs.toString()}`)
                     .then(async (r) => {
                         if (r.status === 404) {
                             handleConnectionLost();
@@ -570,18 +603,7 @@
                                 console.log('상대 입장:', opp);
                             }
                         }
-                                // --- [관전자 UI 처리] ---
-                                function updateObserverUI() {
-                                    if (isObserver) {
-                                        document.getElementById('player-controls').style.display = 'none';
-                                        document.getElementById('observer-controls').style.display = 'flex';
-                                        // 추가로 점수판, 주사위 등 클릭/조작 이벤트 비활성화 필요시 구현
-                                    } else {
-                                        document.getElementById('player-controls').style.display = 'flex';
-                                        document.getElementById('observer-controls').style.display = 'none';
-                                    }
-                                }
-                                updateObserverUI();
+                        updateObserverUI();
                         if (data.state) {
                             turnLeftSeconds = data.state.turn_left_seconds != null ? data.state.turn_left_seconds : null;
                             applyRemoteState(data.state);
@@ -730,6 +752,30 @@
             playKeepSound();
         }
 
+        function refreshInsightPanels() {
+            const aiPerspective = isObserver ? `${turnOwner || '플레이어'} 턴 기준` : (isMyTurn() ? '내 턴 기준' : '상대 턴 기준');
+            renderAiPanel('ai-breakdown', GameState.getAiRec(), { perspective: aiPerspective });
+
+            const leftLabel = isObserver ? (roomPlayers[0] || 'Player 1') : '나';
+            const rightLabel = isObserver ? (roomPlayers[1] || 'Player 2') : (opponentName || '상대');
+            const snapshot = estimateWinChances(
+                GameState.getMyCard(),
+                GameState.getOppCard(),
+                {
+                    myDice: turnOwner === username || (isObserver && turnOwner === roomPlayers[0]) ? dice : null,
+                    myRollsLeft: turnOwner === username || (isObserver && turnOwner === roomPlayers[0]) ? GameState.getRollsLeft() : 3,
+                    oppDice: !isObserver && turnOwner === opponentName ? dice : (isObserver && turnOwner === roomPlayers[1] ? dice : null),
+                    oppRollsLeft: !isObserver && turnOwner === opponentName ? GameState.getRollsLeft() : (isObserver && turnOwner === roomPlayers[1] ? GameState.getRollsLeft() : 3),
+                }
+            );
+            matchWinHistory = recordWinChance(matchWinHistory, snapshot.myProbability);
+            renderWinChancePanel('win-prob-panel', snapshot, {
+                history: matchWinHistory,
+                leftLabel,
+                rightLabel,
+            });
+        }
+
         function buildStatePayload() {
             const scores = {};
             scores[username] = myCard;
@@ -740,6 +786,7 @@
                 turn: turnOwner || username,
                 game_over: gameOver,
                 ai_rec: aiRec,
+                player_token: playerToken,
             };
         }
 
@@ -843,26 +890,7 @@ function applyRemoteState(state) {
         setTimeout(() => toast.classList.remove('show'), 1500);
     }
     
-    // AI Breakdown 표시
-    const bd = document.getElementById('ai-breakdown');
-    const aiRec = GameState.getAiRec();
-    if (aiRec && aiRec.breakdown && aiRec.breakdown.length > 0) {
-        bd.innerHTML = aiRec.breakdown.map(item => {
-            let color = '#ffd700';
-            const barWidth = Math.min(item.prob * 100, 100);
-            return `<div class="breakdown-item">
-                        <div style="flex:1;">
-                            <span style="color:#ccc;">${item.name}</span>
-                            <div style="background:rgba(0,0,0,0.3); height:4px; margin-top:4px;">
-                                <div style="background:${color}; height:100%; width:${barWidth}%;"></div>
-                            </div>
-                        </div>
-                        <span class="breakdown-val" style="color:${color};">${item.val_str}</span>
-                    </div>`;
-        }).join('');
-    } else {
-        bd.innerHTML = '<div style="color:#999; text-align:center;">대기 중...</div>';
-    }
+    refreshInsightPanels();
 
     // 게임 종료 처리
     if (GameState.isGameOver()) {
@@ -930,6 +958,7 @@ function applyRemoteState(state) {
 
             isRolling = true;
             aiRec = null; 
+            GameState.setAiRec(null);
             document.getElementById('ai-breakdown').innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">🎲 계산 중...</div>';
             updateDice(); 
 
@@ -943,7 +972,7 @@ function applyRemoteState(state) {
                     const r = await fetch(`/api/rooms/${roomCode}/roll`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({username, kept})
+                        body: JSON.stringify({username, kept, player_token: playerToken})
                     });
                     const data = await r.json();
                     if (data.dice && typeof data.rolls_left === 'number') {
@@ -994,37 +1023,20 @@ function applyRemoteState(state) {
                 const r = await fetch('/api/recommend', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({dice, rolls_left: rollsLeft, scorecard: myCard, open_categories})
+                    body: JSON.stringify({dice, rolls_left: rollsLeft, scorecard: myCard, open_categories, strategy_mode: getAiMode()})
                 });
-                aiRec = await r.json();
-                
-                const bd = document.getElementById('ai-breakdown');
-                if (aiRec.breakdown && aiRec.breakdown.length > 0) {
-                    bd.innerHTML = aiRec.breakdown.map(item => {
-                        let color = '#ffd700';
-                        const barWidth = Math.min(item.prob * 100, 100);
-                        return `
-                            <div class="breakdown-item">
-                                <div style="flex: 1;">
-                                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                                        <span style="font-size:1.3em; font-weight:bold; color:${color}">➤</span>
-                                        <span style="color:#ccc; font-weight:500">${item.name}</span>
-                                    </div>
-                                    <div style="font-size:0.9em; color:#aaa; margin-top:3px; margin-bottom:6px;">${item.keep_str}</div>
-                                    <div style="background:rgba(0,0,0,0.3); border-radius:6px; height:6px; margin-right:8px;">
-                                        <div style="background:${color}; border-radius:6px; height:100%; width:${barWidth}%; transition:width 0.3s ease;"></div>
-                                    </div>
-                                </div>
-                                <span class="breakdown-val" style="color:${color}; font-weight:bold; min-width:50px; text-align:right">${item.val_str}</span>
-                            </div>
-                        `;
-                    }).join('');
-                } else {
-                    bd.innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">대기 중...</div>';
+                const payload = await r.json();
+                if (!r.ok || payload.error) {
+                    throw new Error(payload.error || 'AI 추천 요청 실패');
                 }
-                
+                aiRec = payload;
+                GameState.setAiRec(aiRec);
+                refreshInsightPanels();
                 updateDice();
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error(e);
+                renderAiStatus('ai-breakdown', `추천 실패: ${e.message || '잠시 후 다시 시도해 주세요.'}`, 'error');
+            }
         }
 
 function updateScorecard() {
@@ -1169,6 +1181,7 @@ window.addEventListener('beforeunload', (e) => {
 
             updateDice();
             updateScorecard();
+            refreshInsightPanels();
             refreshTurnUI();
             pushState();
         }
@@ -1199,9 +1212,9 @@ window.addEventListener('beforeunload', (e) => {
         async function leaveRoom() {
             if (!confirm('정말 나가시겠습니까?')) return;
             try {
-                const payload = JSON.stringify({username});
+                const payload = JSON.stringify({username, player_token: playerToken});
                 if (navigator.sendBeacon) {
-                    const url = `/api/rooms/${roomCode}/leave?username=${encodeURIComponent(username)}`;
+                    const url = `/api/rooms/${roomCode}/leave?username=${encodeURIComponent(username)}&pt=${encodeURIComponent(playerToken || '')}`;
                     navigator.sendBeacon(url, payload);
                 } else {
                     fetch(`/api/rooms/${roomCode}/leave`, {
@@ -1235,7 +1248,7 @@ window.addEventListener('beforeunload', (e) => {
             pushState();
             
             const toast = document.getElementById('score-toast');
-            toast.innerHTML = `<div style="font-size:0.8em;">선공권을 ${opponentName}님에게 넘겼습니다</div>`;
+            toast.innerHTML = `<div style="font-size:0.8em;">선공권을 ${escapeHtml(opponentName)}님에게 넘겼습니다</div>`;
             toast.classList.add('show');
             playTurnToastSound();
             setTimeout(() => toast.classList.remove('show'), 2000);
@@ -1245,6 +1258,9 @@ window.addEventListener('beforeunload', (e) => {
             renderDice();
             updateScorecard();
             document.getElementById('ai-breakdown').innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">🎲 주사위를 굴려주세요</div>';
+            bindAiModeControls(() => {
+                if (!isObserver && !gameOver && isMyTurn() && rollsLeft < 3) askAI();
+            });
             const roomLabel = document.getElementById('room-label');
             if (roomLabel) roomLabel.textContent = `Room ${roomCode}`;
             
@@ -1255,6 +1271,7 @@ window.addEventListener('beforeunload', (e) => {
             }
             startSyncPolling(); 
             refreshTurnUI();
+            refreshInsightPanels();
         }
 
         initializeGame().catch(e => console.error('Initialization error:', e));

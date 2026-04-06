@@ -65,6 +65,176 @@ const CAT_DICE = {
     'Large Straight': '⚁⚂⚃⚄⚅ = 30점',
     'Yacht': '⚀⚀⚀⚀⚀ = 50점'
 };
+const AI_MODE_KEY = 'yacht_ai_mode';
+const CATEGORY_BASELINES = [2.1, 4.2, 6.3, 8.4, 10.5, 12.6, 18.4, 12.7, 18.9, 8.1, 6.7, 3.4];
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function getAiMode() {
+    const mode = localStorage.getItem(AI_MODE_KEY);
+    return mode === 'aggressive' ? 'aggressive' : 'safe';
+}
+
+function setAiMode(mode) {
+    localStorage.setItem(AI_MODE_KEY, mode === 'aggressive' ? 'aggressive' : 'safe');
+}
+
+function updateAiModeButtons(scope = document) {
+    const mode = getAiMode();
+    scope.querySelectorAll('[data-ai-mode]').forEach((btn) => {
+        const active = btn.dataset.aiMode === mode;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+}
+
+function bindAiModeControls(onChange) {
+    document.querySelectorAll('[data-ai-mode]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const nextMode = btn.dataset.aiMode === 'aggressive' ? 'aggressive' : 'safe';
+            setAiMode(nextMode);
+            updateAiModeButtons();
+            if (typeof onChange === 'function') onChange(nextMode);
+        });
+    });
+    updateAiModeButtons();
+}
+
+function renderAiPanel(targetId, aiRec, options = {}) {
+    const root = document.getElementById(targetId);
+    if (!root) return;
+    if (!aiRec || !aiRec.breakdown || aiRec.breakdown.length === 0) {
+        root.innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">대기 중...</div>';
+        return;
+    }
+
+    const summary = aiRec.summary ? `<div class="ai-summary-line">${escapeHtml(aiRec.summary)}</div>` : '';
+    const styleLabel = aiRec.strategy_mode === 'aggressive' ? '한방형' : '안전형';
+    const perspective = options.perspective ? `<div class="ai-perspective">${escapeHtml(options.perspective)}</div>` : '';
+    const rows = aiRec.breakdown.slice(0, 5).map((item) => {
+        const color = item.type === 'upper' ? '#8be28b' : '#ffd36b';
+        const barWidth = Math.min((item.prob || 0) * 100, 100);
+        const reason = item.reason ? `<div class="ai-reason">${escapeHtml(item.reason)}</div>` : '';
+        return `
+            <div class="breakdown-item">
+                <div style="flex:1;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px;">
+                        <span style="color:#f2f4f8; font-weight:700;">${escapeHtml(item.name)}</span>
+                        <span class="breakdown-val" style="color:${color};">${escapeHtml(item.val_str || '')}</span>
+                    </div>
+                    <div style="font-size:0.88em; color:#98a4b3; margin-bottom:6px;">${escapeHtml(item.keep_str || '')}</div>
+                    <div style="background:rgba(255,255,255,0.08); border-radius:999px; height:8px; overflow:hidden;">
+                        <div style="background:${color}; border-radius:999px; height:100%; width:${barWidth}%; transition:width 0.35s ease;"></div>
+                    </div>
+                    ${reason}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    root.innerHTML = `
+        <div class="ai-panel-head">
+            <div class="ai-panel-title">${styleLabel} 추천</div>
+            ${perspective}
+        </div>
+        ${summary}
+        ${rows}
+    `;
+}
+
+function renderAiStatus(targetId, message, tone = 'muted') {
+    const root = document.getElementById(targetId);
+    if (!root) return;
+    const color = tone === 'error' ? '#ff7b7b' : '#999';
+    root.innerHTML = `<div style="color:${color}; text-align:center; padding:12px; font-size:0.9em;">${escapeHtml(message)}</div>`;
+}
+
+function estimateProjectedTotal(card, dice = null, rollsLeft = 3) {
+    const normalized = Array.isArray(card) ? card.slice(0, 12) : Array(12).fill(null);
+    let total = calcTotals(normalized).total;
+    const open = [];
+    normalized.forEach((value, index) => {
+        if (value === null || value === undefined) open.push(index);
+    });
+    total += open.reduce((sum, index) => sum + CATEGORY_BASELINES[index], 0);
+
+    if (Array.isArray(dice) && dice.length === 5 && rollsLeft < 3 && open.length) {
+        const bestLiveScore = open.reduce((best, index) => Math.max(best, calcScore(dice, index)), 0);
+        total += bestLiveScore * 0.35;
+    }
+    return total;
+}
+
+function estimateWinChances(myCard, oppCard, options = {}) {
+    const myProjected = estimateProjectedTotal(myCard, options.myDice, options.myRollsLeft);
+    const oppProjected = estimateProjectedTotal(oppCard, options.oppDice, options.oppRollsLeft);
+    const diff = myProjected - oppProjected;
+    const myProb = 1 / (1 + Math.exp(-diff / 9));
+    return {
+        myProbability: myProb,
+        oppProbability: 1 - myProb,
+        myProjected,
+        oppProjected,
+        diff,
+    };
+}
+
+function recordWinChance(history, nextProb) {
+    const point = Math.max(0.03, Math.min(0.97, nextProb));
+    if (!Array.isArray(history)) return [point];
+    const prev = history[history.length - 1];
+    if (typeof prev === 'number' && Math.abs(prev - point) < 0.003) return history;
+    const updated = history.concat(point);
+    return updated.length > 28 ? updated.slice(updated.length - 28) : updated;
+}
+
+function renderWinChancePanel(targetId, snapshot, options = {}) {
+    const root = document.getElementById(targetId);
+    if (!root || !snapshot) return;
+    const history = Array.isArray(options.history) ? options.history : [];
+    const leftLabel = escapeHtml(options.leftLabel || '나');
+    const rightLabel = escapeHtml(options.rightLabel || '상대');
+    const myPct = Math.round(snapshot.myProbability * 100);
+    const oppPct = 100 - myPct;
+
+    let graph = '';
+    if (history.length >= 2) {
+        const width = 260;
+        const height = 96;
+        const step = history.length > 1 ? width / (history.length - 1) : width;
+        const points = history.map((value, index) => {
+            const x = (index * step).toFixed(1);
+            const y = ((1 - value) * (height - 12) + 6).toFixed(1);
+            return `${x},${y}`;
+        }).join(' ');
+        graph = `
+            <svg viewBox="0 0 ${width} ${height}" class="winprob-graph" preserveAspectRatio="none">
+                <line x1="0" y1="${height / 2}" x2="${width}" y2="${height / 2}" stroke="rgba(255,255,255,0.12)" stroke-dasharray="4 4"></line>
+                <polyline fill="none" stroke="#59f0c2" stroke-width="3" points="${points}"></polyline>
+            </svg>
+        `;
+    }
+
+    root.innerHTML = `
+        <div class="winprob-head">
+            <div class="winprob-title">승리 확률 흐름</div>
+            <div class="winprob-sub">축구의 xG처럼 현재 판세를 추정합니다</div>
+        </div>
+        <div class="winprob-bar">
+            <div class="winprob-left" style="width:${myPct}%">${leftLabel} ${myPct}%</div>
+            <div class="winprob-right" style="width:${oppPct}%">${rightLabel} ${oppPct}%</div>
+        </div>
+        <div class="winprob-meta">${leftLabel} 예상 총점 ${snapshot.myProjected.toFixed(1)} / ${rightLabel} 예상 총점 ${snapshot.oppProjected.toFixed(1)}</div>
+        ${graph}
+    `;
+}
 
 function playTurnToastSound() {
     try {
@@ -211,7 +381,7 @@ function renderCard(card, isMine, title) {
     const isCurrentTurn = (typeof isMultiplayer !== 'undefined' && isMultiplayer) ? (isMine ? isMyTurn() : !isMyTurn()) : isMine;
     const titleStyle = isCurrentTurn ? 'color: #00ff00; text-shadow: 0 0 20px rgba(0, 255, 0, 0.8); font-weight: bold;' : 'color: #00ffcc;';
     
-    return `<div class="scorecard-title" style="${titleStyle}">${title}</div><div>${h}</div>`;
+    return `<div class="scorecard-title" style="${titleStyle}">${escapeHtml(title)}</div><div>${h}</div>`;
 }
 
 function showTip(el) {
