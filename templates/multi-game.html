@@ -351,7 +351,10 @@
     </div>
 
     <div id="score-toast" class="toast-overlay"></div>
-    <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260406-2') }}"></script>
+    <script src="{{ url_for('static', filename='js/dom_utils.js', v='20260406-4') }}"></script>
+    <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260406-4') }}"></script>
+    <script src="{{ url_for('static', filename='js/winprob.js', v='20260406-4') }}"></script>
+    <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260406-4') }}"></script>
     <script>
         // --- [전역 변수 설정] ---
         // 멀티플레이 전용이므로 관련 변수를 간소화합니다.
@@ -437,6 +440,7 @@
         let connectionLostHandled = false;
         let syncFailures = 0;
         let matchWinHistory = [];
+        let allowImmediateExit = false;
 
         // 편의성 변수 (읽기 전용)
         let dice, kept, rollsLeft, myCard, oppCard, gameOver, aiRec;
@@ -451,6 +455,16 @@
             aiRec = state.aiRec;
         }
         updateLocalVars();
+
+        function hasRecordedScore(card) {
+            return Array.isArray(card) && card.some((value) => value !== null && value !== undefined);
+        }
+
+        function shouldWarnBeforeLeave() {
+            if (allowImmediateExit || isObserver || gameOver) return false;
+            if (roomPlayers.length < 2) return false;
+            return rollsLeft < 3 || hasRecordedScore(GameState.getMyCard()) || hasRecordedScore(GameState.getOppCard());
+        }
 
         // --- [타이머 로직] (양쪽 플레이어 시간 표시) ---
         function timeOut(){
@@ -540,6 +554,7 @@
         function handleConnectionLost(msg = '상대방과의 연결이 끊어졌습니다. 로비로 이동합니다.') {
             if (connectionLostHandled) return;
             connectionLostHandled = true;
+            allowImmediateExit = true;
             localStorage.removeItem('yacht_room');
             showToast(msg, 0);
             setTimeout(() => window.location.replace('/'), 1500);
@@ -1098,8 +1113,7 @@ function updateScorecard() {
 
 // 게임 중(게임오버 전)에 페이지를 떠나려 할 때 경고창 띄우기
 window.addEventListener('beforeunload', (e) => {
-    // 관전자거나 게임이 끝났으면 경고 없이 이동
-    if (isObserver || gameOver) return;
+    if (!shouldWarnBeforeLeave()) return;
     
     // 표준 방식: 사용자에게 확인 메시지 유도
     e.preventDefault();
@@ -1212,6 +1226,7 @@ window.addEventListener('beforeunload', (e) => {
         async function leaveRoom() {
             if (!confirm('정말 나가시겠습니까?')) return;
             try {
+                allowImmediateExit = true;
                 const payload = JSON.stringify({username, player_token: playerToken});
                 if (navigator.sendBeacon) {
                     const url = `/api/rooms/${roomCode}/leave?username=${encodeURIComponent(username)}&pt=${encodeURIComponent(playerToken || '')}`;
@@ -1230,6 +1245,7 @@ window.addEventListener('beforeunload', (e) => {
                 showToast('로비로 이동합니다', 0);
             } catch (e) {
                 console.error('Leave failed', e);
+                allowImmediateExit = false;
                 showToast('나가기 실패', 0);
                 return;
             }
