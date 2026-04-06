@@ -705,9 +705,7 @@
                 })
             })
             .then(r => r.json())
-            .then(data => {
-                console.log('Game saved:', data);
-            })
+            .then(() => {})
             .catch(e => console.error('Failed to save game:', e));
         }
 

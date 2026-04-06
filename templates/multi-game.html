@@ -617,7 +617,6 @@
                             const opp = roomPlayers.find(p => p !== username);
                             if (opp && opp !== opponentName) {
                                 opponentName = opp;
-                                console.log('상대 입장:', opp);
                             }
                         }
                         updateObserverUI();
@@ -976,7 +975,7 @@ function applyRemoteState(state) {
             isRolling = true;
             aiRec = null; 
             GameState.setAiRec(null);
-            document.getElementById('ai-breakdown').innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">🎲 계산 중...</div>';
+            renderAiStatus('ai-breakdown', '🎲 계산 중...');
             updateDice(); 
 
             for (let i = 0; i < 5; i++) {
@@ -1103,8 +1102,6 @@ function updateScorecard() {
     } else {
         // [플레이어 모드] - 기존 유지
         const oppLabel = opponentName || '상대 대기 중';
-        // 디버깅: rollsLeft, dice, isMyTurn()
-        console.log('[updateScorecard] rollsLeft:', rollsLeft, 'dice:', dice, 'isMyTurn:', (typeof isMyTurn === 'function' ? isMyTurn() : isMyTurn));
         el.innerHTML = `
         <div style="display:flex; gap:16px; flex-wrap:wrap;">
             <div style="flex:1; min-width:280px;">${renderCard(myCard, true, '나 (' + username + ')')}</div>
