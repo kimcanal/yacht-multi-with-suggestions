@@ -132,7 +132,7 @@ yacht_game/
 │   └── single-game.html
 └── yacht_engine.py
 
-6 directories, 22 files
+6 directories, 24 files
 ```
 
 ## 라이센스
