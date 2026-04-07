@@ -375,6 +375,12 @@ Response:
 }
 ```
 
+게임이 타임아웃 또는 퇴장으로 종료된 경우 `state`에 아래 필드가 추가될 수 있습니다.
+
+- `winner`: 승리 처리된 플레이어
+- `loser`: 탈락하거나 연결이 끊긴 플레이어
+- `end_reason`: `timeout`, `leave`, `score` 중 하나
+
 Example:
 
 ```bash
@@ -385,6 +391,45 @@ Observer Example:
 
 ```bash
 curl -s "$BASE_URL/api/rooms/AB12CD?u=Watcher01"
+```
+
+### `POST /api/rooms/<code>/heartbeat`
+
+가벼운 접속 유지용 heartbeat. 멀티 플레이어/관전자 상태를 안정적으로 유지할 때 사용합니다.
+
+Request:
+
+```json
+{
+  "username": "Host01",
+  "player_token": "secret-token"
+}
+```
+
+Observer Request:
+
+```json
+{
+  "username": "Watcher01"
+}
+```
+
+Response:
+
+```json
+{
+  "status": "ok",
+  "room_phase": "playing",
+  "observer_count": 1
+}
+```
+
+Example:
+
+```bash
+curl -s "$BASE_URL/api/rooms/AB12CD/heartbeat" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"Host01","player_token":"secret-token"}'
 ```
 
 ### `POST /api/rooms/<code>/roll`
@@ -440,7 +485,10 @@ Request:
     "Host01": [null, null, 9, null, null, null, null, null, null, null, null, null]
   },
   "turn": "Guest01",
-  "game_over": false
+  "game_over": false,
+  "winner": null,
+  "loser": null,
+  "end_reason": null
 }
 ```
 

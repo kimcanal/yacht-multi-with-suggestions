@@ -349,6 +349,8 @@
 
         let myUsername = localStorage.getItem('yacht_username');
         let isLoggedIn = false;
+        let pollingStarted = false;
+        const pollingTimers = [];
 
         function checkLogin() {
             if (myUsername && myUsername.length >= 2) {
@@ -577,18 +579,29 @@
 
         document.getElementById('room-code').addEventListener('keypress', (e) => { if(e.key === 'Enter') joinRoomById(); });
 
-        function startPolling() {
+        function refreshLobbyNow() {
             loadLobbyUsers();
             loadRoomList();
             loadLeaderboard();
             loadSystemStatus();
             sendHeartbeat();
-            
-            setInterval(loadLobbyUsers, 3000);
-            setInterval(loadRoomList, 3000);
-            setInterval(loadSystemStatus, 3000);
-            setInterval(sendHeartbeat, 10000);
         }
+
+        function startPolling() {
+            if (pollingStarted) return;
+            pollingStarted = true;
+            refreshLobbyNow();
+
+            pollingTimers.push(setInterval(loadLobbyUsers, 3000));
+            pollingTimers.push(setInterval(loadRoomList, 3000));
+            pollingTimers.push(setInterval(loadSystemStatus, 3000));
+            pollingTimers.push(setInterval(sendHeartbeat, 10000));
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (!isLoggedIn || document.visibilityState !== 'visible') return;
+            refreshLobbyNow();
+        });
 
         checkLogin();
 

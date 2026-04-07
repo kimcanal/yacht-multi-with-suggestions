@@ -482,9 +482,6 @@
                 window.location.href = '/';
             }
         }
-        if (isObserver) {
-            tryObserveRoom();
-        }
         // --- [관전자 UI 처리] ---
         function updateObserverUI() {
             if (isObserver) {
@@ -521,6 +518,19 @@
         let allowImmediateExit = false;
         let observerCount = 0;
         let roomPhase = 'waiting';
+        let endWinner = null;
+        let endLoser = null;
+        let endReason = null;
+        const ROOM_SYNC_INTERVAL_VISIBLE_MS = 1200;
+        const ROOM_SYNC_INTERVAL_HIDDEN_MS = 4000;
+        const ROOM_HEARTBEAT_INTERVAL_MS = 8000;
+        const ROOM_REQUEST_TIMEOUT_VISIBLE_MS = 6000;
+        const ROOM_REQUEST_TIMEOUT_HIDDEN_MS = 12000;
+        const ROOM_CONTACT_GRACE_MS = isObserver ? 90000 : 45000;
+        let roomHeartbeatTimer = null;
+        let syncRequestInFlight = false;
+        let heartbeatRequestInFlight = false;
+        let lastRoomContactAt = Date.now();
 
         // 편의성 변수 (읽기 전용)
         let dice, kept, rollsLeft, myCard, oppCard, gameOver, aiRec;
@@ -536,8 +546,106 @@
         }
         updateLocalVars();
 
+        function isPageHidden() {
+            return document.visibilityState === 'hidden';
+        }
+
+        function currentRoomRequestTimeoutMs() {
+            return isPageHidden() ? ROOM_REQUEST_TIMEOUT_HIDDEN_MS : ROOM_REQUEST_TIMEOUT_VISIBLE_MS;
+        }
+
+        function currentSyncIntervalMs() {
+            return isPageHidden() ? ROOM_SYNC_INTERVAL_HIDDEN_MS : ROOM_SYNC_INTERVAL_VISIBLE_MS;
+        }
+
+        function markRoomContact() {
+            lastRoomContactAt = Date.now();
+            syncFailures = 0;
+        }
+
+        function hasRoomTimedOutLocally() {
+            return (Date.now() - lastRoomContactAt) > ROOM_CONTACT_GRACE_MS;
+        }
+
+        async function fetchWithTimeout(url, options = {}, timeoutMs = currentRoomRequestTimeoutMs()) {
+            if (typeof AbortController !== 'function') {
+                return fetch(url, options);
+            }
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                return await fetch(url, {...options, signal: controller.signal});
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
         function hasRecordedScore(card) {
             return Array.isArray(card) && card.some((value) => value !== null && value !== undefined);
+        }
+
+        function getScoreSummaryText(myTotal, oppTotal) {
+            if (isObserver) {
+                const leftName = roomPlayers[0] || 'Player 1';
+                const rightName = roomPlayers[1] || opponentName || endLoser || 'Player 2';
+                return `${leftName} ${myTotal} : ${rightName} ${oppTotal}`;
+            }
+            return `나 ${myTotal} : 상대 ${oppTotal}`;
+        }
+
+        function getGameOverPresentation(myTotal, oppTotal) {
+            const scoreLine = getScoreSummaryText(myTotal, oppTotal);
+            let title = '🎉 게임 종료';
+            let detail = scoreLine;
+            let status = `🏁 최종 점수 ${scoreLine}`;
+
+            if (endReason === 'timeout' && endWinner && endLoser) {
+                if (isObserver) {
+                    title = '⏰ 시간 초과 종료';
+                    detail = `${endLoser}님 연결 종료, ${endWinner}님 승리`;
+                    status = `⏰ ${endLoser}님 연결 종료로 ${endWinner}님 승리`;
+                } else if (username === endWinner) {
+                    title = '🏆 승리!';
+                    detail = `${endLoser}님이 응답하지 않아 승리 처리되었습니다`;
+                    status = `🏆 ${endLoser}님 연결 종료로 승리했습니다`;
+                } else if (username === endLoser) {
+                    title = '😥 패배';
+                    detail = '연결이 오래 끊겨 패배 처리되었습니다';
+                    status = '😥 연결 종료로 패배 처리되었습니다';
+                } else {
+                    title = '⏰ 시간 초과 종료';
+                    detail = `${endLoser}님 연결 종료, ${endWinner}님 승리`;
+                    status = `⏰ ${endLoser}님 연결 종료로 게임이 종료되었습니다`;
+                }
+                return {title, detail, status};
+            }
+
+            if (endReason === 'leave' && endWinner && endLoser) {
+                if (isObserver) {
+                    title = '🚪 퇴장 종료';
+                    detail = `${endLoser}님 퇴장, ${endWinner}님 승리`;
+                    status = `🚪 ${endLoser}님 퇴장으로 ${endWinner}님 승리`;
+                } else if (username === endWinner) {
+                    title = '🏆 승리!';
+                    detail = `${endLoser}님이 방을 나가 승리 처리되었습니다`;
+                    status = `🏆 ${endLoser}님 퇴장으로 승리했습니다`;
+                } else if (username === endLoser) {
+                    title = '😥 패배';
+                    detail = '방을 나가 패배 처리되었습니다';
+                    status = '😥 퇴장으로 패배 처리되었습니다';
+                } else {
+                    title = '🚪 퇴장 종료';
+                    detail = `${endLoser}님 퇴장, ${endWinner}님 승리`;
+                    status = `🚪 ${endLoser}님 퇴장으로 게임이 종료되었습니다`;
+                }
+                return {title, detail, status};
+            }
+
+            if (myTotal > oppTotal) title = isObserver ? '🏆 승자 확정' : '🏆 승리!';
+            else if (myTotal < oppTotal) title = isObserver ? '📌 결과 확정' : '😥 패배';
+            else title = '🤝 무승부';
+
+            return {title, detail, status};
         }
 
         function copyObserverLink() {
@@ -683,29 +791,83 @@
             document.getElementById('timer-bar').style.display = 'none';
         }
 
+        function showStatusToast(title, detail = '', timeoutMs = 1800) {
+            const toast = document.getElementById('score-toast');
+            const detailHtml = detail ? `<div class="toast-score" style="font-size:0.9em;">${escapeHtml(detail)}</div>` : '';
+            toast.innerHTML = `<div class="toast-cat">${escapeHtml(title)}</div>${detailHtml}`;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), timeoutMs);
+        }
+
+        function stopSyncPolling() {
+            if (syncTimer) {
+                clearInterval(syncTimer);
+                syncTimer = null;
+            }
+        }
+
+        function startSyncPolling(options = {}) {
+            const {immediate = false} = options;
+            stopSyncPolling();
+            syncTimer = setInterval(fetchRoomState, currentSyncIntervalMs());
+            if (immediate) {
+                fetchRoomState();
+            }
+        }
+
+        function stopRoomHeartbeat() {
+            if (roomHeartbeatTimer) {
+                clearInterval(roomHeartbeatTimer);
+                roomHeartbeatTimer = null;
+            }
+        }
+
+        function startRoomHeartbeat(options = {}) {
+            const {immediate = false} = options;
+            if (roomHeartbeatTimer) return;
+            if (immediate) {
+                sendRoomHeartbeat({immediate: true});
+            }
+            roomHeartbeatTimer = setInterval(() => {
+                sendRoomHeartbeat();
+            }, ROOM_HEARTBEAT_INTERVAL_MS);
+        }
+
         function handleConnectionLost(msg = '상대방과의 연결이 끊어졌습니다. 로비로 이동합니다.') {
             if (connectionLostHandled) return;
             connectionLostHandled = true;
             allowImmediateExit = true;
+            clearTurnTimer();
+            stopSyncPolling();
+            stopRoomHeartbeat();
             localStorage.removeItem('yacht_room');
-            showToast(msg, 0);
+            showStatusToast('연결 종료', msg, 1500);
             setTimeout(() => window.location.replace('/'), 1500);
         }
 
         window.addEventListener('offline', () => {
-            handleConnectionLost('네트워크 연결이 끊어졌습니다. 로비로 이동합니다.');
+            showStatusToast('네트워크 불안정', '재연결을 시도하고 있습니다.', 1400);
+        });
+
+        window.addEventListener('online', () => {
+            if (connectionLostHandled) return;
+            startSyncPolling({immediate: true});
+            sendRoomHeartbeat({immediate: true});
+            showStatusToast('연결 복구', '방 상태를 다시 확인하고 있습니다.', 1400);
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (connectionLostHandled || !roomCode) return;
+            startSyncPolling({immediate: document.visibilityState === 'visible'});
+            if (document.visibilityState === 'visible') {
+                sendRoomHeartbeat({immediate: true});
+            }
         });
 
         function showGameOverToast(myTotal, oppTotal) {
             if (gameOverToastShown) return;
             const toast = document.getElementById('score-toast');
-            let title = '🎉 게임 종료';
-            let detail = `최종 점수: ${myTotal}`;
-            
-            if (myTotal > oppTotal) title = '🏆 승리!';
-            else if (myTotal < oppTotal) title = '😥 패배';
-            else title = '🤝 무승부';
-            detail = `나 ${myTotal} : 상대 ${oppTotal}`;
+            const {title, detail} = getGameOverPresentation(myTotal, oppTotal);
             
             toast.innerHTML = `<div class="toast-cat">${title}</div><div class="toast-score">${detail}</div>`;
             toast.classList.add('show');
@@ -721,59 +883,122 @@
 
         // --- [서버 동기화] ---
         async function fetchRoomState() {
-            if (!roomCode) return Promise.resolve();
+            if (!roomCode || syncRequestInFlight || connectionLostHandled) return;
+            syncRequestInFlight = true;
             const qs = new URLSearchParams();
             qs.set('u', username);
             if (!isObserver && playerToken) qs.set('pt', playerToken);
-            return new Promise((resolve) => {
-                fetch(`/api/rooms/${roomCode}?${qs.toString()}`)
-                    .then(async (r) => {
-                        if (r.status === 404) {
-                            handleConnectionLost();
-                            resolve();
-                            return;
-                        }
-                        const data = await r.json();
-                        syncFailures = 0;
-                        observerCount = Number(data.observer_count ?? (Array.isArray(data.observers) ? data.observers.length : observerCount));
-                        roomPhase = data.room_phase || roomPhase;
-                        if (data.players) {
-                            const prevPlayerCount = roomPlayers.length;
-                            roomPlayers = data.players;
-                            // 관전자 모드에서는 강제 퇴장 없음
-                            if (!isObserver && !roomPlayers.includes(username)) {
-                                handleConnectionLost();
-                                resolve();
-                                return;
-                            }
-                            const opp = roomPlayers.find(p => p !== username);
-                            if (opp && opp !== opponentName) {
-                                opponentName = opp;
-                            }
-                        }
-                        updateObserverUI();
-                        if (data.state) {
-                            turnLeftSeconds = data.state.turn_left_seconds != null ? data.state.turn_left_seconds : null;
-                            applyRemoteState(data.state);
-                        }
-                        resolve();
-                    })
-                    .catch(e => {
-                        console.warn('pull failed', e);
-                        syncFailures++;
-                        if (syncFailures >= 3) {
-                            handleConnectionLost('연결 상태를 확인할 수 없습니다. 로비로 이동합니다.');
-                            resolve();
-                            return;
-                        }
-                        resolve();
-                    });
-            });
+            try {
+                const r = await fetchWithTimeout(
+                    `/api/rooms/${roomCode}?${qs.toString()}`,
+                    {cache: 'no-store'},
+                    currentRoomRequestTimeoutMs(),
+                );
+                if (r.status === 404) {
+                    handleConnectionLost('방 정보를 찾을 수 없습니다. 로비로 이동합니다.');
+                    return;
+                }
+                if (r.status === 403) {
+                    handleConnectionLost('참가 인증이 만료되었습니다. 로비에서 다시 입장해 주세요.');
+                    return;
+                }
+
+                const data = await r.json();
+                if (!r.ok) {
+                    throw new Error(data.error || `HTTP ${r.status}`);
+                }
+
+                markRoomContact();
+                observerCount = Number(data.observer_count ?? (Array.isArray(data.observers) ? data.observers.length : observerCount));
+                roomPhase = data.room_phase || roomPhase;
+                if (data.players) {
+                    roomPlayers = data.players;
+                    if (!isObserver && !roomPlayers.includes(username)) {
+                        handleConnectionLost('현재 방 참가자 목록에서 제외되었습니다. 로비로 이동합니다.');
+                        return;
+                    }
+                    const opp = roomPlayers.find(p => p !== username);
+                    if (opp && opp !== opponentName) {
+                        opponentName = opp;
+                    }
+                }
+                updateObserverUI();
+                if (data.state) {
+                    turnLeftSeconds = data.state.turn_left_seconds != null ? data.state.turn_left_seconds : null;
+                    applyRemoteState(data.state);
+                }
+            } catch (e) {
+                console.warn('pull failed', e);
+                syncFailures++;
+                if (hasRoomTimedOutLocally()) {
+                    handleConnectionLost('연결 상태를 오래 확인할 수 없어 로비로 이동합니다.');
+                }
+            } finally {
+                syncRequestInFlight = false;
+            }
+        }
+
+        async function sendRoomHeartbeat(options = {}) {
+            const {immediate = false} = options;
+            if (!roomCode || !username || connectionLostHandled) return;
+            if (heartbeatRequestInFlight && !immediate) return;
+            heartbeatRequestInFlight = true;
+            try {
+                const r = await fetchWithTimeout(
+                    `/api/rooms/${roomCode}/heartbeat`,
+                    {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        cache: 'no-store',
+                        body: JSON.stringify({
+                            username,
+                            player_token: isObserver ? undefined : playerToken,
+                        }),
+                    },
+                    immediate ? 4000 : currentRoomRequestTimeoutMs(),
+                );
+                if (r.status === 404) {
+                    handleConnectionLost('방 연결이 종료되었습니다. 로비로 이동합니다.');
+                    return;
+                }
+                if (r.status === 403) {
+                    handleConnectionLost('참가 인증이 만료되었습니다. 로비에서 다시 입장해 주세요.');
+                    return;
+                }
+
+                const data = await r.json();
+                if (!r.ok) {
+                    throw new Error(data.error || `HTTP ${r.status}`);
+                }
+
+                markRoomContact();
+                observerCount = Number(data.observer_count ?? observerCount);
+                roomPhase = data.room_phase || roomPhase;
+                renderObserverSummary();
+            } catch (e) {
+                console.warn('heartbeat failed', e);
+                if (hasRoomTimedOutLocally()) {
+                    handleConnectionLost('방 연결이 오래 끊겨 로비로 이동합니다.');
+                }
+            } finally {
+                heartbeatRequestInFlight = false;
+            }
         }
 
         function refreshTurnUI() {
             const statusEl = document.getElementById('game-status');
-            if (!statusEl || GameState.isGameOver()) return;
+            if (!statusEl) return;
+
+            const passBtn = document.getElementById('pass-turn-btn');
+            if (GameState.isGameOver()) {
+                const myTotal = calcTotals(GameState.getMyCard()).total;
+                const oppTotal = calcTotals(GameState.getOppCard()).total;
+                statusEl.innerText = getGameOverPresentation(myTotal, oppTotal).status;
+                clearTurnTimer();
+                if (passBtn) passBtn.style.display = 'none';
+                updateDice();
+                return;
+            }
 
             // 타이머 일시정지 로직을 위한 변수
             let timerPaused = false; 
@@ -783,7 +1008,6 @@
                 const currentTurnName = turnOwner || '플레이어';
                 statusEl.innerText = `🎲 ${currentTurnName} 님의 턴입니다`;
                 // 관전자는 선공권 넘기기 버튼 숨김
-                const passBtn = document.getElementById('pass-turn-btn');
                 if(passBtn) passBtn.style.display = 'none';
             } else {
                 // [플레이어] 기존 로직 유지
@@ -796,7 +1020,6 @@
                 }
 
                 // 선공권 넘기기 버튼 로직
-                const passBtn = document.getElementById('pass-turn-btn');
                 if (passBtn) {
                     const myEmpty = GameState.getMyCard().every(v => v === null);
                     const oppEmpty = GameState.getOppCard().every(v => v === null);
@@ -935,18 +1158,37 @@
                 game_over: gameOver,
                 ai_rec: aiRec,
                 player_token: playerToken,
+                winner: endWinner,
+                loser: endLoser,
+                end_reason: endReason,
             };
         }
 
         async function pushState() {
             if (!roomCode || !username || isApplyingRemote) return;
             try {
-                const r = await fetch(`/api/rooms/${roomCode}/sync`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(buildStatePayload())
-                });
+                const r = await fetchWithTimeout(
+                    `/api/rooms/${roomCode}/sync`,
+                    {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(buildStatePayload()),
+                    },
+                    currentRoomRequestTimeoutMs(),
+                );
                 const data = await r.json();
+                if (r.status === 404) {
+                    handleConnectionLost('방 연결이 종료되었습니다. 로비로 이동합니다.');
+                    return;
+                }
+                if (r.status === 403 && data.error === '참가자 인증 실패') {
+                    handleConnectionLost('참가 인증이 만료되었습니다. 로비에서 다시 입장해 주세요.');
+                    return;
+                }
+                if (!r.ok) {
+                    throw new Error(data.error || `HTTP ${r.status}`);
+                }
+                markRoomContact();
                 if (data.state && typeof data.state.version === 'number') {
                     roomVersion = data.state.version;
                 }
@@ -967,6 +1209,9 @@ function applyRemoteState(state) {
     // 1. 관전자 모드일 때 플레이어 식별 (방장 vs 참가자)
     let p1Name = roomPlayers[0]; // 보통 방장
     let p2Name = roomPlayers[1]; // 참가자
+    endWinner = state.winner || null;
+    endLoser = state.loser || null;
+    endReason = state.end_reason || null;
 
     // 2. 현재 턴 주인의 주사위 상태 가져오기
     const currentTurnOwner = state.turn;
@@ -1001,13 +1246,15 @@ function applyRemoteState(state) {
     
     if (state.turn) turnOwner = state.turn;
     
-    // 4. 점수판 데이터 매핑 (가장 중요한 부분!)
     const scores = state.scores || {};
+    const scorePlayers = Object.keys(scores);
+    
+    // 4. 점수판 데이터 매핑 (가장 중요한 부분!)
     
     if (isObserver) {
         // [관전자 로직] 나/상대 개념 없이 P1(왼쪽), P2(오른쪽) 고정
-        p1Name = roomPlayers[0] || 'Player 1';
-        p2Name = roomPlayers[1] || 'Player 2';
+        p1Name = roomPlayers[0] || scorePlayers[0] || endWinner || 'Player 1';
+        p2Name = roomPlayers[1] || scorePlayers.find(name => name !== p1Name) || endLoser || 'Player 2';
         
         if (scores[p1Name]) GameState.setMyCard(scores[p1Name]);
         else GameState.setMyCard(Array(12).fill(null));
@@ -1054,12 +1301,6 @@ function applyRemoteState(state) {
     updateScorecard(); // 여기서 이름표 업데이트
     isApplyingRemote = false;
 }
-
-        function startSyncPolling() {
-            if (syncTimer) return;
-            fetchRoomState();
-            syncTimer = setInterval(fetchRoomState, 1200);
-        }
 
         async function rollDice() {
             if (rollsLeft <= 0 || gameOver || isRolling || !isMyTurn()) return;
@@ -1119,13 +1360,31 @@ function applyRemoteState(state) {
             setTimeout(async () => {
                 try {
                     // 멀티플레이: 항상 서버에서 주사위 굴림
-                    const r = await fetch(`/api/rooms/${roomCode}/roll`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({username, kept, player_token: playerToken})
-                    });
+                    const r = await fetchWithTimeout(
+                        `/api/rooms/${roomCode}/roll`,
+                        {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({username, kept, player_token: playerToken}),
+                        },
+                        currentRoomRequestTimeoutMs(),
+                    );
                     const data = await r.json();
+                    if (r.status === 404) {
+                        handleConnectionLost('방 연결이 종료되었습니다. 로비로 이동합니다.');
+                        isRolling = false;
+                        return;
+                    }
+                    if (r.status === 403 && data.error === '참가자 인증 실패') {
+                        handleConnectionLost('참가 인증이 만료되었습니다. 로비에서 다시 입장해 주세요.');
+                        isRolling = false;
+                        return;
+                    }
+                    if (!r.ok) {
+                        throw new Error(data.error || `HTTP ${r.status}`);
+                    }
                     if (data.dice && typeof data.rolls_left === 'number') {
+                        markRoomContact();
                         dice = data.dice;
                         rollsLeft = data.rolls_left;
                         GameState.setDice(dice);
@@ -1305,8 +1564,19 @@ window.addEventListener('beforeunload', (e) => {
                 gameOver = true;
                 const myTotal = calcTotals(myCard).total;
                 const oppTotal = calcTotals(oppCard).total;
+                endReason = 'score';
+                if (myTotal > oppTotal) {
+                    endWinner = username;
+                    endLoser = opponentName || null;
+                } else if (myTotal < oppTotal) {
+                    endWinner = opponentName || null;
+                    endLoser = username;
+                } else {
+                    endWinner = null;
+                    endLoser = null;
+                }
                 const statusEl = document.getElementById('game-status');
-                if (statusEl) statusEl.innerText = `🎉 게임 종료! 나 ${myTotal} : 상대 ${oppTotal}`;
+                if (statusEl) statusEl.innerText = getGameOverPresentation(myTotal, oppTotal).status;
 
                 showGameOverToast(myTotal, oppTotal);
 
@@ -1360,6 +1630,9 @@ window.addEventListener('beforeunload', (e) => {
             if (!confirm('정말 나가시겠습니까?')) return;
             try {
                 allowImmediateExit = true;
+                stopSyncPolling();
+                stopRoomHeartbeat();
+                clearTurnTimer();
                 const payload = JSON.stringify({username, player_token: playerToken});
                 if (navigator.sendBeacon) {
                     const url = `/api/rooms/${roomCode}/leave?username=${encodeURIComponent(username)}&pt=${encodeURIComponent(playerToken || '')}`;
@@ -1375,11 +1648,11 @@ window.addEventListener('beforeunload', (e) => {
                 }
                 localStorage.removeItem('yacht_room');
                 gameOverToastShown = true;
-                showToast('로비로 이동합니다', 0);
+                showStatusToast('나가기 완료', '로비로 이동합니다.', 1000);
             } catch (e) {
                 console.error('Leave failed', e);
                 allowImmediateExit = false;
-                showToast('나가기 실패', 0);
+                showStatusToast('나가기 실패', '잠시 후 다시 시도해 주세요.', 1200);
                 return;
             }
             setTimeout(() => { window.location.replace('/'); }, 1000);
@@ -1414,11 +1687,15 @@ window.addEventListener('beforeunload', (e) => {
             if (roomLabel) roomLabel.textContent = `Room ${roomCode}`;
             
             try {
-                await fetchRoomState(); 
+                if (isObserver) {
+                    await tryObserveRoom();
+                }
+                await fetchRoomState();
             } catch (e) {
                 console.warn('Failed to fetch initial room state:', e);
             }
-            startSyncPolling(); 
+            startSyncPolling({immediate: false});
+            startRoomHeartbeat({immediate: true});
             refreshTurnUI();
             refreshInsightPanels();
         }

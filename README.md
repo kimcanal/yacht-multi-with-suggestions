@@ -104,21 +104,13 @@ python3 server.py
 
 ```
 yacht_game/
-├── backup
-│   ├── index.html.backup
-│   ├── multi-game.html.backup
-│   ├── single-game.html_0117 backup
-│   └── single-game.html.backup
+├── API.md
+├── README.md
 ├── database.py
 ├── game_data.json
-├── __pycache__
-│   ├── database.cpython-312.pyc
-│   ├── server.cpython-312.pyc
-│   └── yacht_engine.cpython-312.pyc
-├── README.md
-├── server.log
 ├── server.py
 ├── static
+│   ├── favicon.ico
 │   └── js
 │       ├── ai_panel.js
 │       ├── dom_utils.js
@@ -132,7 +124,7 @@ yacht_game/
 │   └── single-game.html
 └── yacht_engine.py
 
-6 directories, 24 files
+실행 중 생성되는 캐시, 로그, 임시 백업 파일은 제외했습니다.
 ```
 
 ## 라이센스
