@@ -95,6 +95,7 @@ def _default_room_state():
         "turn_start_time": None,
         "game_over": False,
         "ai_msg": "AI: 새 게임을 시작하세요",
+        "ai_rec": None,
         "version": 0,
         "updated_by": None,
     }
@@ -546,6 +547,7 @@ def sync_room(code):
         "turn": new_turn,
         "turn_start_time": turn_start_time,
         "game_over": data.get("game_over", state["game_over"]),
+        "ai_rec": data.get("ai_rec", state.get("ai_rec")),
         "players": state.get("players", room["players"]),
         "version": state.get("version", 0) + 1,
         "updated_by": username,
