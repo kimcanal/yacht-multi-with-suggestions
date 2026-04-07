@@ -268,6 +268,64 @@
         .winprob-right { justify-content:flex-end; background:#ff9f6e; color:#2b1307; padding-right:10px; }
         .winprob-meta { color:#93a3b8; font-size:0.82em; margin-bottom:8px; }
         .winprob-graph { width:100%; height:96px; display:block; }
+        .observer-banner {
+            background: linear-gradient(135deg, rgba(255, 214, 102, 0.18), rgba(255, 160, 90, 0.12));
+            border: 1px solid rgba(255, 214, 102, 0.28);
+            color: #ffe7a1;
+            padding: 14px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+        }
+        .observer-banner-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        .observer-banner-title { font-size: 1.05rem; font-weight: 800; color: #fff2bf; }
+        .observer-banner-sub { font-size: 0.84rem; color: #ffd98b; margin-top: 2px; }
+        .observer-link-btn {
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.08);
+            color: #fff4cf;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s ease;
+            white-space: nowrap;
+        }
+        .observer-link-btn:hover { background: rgba(255,255,255,0.14); }
+        .observer-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .observer-meta-card {
+            min-width: 0;
+            background: rgba(7, 10, 20, 0.26);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+        .observer-meta-label {
+            color: #c2cbe0;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 6px;
+        }
+        .observer-meta-value {
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 700;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
         .breakdown-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 8px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); gap: 10px;
@@ -306,6 +364,9 @@
             .controls .btn { flex: 1 1 calc(50% - 6px); min-width: 130px; padding: 11px 14px !important; font-size: 0.98rem !important; }
             .rolls-remaining { font-size: 1.2rem; }
             .score-item { padding: 11px 10px; font-size: 0.95em; }
+            .observer-banner-head { flex-direction: column; align-items: stretch; }
+            .observer-link-btn { width: 100%; }
+            .observer-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
     </style>
 </head>
@@ -313,7 +374,16 @@
     <div class="game-wrapper">
         <div class="main-area">
             <div class="title">🎲 YACHT <span id="room-label" style="font-size:0.4em; color:#fff; opacity:0.8; margin-left:12px;"></span></div>
-            <div id="observer-banner" class="observer-banner" style="display:none; background:rgba(255,80,80,0.2); border:1px solid #ff5050; color:#ffaaaa; padding:10px; border-radius:8px; text-align:center; margin-bottom:20px; font-weight:bold;">👁️ 관전자 모드: 실시간으로 게임을 구경 중입니다.</div>
+            <div id="observer-banner" class="observer-banner" style="display:none;">
+                <div class="observer-banner-head">
+                    <div>
+                        <div class="observer-banner-title">👁️ 관전 중</div>
+                        <div class="observer-banner-sub">실시간으로 경기 상황을 읽기 전용으로 보고 있습니다.</div>
+                    </div>
+                    <button type="button" class="observer-link-btn" data-copy-observer-link onclick="copyObserverLink()">🔗 관전 링크 복사</button>
+                </div>
+                <div id="observer-summary-grid" class="observer-meta-grid"></div>
+            </div>
             <div class="dice-area">
                 <div class="dice-grid" id="dice-grid"></div>
                 <div class="info-bar">
@@ -336,7 +406,7 @@
                 <button class="btn" style="background:linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); box-shadow:0 4px 15px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
             </div>
             <div class="controls" id="observer-controls" style="display:none;">
-                <span style="color:#ffd700; font-size:1.1em;">👀 관전자 모드: 실시간으로 게임을 구경 중입니다.</span>
+                <button class="btn" style="background:linear-gradient(135deg, #ffb347 0%, #ff7f50 100%); box-shadow:0 4px 15px rgba(255,179,71,0.35);" data-copy-observer-link onclick="copyObserverLink()">🔗 링크 복사</button>
                 <button class="btn" style="background:linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); box-shadow:0 4px 15px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
             </div>
             
@@ -401,7 +471,12 @@
                 if (!res.ok) {
                     alert('관전 입장에 실패했습니다.');
                     window.location.href = '/';
+                    return;
                 }
+                const data = await res.json();
+                observerCount = Number(data.observers?.length || 0);
+                if (Array.isArray(data.players)) roomPlayers = data.players;
+                renderObserverSummary();
             } catch (e) {
                 alert('관전 입장 중 오류 발생.');
                 window.location.href = '/';
@@ -419,6 +494,7 @@
                 if (banner) banner.style.display = 'block';
                 const aiModeRow = document.getElementById('ai-mode-row');
                 if (aiModeRow) aiModeRow.style.display = 'none';
+                renderObserverSummary();
             } else {
                 document.getElementById('player-controls').style.display = 'flex';
                 document.getElementById('observer-controls').style.display = 'none';
@@ -443,6 +519,8 @@
         let syncFailures = 0;
         let matchWinHistory = [];
         let allowImmediateExit = false;
+        let observerCount = 0;
+        let roomPhase = 'waiting';
 
         // 편의성 변수 (읽기 전용)
         let dice, kept, rollsLeft, myCard, oppCard, gameOver, aiRec;
@@ -460,6 +538,58 @@
 
         function hasRecordedScore(card) {
             return Array.isArray(card) && card.some((value) => value !== null && value !== undefined);
+        }
+
+        function copyObserverLink() {
+            const buttons = Array.from(document.querySelectorAll('[data-copy-observer-link]'));
+            const restore = () => {
+                buttons.forEach((button, index) => {
+                    button.textContent = index === 0 ? '🔗 관전 링크 복사' : '🔗 링크 복사';
+                });
+            };
+            const observerUrl = `${window.location.origin}/game/multi?room=${encodeURIComponent(roomCode)}&mode=observer`;
+            if (!navigator.clipboard || !navigator.clipboard.writeText) {
+                alert(`관전 링크를 복사해 공유해 주세요:\n${observerUrl}`);
+                return;
+            }
+            navigator.clipboard.writeText(observerUrl)
+                .then(() => {
+                    buttons.forEach((button) => { button.textContent = '복사 완료'; });
+                    setTimeout(restore, 1600);
+                })
+                .catch(() => {
+                    alert(`관전 링크를 복사해 공유해 주세요:\n${observerUrl}`);
+                    restore();
+                });
+        }
+
+        function renderObserverSummary() {
+            if (!isObserver) return;
+            const root = document.getElementById('observer-summary-grid');
+            if (!root) return;
+            const playerOne = roomPlayers[0] || '플레이어 대기';
+            const playerTwo = roomPlayers[1] || '상대 대기';
+            const phase = gameOver ? 'finished' : roomPhase;
+            const phaseLabel = phase === 'playing' ? '진행 중' : (phase === 'finished' ? '게임 종료' : '대기 중');
+            const turnLabel = gameOver ? '종료됨' : (turnOwner || '대기 중');
+            root.innerHTML = `
+                <div class="observer-meta-card">
+                    <div class="observer-meta-label">Room</div>
+                    <div class="observer-meta-value">${escapeHtml(roomCode)}</div>
+                </div>
+                <div class="observer-meta-card">
+                    <div class="observer-meta-label">Players</div>
+                    <div class="observer-meta-value">${escapeHtml(playerOne)} vs ${escapeHtml(playerTwo)}</div>
+                </div>
+                <div class="observer-meta-card">
+                    <div class="observer-meta-label">Current Turn</div>
+                    <div class="observer-meta-value">${escapeHtml(turnLabel)}</div>
+                </div>
+                <div class="observer-meta-card">
+                    <div class="observer-meta-label">Audience</div>
+                    <div class="observer-meta-value">관전자 ${observerCount}명 · ${phaseLabel}</div>
+                </div>
+            `;
         }
 
         function shouldWarnBeforeLeave() {
@@ -605,6 +735,8 @@
                         }
                         const data = await r.json();
                         syncFailures = 0;
+                        observerCount = Number(data.observer_count ?? (Array.isArray(data.observers) ? data.observers.length : observerCount));
+                        roomPhase = data.room_phase || roomPhase;
                         if (data.players) {
                             const prevPlayerCount = roomPlayers.length;
                             roomPlayers = data.players;
@@ -855,6 +987,7 @@ function applyRemoteState(state) {
     GameState.setKept(keptToShow);
     GameState.setRollsLeft(rollsToShow);
     GameState.setGameOver(state.game_over ?? GameState.isGameOver());
+    if (state.game_over) roomPhase = 'finished';
     
     // 3. 플레이어 목록 업데이트
     const newPlayers = state.players || [];
@@ -907,6 +1040,7 @@ function applyRemoteState(state) {
     }
     
     refreshInsightPanels();
+    renderObserverSummary();
 
     // 게임 종료 처리
     if (GameState.isGameOver()) {

@@ -9,6 +9,12 @@
 
 모든 JSON API는 `Content-Type: application/json` 기준입니다.
 
+빠르게 테스트할 때는 아래처럼 `curl` 기준으로 확인할 수 있습니다.
+
+```bash
+BASE_URL="http://127.0.0.1:8080"
+```
+
 ## Auth / Identity
 
 ### `POST /api/login`
@@ -80,15 +86,40 @@ Notes:
 - `strategy_mode`: `safe` 또는 `aggressive`
 - `scorecard`: 12칸 배열, 비어 있는 칸은 `null`
 
+Example:
+
+```bash
+curl -s "$BASE_URL/api/recommend" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dice": [3, 3, 3, 4, 1],
+    "rolls_left": 2,
+    "scorecard": [0, 0, null, null, null, null, 0, null, null, null, null, null],
+    "strategy_mode": "safe"
+  }'
+```
+
 ## Leaderboard
 
 ### `GET /api/leaderboard`
 
 멀티 전적 리더보드 조회
 
+Example:
+
+```bash
+curl -s "$BASE_URL/api/leaderboard"
+```
+
 ### `GET /api/leaderboard/single`
 
 싱글 점수 리더보드 조회
+
+Example:
+
+```bash
+curl -s "$BASE_URL/api/leaderboard/single"
+```
 
 ### `POST /api/leaderboard/single`
 
@@ -109,6 +140,14 @@ Response:
 {
   "success": true
 }
+```
+
+Example:
+
+```bash
+curl -s "$BASE_URL/api/leaderboard/single" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"Player01","score":211}'
 ```
 
 ### `POST /api/leaderboard/reset`
@@ -154,6 +193,19 @@ Response:
 }
 ```
 
+Example:
+
+```bash
+curl -s "$BASE_URL/api/save-game" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "player1": "Player01",
+    "score1": 211,
+    "player2": "Player02",
+    "score2": 183
+  }'
+```
+
 ## Lobby / Presence
 
 ### `POST /api/lobby-heartbeat`
@@ -186,9 +238,17 @@ Response:
     "code": "AB12CD",
     "host": "Host01",
     "players": ["Host01"],
-    "status": "waiting"
+    "status": "waiting",
+    "room_phase": "waiting",
+    "observer_count": 0
   }
 ]
+```
+
+Example:
+
+```bash
+curl -s "$BASE_URL/api/rooms"
 ```
 
 ### `POST /api/rooms`
@@ -213,6 +273,14 @@ Response:
 }
 ```
 
+Example:
+
+```bash
+curl -s "$BASE_URL/api/rooms" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"Host01"}'
+```
+
 ### `POST /api/rooms/<code>/join`
 
 방 입장
@@ -233,6 +301,14 @@ Response:
   "players": ["Host01", "Guest01"],
   "player_token": "secret-token"
 }
+```
+
+Example:
+
+```bash
+curl -s "$BASE_URL/api/rooms/AB12CD/join" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"Guest01"}'
 ```
 
 ### `POST /api/rooms/<code>/observe`
@@ -258,6 +334,14 @@ Response:
 }
 ```
 
+Example:
+
+```bash
+curl -s "$BASE_URL/api/rooms/AB12CD/observe" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"Watcher01"}'
+```
+
 ### `GET /api/rooms/<code>`
 
 방 상태 조회
@@ -275,6 +359,8 @@ Response:
   "host": "Host01",
   "players": ["Host01", "Guest01"],
   "observers": ["Watcher01"],
+  "observer_count": 1,
+  "room_phase": "playing",
   "state": {
     "dice": [1, 1, 1, 1, 1],
     "kept": [0, 0, 0, 0, 0],
@@ -287,6 +373,18 @@ Response:
   "player1": "Host01",
   "player2": "Guest01"
 }
+```
+
+Example:
+
+```bash
+curl -s "$BASE_URL/api/rooms/AB12CD?u=Host01&pt=secret-token"
+```
+
+Observer Example:
+
+```bash
+curl -s "$BASE_URL/api/rooms/AB12CD?u=Watcher01"
 ```
 
 ### `POST /api/rooms/<code>/roll`
@@ -311,6 +409,18 @@ Response:
   "rolls_left": 2,
   "state": {}
 }
+```
+
+Example:
+
+```bash
+curl -s "$BASE_URL/api/rooms/AB12CD/roll" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "Host01",
+    "player_token": "secret-token",
+    "kept": [0, 1, 1, 0, 0]
+  }'
 ```
 
 ### `POST /api/rooms/<code>/sync`
@@ -342,6 +452,25 @@ Response:
 }
 ```
 
+Example:
+
+```bash
+curl -s "$BASE_URL/api/rooms/AB12CD/sync" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "Host01",
+    "player_token": "secret-token",
+    "dice": [2, 3, 3, 5, 1],
+    "kept": [0, 1, 1, 0, 0],
+    "rolls_left": 2,
+    "scores": {
+      "Host01": [null, null, 9, null, null, null, null, null, null, null, null, null]
+    },
+    "turn": "Guest01",
+    "game_over": false
+  }'
+```
+
 ### `POST /api/rooms/<code>/leave`
 
 방 이탈. 게임 도중 1:1에서 한 명이 나가면 남은 플레이어가 부전승 처리됩니다.
@@ -364,8 +493,44 @@ Response:
 }
 ```
 
+Example:
+
+```bash
+curl -s "$BASE_URL/api/rooms/AB12CD/leave" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"Guest01","player_token":"secret-token"}'
+```
+
+## Common Errors
+
+### 잘못된 닉네임
+
+```json
+{
+  "error": "닉네임은 2~12자(한글/영문/숫자/_)만 가능합니다"
+}
+```
+
+### 플레이어 인증 실패
+
+```json
+{
+  "error": "참가자 인증 실패"
+}
+```
+
+### 상대 턴에 조작 시도
+
+```json
+{
+  "error": "상대 턴"
+}
+```
+
 ## 운영 메모
 
 - 플레이어 조작 API는 `player_token`이 필요합니다.
+- `GET /api/rooms/<code>`에서 플레이어 heartbeat 갱신 시 `pt` query 파라미터를 사용합니다.
 - 관전자는 `roll`/`sync`를 호출해도 `403`을 받습니다.
+- `observer_count`, `room_phase`는 로비/관전 UI에서 바로 쓸 수 있게 포함되어 있습니다.
 - 정적 파일은 버전 쿼리로 캐시를 갱신합니다.

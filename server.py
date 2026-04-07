@@ -107,6 +107,14 @@ def _score_total(card):
     lower = sum((v or 0) for v in card[6:])
     return upper + bonus + lower
 
+def _room_phase(room):
+    state = room.get("state", {})
+    if state.get("game_over"):
+        return "finished"
+    if len(room.get("players", [])) >= 2:
+        return "playing"
+    return "waiting"
+
 def _prune_room_activity(code, room, now=None):
     now = now or time.time()
 
@@ -355,6 +363,8 @@ def list_rooms():
             "host": info["host"],
             "players": info["players"],
             "status": "full" if len(info["players"]) >= 2 else "waiting",
+            "room_phase": _room_phase(info),
+            "observer_count": len(info.get("observers", [])),
         }
         for code, info in rooms.items() if len(info.get("players", [])) >= 1
     ])
@@ -487,6 +497,8 @@ def get_room(code):
         "host": room["host"],
         "players": room["players"],
         "observers": room.get("observers", []),
+        "observer_count": len(room.get("observers", [])),
+        "room_phase": _room_phase(room),
         "state": state,
         "player1": p1,
         "player2": p2

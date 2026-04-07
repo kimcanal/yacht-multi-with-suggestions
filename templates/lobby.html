@@ -140,6 +140,15 @@
         .status-badge { font-size:0.7em; padding:2px 8px; border-radius:10px; margin-left:8px; font-weight:600; }
         .badge-wait { background:rgba(255,255,255,0.1); color:#aaa; }
         .badge-game { background:rgba(0, 184, 148, 0.2); color:#00ffcc; border:1px solid rgba(0, 255, 204, 0.3); }
+        .badge-watch { background:rgba(255, 214, 102, 0.14); color:#ffd666; border:1px solid rgba(255, 214, 102, 0.28); }
+        .room-badges { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+        .room-phase {
+            font-size: 0.72em; padding: 3px 8px; border-radius: 999px; font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .room-phase.waiting { background: rgba(255,255,255,0.1); color: #cfcfcf; }
+        .room-phase.playing { background: rgba(0,255,204,0.14); color: #7fffe5; border: 1px solid rgba(0,255,204,0.22); }
+        .room-phase.finished { background: rgba(255,107,107,0.15); color: #ffb4b4; border: 1px solid rgba(255,107,107,0.24); }
         .lobby-user-row {
             padding: 10px 0; display: flex; align-items: center; gap: 10px;
             border-bottom: 1px solid rgba(255,255,255,0.05); min-width: 0;
@@ -480,15 +489,23 @@
                 }
                 list.innerHTML = rooms.map(r=>{
                     const isFull = r.players.length >= 2;
+                    const observerCount = Number(r.observer_count || 0);
+                    const roomPhase = r.room_phase || (isFull ? 'playing' : 'waiting');
                     let pInfo = r.players.length === 0 ? '대기 중' :
                                 r.players.length === 1 ? `<span style="color:#00ffcc">${escapeHtml(r.players[0])}</span>` :
                                 `<span style="color:#00ffcc">${escapeHtml(r.players[0])}</span> vs <span style="color:#ff6b6b">${escapeHtml(r.players[1])}</span>`;
+                    const phaseLabel = roomPhase === 'playing' ? '진행 중' : (roomPhase === 'finished' ? '종료됨' : '대기 중');
+                    const audienceBadge = observerCount > 0 ? `<span class="status-badge badge-watch">관전자 ${observerCount}</span>` : '';
                     
                     return `
                     <div class="room-item">
                         <div class="room-meta">
                             <div class="room-code">🎮 ${escapeHtml(r.code)}</div>
                             <div class="room-players">${pInfo}</div>
+                            <div class="room-badges">
+                                <span class="room-phase ${escapeHtml(roomPhase)}">${phaseLabel}</span>
+                                ${audienceBadge}
+                            </div>
                         </div>
                         <div class="room-action">
                             ${isFull 
