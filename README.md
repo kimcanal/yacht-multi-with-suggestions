@@ -8,6 +8,7 @@ Flask 기반 웹 요트 다이스 게임입니다. 싱글플레이, 실시간 1 
 
 - API 문서: [API.md](./API.md)
 - 게임 소개 페이지: [`/intro`](https://app.yatch-game.cloud/intro)
+- 성능 계획: [docs/performance-roadmap.md](./docs/performance-roadmap.md)
 
 ## 실제 화면
 
@@ -25,9 +26,9 @@ Flask 기반 웹 요트 다이스 게임입니다. 싱글플레이, 실시간 1 
 
 <img src="./docs/screenshots/single-cover.png" width="900" alt="Yacht single player AI recommendation screenshot" />
 
-### 멀티플레이 실시간 경기
+### 멀티 로비 + 대기실
 
-<img src="./docs/screenshots/multi-live.png" width="900" alt="Yacht multiplayer live match screenshot" />
+<img src="./docs/screenshots/multi-live.png" width="900" alt="Yacht multiplayer lobby and waiting room screenshot" />
 
 위 화면처럼 README는 실제 플레이 장면을 미리 보여주고, 상세 게임 설명은 HTML 소개 페이지에서 이어서 확인하는 흐름으로 보는 것이 가장 자연스럽습니다.
 
@@ -121,12 +122,15 @@ yacht_game/
 ├── README.md
 ├── database.py
 ├── docs/
+│   ├── performance-roadmap.md
 │   └── screenshots/
 │       ├── intro.png
 │       ├── lobby.png
 │       ├── multi-live.png
 │       └── single-cover.png
 ├── game_data.json
+├── scripts/
+│   └── benchmark_ai.py
 ├── server.py
 ├── static/
 │   ├── favicon.ico
