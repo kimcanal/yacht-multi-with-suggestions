@@ -5,13 +5,16 @@
 
 const AI_MODE_KEY = 'yacht_ai_mode';
 
+function normalizeAiMode(mode) {
+    return mode === 'cover' ? 'cover' : 'focused';
+}
+
 function getAiMode() {
-    const mode = localStorage.getItem(AI_MODE_KEY);
-    return mode === 'aggressive' ? 'aggressive' : 'safe';
+    return normalizeAiMode(localStorage.getItem(AI_MODE_KEY));
 }
 
 function setAiMode(mode) {
-    localStorage.setItem(AI_MODE_KEY, mode === 'aggressive' ? 'aggressive' : 'safe');
+    localStorage.setItem(AI_MODE_KEY, normalizeAiMode(mode));
 }
 
 function updateAiModeButtons(scope = document) {
@@ -21,12 +24,17 @@ function updateAiModeButtons(scope = document) {
         btn.classList.toggle('active', active);
         btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
+    scope.querySelectorAll('[data-ai-mode-desc]').forEach((card) => {
+        const active = card.dataset.aiModeDesc === mode;
+        card.classList.toggle('active', active);
+        card.setAttribute('aria-current', active ? 'true' : 'false');
+    });
 }
 
 function bindAiModeControls(onChange) {
     document.querySelectorAll('[data-ai-mode]').forEach((btn) => {
         btn.addEventListener('click', () => {
-            const nextMode = btn.dataset.aiMode === 'aggressive' ? 'aggressive' : 'safe';
+            const nextMode = normalizeAiMode(btn.dataset.aiMode);
             setAiMode(nextMode);
             updateAiModeButtons();
             if (typeof onChange === 'function') onChange(nextMode);
@@ -37,10 +45,12 @@ function bindAiModeControls(onChange) {
 
 function getAiPanelTitle(aiRec) {
     if (aiRec?.stage === 'score') return '점수 기록 추천';
-    return aiRec?.strategy_mode === 'aggressive' ? '한방형 추천' : '안전형 추천';
+    return aiRec?.strategy_mode === 'cover' ? '커버 플레이 추천' : '집중 공략 추천';
 }
 
 function getAiRowColor(item) {
+    if (item?.type === 'cover') return '#7ee787';
+    if (item?.type === 'risk') return '#ff8e72';
     if (item?.type === 'upper') return '#8be28b';
     if (item?.type === 'score') return '#66d9ff';
     if (item?.type === 'sacrifice') return '#ff9b7a';

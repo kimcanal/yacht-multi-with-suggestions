@@ -117,6 +117,7 @@
         .btn-p { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
         .btn-s { background: linear-gradient(135deg, #00b894, #00cec9); color:#00332c; }
         .btn-c { background: linear-gradient(135deg, #ec4899, #f43f5e); }
+        .btn-i { background: linear-gradient(135deg, #ffd36b, #ff9f43); color:#3a2200; }
         .btn-logout { background: none; border: 1px solid #ff6b6b; color: #ff6b6b; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; transition:0.2s; }
         .btn-logout:hover { background: rgba(255, 107, 107, 0.1); }
 
@@ -206,12 +207,13 @@
 <body>
     <div class="background-fx"></div>
 
-    <div id="login-overlay">
+        <div id="login-overlay">
         <div class="login-box">
             <div class="login-title">🎲 YACHT</div>
             <div style="margin-bottom:15px; color:#aaa; font-size:1.1em;">오늘의 닉네임은 무엇인가요?</div>
             <input type="text" id="login-username" class="login-input" placeholder="Player Name" maxlength="12" autofocus>
             <button class="login-btn" onclick="submitLogin()">GAME START</button>
+            <button class="btn-mini btn-i" style="width:100%; margin-top:12px; padding:16px 20px; font-size:1rem;" onclick="window.location.href='/intro'">📘 게임 소개 보기</button>
         </div>
     </div>
 
@@ -224,6 +226,8 @@
                     <span id="display-username" class="user-name-display">Guest</span>
                     <button class="btn-logout" onclick="logout()">✕</button>
                 </div>
+                <div style="width:1px; height:30px; background:rgba(255,255,255,0.15); margin:0 5px;"></div>
+                <button class="btn-mini btn-i" onclick="window.location.href='/intro'">📘 게임 소개</button>
                 <div style="width:1px; height:30px; background:rgba(255,255,255,0.15); margin:0 5px;"></div>
                 <button class="btn-mini btn-p" onclick="startGame('single')">🎮 혼자하기</button>
                 <div style="width:1px; height:30px; background:rgba(255,255,255,0.15); margin:0 5px;"></div>

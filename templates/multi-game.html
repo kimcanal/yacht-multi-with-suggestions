@@ -250,6 +250,24 @@
             border-radius:999px; padding:7px 14px; font-size:0.85rem; font-weight:700; cursor:pointer; transition:0.2s ease;
         }
         .ai-mode-btn.active { background:#59f0c2; color:#07251d; border-color:#59f0c2; }
+        .ai-mode-guide {
+            display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin-top:10px;
+        }
+        .ai-mode-card {
+            padding:12px 13px; border-radius:14px; border:1px solid rgba(255,255,255,0.08);
+            background:rgba(255,255,255,0.04); text-align:left; transition:0.2s ease;
+        }
+        .ai-mode-card.active {
+            border-color:rgba(89,240,194,0.55); background:rgba(89,240,194,0.12); box-shadow:0 10px 26px rgba(89,240,194,0.08);
+        }
+        .ai-mode-card strong {
+            display:flex; align-items:center; gap:8px; margin-bottom:6px; color:#f4f7fb; font-size:0.92em;
+        }
+        .ai-mode-card p { color:#a9b9ca; font-size:0.81em; line-height:1.55; }
+        .ai-mode-chip {
+            display:inline-flex; align-items:center; justify-content:center; min-width:44px; padding:3px 8px;
+            border-radius:999px; background:rgba(255,255,255,0.08); color:#7ef3cb; font-size:0.76em; font-weight:800;
+        }
         .ai-panel-head { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:10px; }
         .ai-panel-title { font-weight:800; color:#f4f7fb; }
         .ai-summary-line { margin-bottom:10px; color:#9ab0c2; line-height:1.4; font-size:0.9em; }
@@ -367,6 +385,7 @@
             .observer-banner-head { flex-direction: column; align-items: stretch; }
             .observer-link-btn { width: 100%; }
             .observer-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .ai-mode-guide { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -391,14 +410,24 @@
                     <div class="rolls-remaining">남은 Roll: <span id="rolls-left">3</span>/3</div>
                     <div id="game-status" style="margin-top: 10px; color: #00ffcc; font-size: 0.9em; text-align: center; min-height: 24px;"></div>
                     <div id="turn-progress" style="margin-top: 6px; color: #b8fff0; font-size: 0.85em; text-align: center;">턴 진행: 대기 중 (0/24)</div>
-                    <div id="ai-breakdown" class="ai-breakdown"></div>
                     <div class="ai-mode-row" id="ai-mode-row">
-                        <button class="ai-mode-btn" data-ai-mode="safe">안전형</button>
-                        <button class="ai-mode-btn" data-ai-mode="aggressive">한방형</button>
+                        <button class="ai-mode-btn" data-ai-mode="focused">집중 공략</button>
+                        <button class="ai-mode-btn" data-ai-mode="cover">커버 플레이</button>
+                    </div>
+                    <div class="ai-mode-guide" aria-label="AI 모드 설명">
+                        <div class="ai-mode-card" data-ai-mode-desc="focused">
+                            <strong><span class="ai-mode-chip">집중</span> 한 족보를 깊게 밉니다</strong>
+                            <p>지금 손패에서 가장 유망한 한 족보를 끝까지 노립니다. Small Straight가 이미 잡혀 있으면 Large Straight 업그레이드도 같이 봅니다.</p>
+                        </div>
+                        <div class="ai-mode-card" data-ai-mode-desc="cover">
+                            <strong><span class="ai-mode-chip">커버</span> 하나 이상 성공을 노립니다</strong>
+                            <p>열린 하단 족보를 묶어서 하나라도 먹을 확률을 키웁니다. 동시에 전부 실패할 확률도 함께 보여줍니다.</p>
+                        </div>
                     </div>
                     <div id="ai-info-tip" style="margin-top: 8px; padding: 8px 12px; background: rgba(0, 255, 204, 0.1); border-left: 3px solid #00ffcc; border-radius: 5px; font-size: 0.75em; color: #aaa; line-height: 1.4; display: none;">
-                        💡 굴림 단계에서는 고득점 족보와 Upper Bonus 흐름을 함께 보고, 점수 기록 단계에서는 희생 칸까지 포함해 이번 턴 정리 순서를 제안합니다.<br>Yacht는 기본 주추천보다 확률 정보에 가깝게 참고하도록 조정했습니다.
+                        💡 모드 차이는 굴림 단계에서 가장 크게 드러납니다. 집중 공략은 한 족보의 성공과 업그레이드를, 커버 플레이는 여러 하단 족보 중 하나 이상 성공할 확률과 전부 실패 확률을 함께 봅니다.<br>이미 Yacht를 확보했다면 Yacht Bonus +100 가치도 추천에 반영됩니다.
                     </div>
+                    <div id="ai-breakdown" class="ai-breakdown"></div>
                     <div id="win-prob-panel" class="winprob-panel"></div>
                 </div>
             </div>
@@ -425,7 +454,7 @@
     <script src="{{ url_for('static', filename='js/dom_utils.js', v='20260406-5') }}"></script>
     <script src="{{ url_for('static', filename='js/game_state.js', v='20260406-5') }}"></script>
     <script src="{{ url_for('static', filename='js/score_utils.js', v='20260407-1') }}"></script>
-    <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260407-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260408-2') }}"></script>
     <script src="{{ url_for('static', filename='js/winprob.js', v='20260406-5') }}"></script>
     <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260406-5') }}"></script>
     <script>

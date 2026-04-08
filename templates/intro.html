@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎲 Yacht - 게임 소개</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-0: #060814;
+            --bg-1: #101a34;
+            --panel: rgba(10, 14, 28, 0.72);
+            --panel-strong: rgba(16, 24, 45, 0.88);
+            --line: rgba(140, 196, 255, 0.18);
+            --mint: #63f5d2;
+            --mint-soft: rgba(99, 245, 210, 0.14);
+            --gold: #ffd36b;
+            --sky: #85c6ff;
+            --text: #eef4ff;
+            --muted: #9fb2cd;
+        }
+        body {
+            min-height: 100vh;
+            font-family: 'Pretendard', sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 15% 20%, rgba(99, 245, 210, 0.18), transparent 26%),
+                radial-gradient(circle at 82% 18%, rgba(133, 198, 255, 0.2), transparent 24%),
+                linear-gradient(135deg, var(--bg-0), var(--bg-1));
+            overflow-x: hidden;
+        }
+        .page-shell {
+            width: min(1200px, calc(100vw - 32px));
+            margin: 0 auto;
+            padding: 28px 0 56px;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .brand {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: clamp(2rem, 4vw, 3.4rem);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #fff;
+            text-shadow: 0 0 28px rgba(99, 245, 210, 0.35);
+        }
+        .topbar-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .btn {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 12px 18px;
+            font-weight: 700;
+            text-decoration: none;
+            color: var(--text);
+            background: rgba(255,255,255,0.04);
+            transition: 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            border-color: rgba(99, 245, 210, 0.48);
+            background: rgba(99, 245, 210, 0.12);
+        }
+        .btn-primary {
+            color: #042820;
+            background: linear-gradient(135deg, #63f5d2, #7fd0ff);
+            border: none;
+            box-shadow: 0 10px 30px rgba(99, 245, 210, 0.2);
+        }
+        .hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 28px;
+            padding: clamp(28px, 5vw, 56px);
+            background:
+                linear-gradient(135deg, rgba(15, 26, 54, 0.92), rgba(8, 14, 28, 0.86)),
+                radial-gradient(circle at top right, rgba(255, 211, 107, 0.18), transparent 35%);
+            border: 1px solid var(--line);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+            margin-bottom: 22px;
+        }
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: auto -60px -70px auto;
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(99,245,210,0.18), transparent 68%);
+        }
+        .hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--mint-soft);
+            color: var(--mint);
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .hero h1 {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: clamp(2.6rem, 7vw, 5rem);
+            line-height: 0.95;
+            letter-spacing: 0.03em;
+            margin-bottom: 18px;
+        }
+        .hero p {
+            max-width: 720px;
+            color: var(--muted);
+            font-size: clamp(1rem, 2.2vw, 1.12rem);
+            line-height: 1.75;
+        }
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.25fr 0.95fr;
+            gap: 18px;
+            margin-top: 24px;
+        }
+        .hero-card,
+        .panel {
+            border-radius: 22px;
+            padding: 22px;
+            border: 1px solid var(--line);
+            background: var(--panel);
+            backdrop-filter: blur(18px);
+        }
+        .hero-card-title,
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #fff;
+            font-size: 1.12rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .stat {
+            border-radius: 18px;
+            padding: 16px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .stat-label {
+            color: var(--muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 2rem;
+            color: #fff;
+            line-height: 1;
+        }
+        .stat-sub {
+            margin-top: 8px;
+            color: #b9c7da;
+            font-size: 0.84rem;
+            line-height: 1.5;
+        }
+        .timeline {
+            display: grid;
+            gap: 12px;
+        }
+        .timeline-step {
+            display: grid;
+            grid-template-columns: 34px 1fr;
+            gap: 12px;
+            align-items: start;
+        }
+        .timeline-step strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+        .step-no {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #032d24;
+            background: linear-gradient(135deg, #63f5d2, #ffd36b);
+            font-weight: 800;
+        }
+        .section-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+            margin-top: 18px;
+        }
+        .feature-list,
+        .rule-list,
+        .score-list {
+            display: grid;
+            gap: 12px;
+        }
+        .feature,
+        .rule-item,
+        .score-item {
+            padding: 16px 18px;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.03);
+        }
+        .feature strong,
+        .rule-item strong,
+        .score-item strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #fff;
+        }
+        .feature p,
+        .rule-item p,
+        .score-item p {
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 0.96rem;
+        }
+        .rule-list {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .score-list {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .section-note {
+            margin-top: 14px;
+            color: #c7d6eb;
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+        .footer-box {
+            margin-top: 18px;
+            border-radius: 22px;
+            padding: 22px;
+            background: var(--panel-strong);
+            border: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .footer-copy {
+            color: var(--muted);
+            line-height: 1.65;
+        }
+        @media (max-width: 980px) {
+            .hero-grid,
+            .section-grid,
+            .rule-list,
+            .score-list {
+                grid-template-columns: 1fr;
+            }
+            .stat-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 720px) {
+            .page-shell {
+                width: min(100vw, calc(100vw - 20px));
+                padding-top: 18px;
+            }
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .topbar-actions {
+                width: 100%;
+                justify-content: stretch;
+            }
+            .btn {
+                width: 100%;
+            }
+            .hero,
+            .hero-card,
+            .panel,
+            .footer-box {
+                border-radius: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+        <div class="topbar">
+            <div class="brand">YACHT</div>
+            <div class="topbar-actions">
+                <a class="btn" href="/">로비로 돌아가기</a>
+                <a class="btn btn-primary" href="/game/single">싱글플레이 시작</a>
+            </div>
+        </div>
+
+        <section class="hero">
+            <div class="hero-kicker">ONLINE DICE STRATEGY</div>
+            <h1>굴릴지,<br>남길지,<br>지금 점수를 적을지.</h1>
+            <p>
+                Yacht는 5개의 주사위와 12개의 점수 칸으로 만드는 확률 게임입니다.
+                한 턴에 최대 3번까지 굴릴 수 있고, 어떤 주사위를 남길지와 어느 칸에 기록할지를
+                매번 선택해야 합니다. 이 프로젝트는 그 판단을 더 재미있게 보기 위해
+                AI 추천, 실시간 멀티플레이, 관전 모드까지 함께 담았습니다.
+            </p>
+
+            <div class="hero-grid">
+                <div class="hero-card">
+                    <div class="hero-card-title">한 판이 어떻게 진행되나요?</div>
+                    <div class="timeline">
+                        <div class="timeline-step">
+                            <div class="step-no">1</div>
+                            <div>
+                                <strong>ROLL</strong>
+                                5개의 주사위를 굴리고 시작합니다. 원하는 주사위는 KEEP으로 잠가둘 수 있습니다.
+                            </div>
+                        </div>
+                        <div class="timeline-step">
+                            <div class="step-no">2</div>
+                            <div>
+                                <strong>KEEP OR REROLL</strong>
+                                남은 굴림 수 안에서 원하는 조합이 나올 때까지 일부만 다시 굴립니다.
+                            </div>
+                        </div>
+                        <div class="timeline-step">
+                            <div class="step-no">3</div>
+                            <div>
+                                <strong>SCORE</strong>
+                                턴이 끝나면 12개 카테고리 중 아직 비어 있는 칸 하나에 점수를 기록합니다.
+                            </div>
+                        </div>
+                        <div class="timeline-step">
+                            <div class="step-no">4</div>
+                            <div>
+                                <strong>FINISH</strong>
+                                모든 칸을 채우면 게임 종료. 총점이 더 높은 플레이어가 승리합니다.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hero-card">
+                    <div class="hero-card-title">핵심 포인트</div>
+                    <div class="stat-grid">
+                        <div class="stat">
+                            <div class="stat-label">Dice</div>
+                            <div class="stat-value">5</div>
+                            <div class="stat-sub">매 턴 같은 주사위를 계속 가져갈지 바꿔볼지가 핵심입니다.</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Rolls</div>
+                            <div class="stat-value">3</div>
+                            <div class="stat-sub">첫 굴림 이후 30초 안에 다음 액션을 하지 않으면 자동 롤이 실행됩니다.</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Categories</div>
+                            <div class="stat-value">12</div>
+                            <div class="stat-sub">상단 숫자 칸과 하단 족보 칸의 균형이 총점을 크게 바꿉니다.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="section-grid">
+            <section class="panel">
+                <div class="section-title">게임 규칙 요약</div>
+                <div class="rule-list">
+                    <div class="rule-item">
+                        <strong>Upper Section</strong>
+                        <p>Ones부터 Sixes까지는 해당 숫자가 나온 주사위 합계입니다. 상단 합계가 63 이상이면 Upper Bonus +35를 받습니다.</p>
+                    </div>
+                    <div class="rule-item">
+                        <strong>Choice</strong>
+                        <p>주사위 5개의 총합을 그대로 받습니다. 망한 턴을 안정적으로 정리하는 데 유용합니다.</p>
+                    </div>
+                    <div class="rule-item">
+                        <strong>Hand Categories</strong>
+                        <p>4 of a Kind, Full House, Small Straight, Large Straight, Yacht는 특정 족보를 맞추면 큰 점수를 줍니다.</p>
+                    </div>
+                    <div class="rule-item">
+                        <strong>Yacht Bonus</strong>
+                        <p>이미 Yacht 50점을 기록한 뒤 다시 Yacht를 굴리면, 다른 칸에 0이 아닌 점수를 적을 때 추가로 +100을 받습니다.</p>
+                    </div>
+                </div>
+                <div class="section-note">
+                    이 게임은 단순히 가장 큰 족보만 쫓는 것보다, 언제 희생하고 언제 상단 점수를 쌓을지 판단하는 운영이 중요합니다.
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="section-title">점수 카테고리</div>
+                <div class="score-list">
+                    <div class="score-item">
+                        <strong>Ones ~ Sixes</strong>
+                        <p>해당 숫자의 총합. 예를 들어 Sixes는 6이 나온 개수만큼 6점씩 받습니다.</p>
+                    </div>
+                    <div class="score-item">
+                        <strong>Choice</strong>
+                        <p>현재 주사위 다섯 개의 총합을 그대로 받습니다.</p>
+                    </div>
+                    <div class="score-item">
+                        <strong>4 of a Kind / Full House</strong>
+                        <p>조건을 만족하면 다섯 주사위의 총합을 점수로 받습니다.</p>
+                    </div>
+                    <div class="score-item">
+                        <strong>Small / Large Straight / Yacht</strong>
+                        <p>Small Straight 15점, Large Straight 30점, Yacht 50점 고정입니다.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="section-grid">
+            <section class="panel">
+                <div class="section-title">이 프로젝트에서 할 수 있는 것</div>
+                <div class="feature-list">
+                    <div class="feature">
+                        <strong>싱글플레이</strong>
+                        <p>혼자 점수 최적화를 해보면서 추천 패널을 참고할 수 있습니다.</p>
+                    </div>
+                    <div class="feature">
+                        <strong>멀티플레이</strong>
+                        <p>방을 만들고 코드로 친구를 초대해 1대1 실시간 대전을 할 수 있습니다.</p>
+                    </div>
+                    <div class="feature">
+                        <strong>관전 모드</strong>
+                        <p>게임 참가자가 아니어도 경기 흐름과 점수판을 실시간으로 볼 수 있습니다.</p>
+                    </div>
+                    <div class="feature">
+                        <strong>리더보드</strong>
+                        <p>싱글 최고 점수와 멀티 전적을 기록해 비교할 수 있습니다.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="section-title">AI 추천은 무엇을 보나요?</div>
+                <div class="feature-list">
+                    <div class="feature">
+                        <strong>턴 단위 기대값</strong>
+                        <p>현재 나온 주사위와 남은 reroll 수를 기준으로 어떤 KEEP이 가장 좋은지 계산합니다.</p>
+                    </div>
+                    <div class="feature">
+                        <strong>족보별 확률</strong>
+                        <p>4 of a Kind, Full House, Straight, Yacht를 완성할 확률을 따로 보여줍니다.</p>
+                    </div>
+                    <div class="feature">
+                        <strong>Upper Bonus 흐름</strong>
+                        <p>상단 63점 도달에 가까워지는 선택은 점수 기록 단계에서 더 높게 평가합니다.</p>
+                    </div>
+                    <div class="feature">
+                        <strong>Yacht Bonus 반영</strong>
+                        <p>이미 Yacht를 확보한 뒤라면, 추가 Yacht에서 나오는 +100 가치도 추천에 포함해 계산합니다.</p>
+                    </div>
+                    <div class="feature">
+                        <strong>집중 공략 모드</strong>
+                        <p>지금 손패에서 가장 유망한 한 족보를 끝까지 밉니다. 이미 Small Straight가 잡혀 있다면 Large Straight 업그레이드까지 함께 노립니다.</p>
+                    </div>
+                    <div class="feature">
+                        <strong>커버 플레이 모드</strong>
+                        <p>열린 하단 족보를 묶어 하나 이상 성공할 확률을 계산합니다. 동시에 전부 실패할 확률도 보여줘서 애매한 턴 판단에 도움이 됩니다.</p>
+                    </div>
+                </div>
+                <div class="section-note">모드 차이는 굴림 단계에서 가장 크게 드러납니다. 점수 기록 단계에서는 현재 보드와 보너스 흐름을 기준으로 별도 추천을 제공합니다.</div>
+            </section>
+        </div>
+
+        <div class="footer-box">
+            <div class="footer-copy">
+                한 판 돌려보고 싶다면 로비에서 바로 시작하면 됩니다.
+                빠르게 손맛을 보려면 싱글플레이, 친구와 붙어보고 싶다면 방 생성이 가장 빠릅니다.
+            </div>
+            <div class="topbar-actions">
+                <a class="btn" href="/">로비</a>
+                <a class="btn btn-primary" href="/game/single">지금 플레이</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

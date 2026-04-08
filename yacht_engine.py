@@ -1,5 +1,6 @@
 import itertools
 from collections import Counter
+from functools import lru_cache
 
 CATS = {
     'Ones': 0, 'Twos': 1, 'Threes': 2, 'Fours': 3, 'Fives': 4, 'Sixes': 5,
@@ -7,6 +8,7 @@ CATS = {
 }
 HAND_FIXED_SCORES = {
     'Yacht': 50,
+    'Yacht Bonus': 115,
     'Large Straight': 30,
     'Small Straight': 15,
 }
@@ -27,7 +29,23 @@ SACRIFICE_PRIORITY = {
 }
 
 OUTCOMES_CACHE = {}
+KEEP_OPTIONS_CACHE = {}
 EPS = 1e-12
+FOCUSED_HAND_PRIORITY = {
+    'Full House': 5,
+    'Small Straight': 4,
+    'Large Straight': 3,
+    '4 of a Kind': 2,
+    'Yacht Bonus': 1,
+    'Yacht': 0,
+}
+
+def _normalize_strategy_mode(strategy_mode):
+    if strategy_mode in ('focused', 'cover'):
+        return strategy_mode
+    if strategy_mode in ('safe', 'aggressive'):
+        return 'focused'
+    return 'focused'
 
 def get_outcomes_probs(k):
     if k in OUTCOMES_CACHE: return OUTCOMES_CACHE[k]
@@ -38,6 +56,74 @@ def get_outcomes_probs(k):
     probs = [(list(out), cnt / total) for out, cnt in counts.items()]
     OUTCOMES_CACHE[k] = probs
     return probs
+
+def get_keep_options(dice):
+    dice_tuple = tuple(sorted(dice))
+    cached = KEEP_OPTIONS_CACHE.get(dice_tuple)
+    if cached is not None:
+        return cached
+
+    seen = set()
+    options = []
+    for mask in range(32):
+        kept = tuple(dice_tuple[idx] for idx in range(5) if (mask >> idx) & 1)
+        if kept in seen:
+            continue
+        seen.add(kept)
+        options.append(kept)
+
+    KEEP_OPTIONS_CACHE[dice_tuple] = options
+    return options
+
+def _kept_tuple_to_indices(dice, kept_tuple):
+    needed = Counter(kept_tuple)
+    indices = []
+    for idx, value in enumerate(dice):
+        if needed[value] > 0:
+            indices.append(idx)
+            needed[value] -= 1
+    return indices
+
+def _keep_values_desc(kept_tuple):
+    return tuple(sorted(kept_tuple, reverse=True))
+
+def _has_yacht_bonus(scorecard):
+    if not isinstance(scorecard, list) or len(scorecard) <= CATS['Yacht']:
+        return False
+    value = scorecard[CATS['Yacht']]
+    return isinstance(value, (int, float)) and value >= 50
+
+def _can_cash_yacht_bonus(dice, open_categories, scorecard):
+    if not _has_yacht_bonus(scorecard):
+        return False
+    if calc_score(dice, CATS['Yacht']) != 50:
+        return False
+    for category_idx in open_categories:
+        if category_idx == CATS['Yacht']:
+            continue
+        if calc_score(dice, category_idx) > 0:
+            return True
+    return False
+
+def _straight_keep_rank(kept_tuple):
+    return (-len(kept_tuple), _keep_values_desc(kept_tuple))
+
+def _default_keep_rank(kept_tuple):
+    return (len(kept_tuple), _keep_values_desc(kept_tuple))
+
+def _choose_target_keep(cat_name, kept_tuples):
+    if not kept_tuples:
+        return ()
+    if cat_name in ('Small Straight', 'Large Straight'):
+        return max(kept_tuples, key=_straight_keep_rank)
+    if cat_name == 'Full House' and () in kept_tuples:
+        return ()
+    return max(kept_tuples, key=_default_keep_rank)
+
+def _choose_general_keep(kept_tuples):
+    if not kept_tuples:
+        return ()
+    return max(kept_tuples, key=_default_keep_rank)
 
 # --- 점수 계산 최적화 (Pre-calculation) ---
 def _calc_score_internal(dice, category_idx):
@@ -131,26 +217,41 @@ def _hand_score_hint(cat_name, move):
 
 def _build_reason(cat_name, prob, mode):
     pct = f"{prob * 100:.1f}%"
-    if mode == 'aggressive':
-        return f"고점 우선: {cat_name} 완성 확률 {pct}"
+    if mode == 'cover':
+        return f"커버 참고: {cat_name}까지 이어질 확률 {pct}"
     if prob >= 0.75:
-        return f"안정적 선택: {cat_name} 성공 확률 {pct}"
+        return f"집중 공략: {cat_name} 성공 확률 {pct}"
     if prob >= 0.35:
-        return f"균형 선택: {cat_name} 성공 확률 {pct}"
-    return f"도전 선택: {cat_name} 완성 확률 {pct}"
+        return f"집중 공략: {cat_name} 완성 확률 {pct}"
+    return f"집중 공략: {cat_name} 도달 확률 {pct}"
 
 def _build_summary(best_item, mode):
     if not best_item:
         return "추천 없음: 다시 굴리며 다음 기회를 보는 편이 좋습니다."
-    style_label = "안전형" if mode != 'aggressive' else "한방형"
+    style_label = "집중 공략" if mode != 'cover' else "커버 플레이"
     return f"{style_label} 추천: {best_item['name']} 확률 {best_item['val_str']}"
 
 def _mode_rank(move, mode):
     score_hint = _hand_score_hint(move['name'], move)
     prob = move.get('prob', 0)
-    if mode == 'aggressive':
-        return (score_hint * (0.45 + prob), prob, move.get('priority', 0), move.get('tie_values', []))
-    return (prob, move.get('priority', 0), move.get('tie_values', []))
+    focused_name = move.get('name')
+    focused_priority = FOCUSED_HAND_PRIORITY.get(focused_name, move.get('priority', 0))
+    return (prob, score_hint, focused_priority, move.get('tie_values', []))
+
+def _cover_upgrade_rank(target_rows):
+    if not target_rows:
+        return (0.0, 0.0, 0.0)
+    weighted_prob = 0.0
+    best_prob = 0.0
+    best_hint = 0.0
+    for row in target_rows:
+        hint = _hand_score_hint(row["name"], row)
+        prob = row.get("prob", 0.0)
+        weighted_prob += hint * prob
+        if prob > best_prob or (abs(prob - best_prob) <= EPS and hint > best_hint):
+            best_prob = prob
+            best_hint = hint
+    return (weighted_prob, best_prob, best_hint)
 
 def _normalize_scorecard(scorecard):
     base = [None] * 12
@@ -169,9 +270,9 @@ def _score_stage_upper_bonus_push(face, count, current_upper, score, mode):
         progress = max(0, min(score, 63 - current_upper))
         bonus_push += progress * 0.35
         if count >= 3:
-            bonus_push += face * (2.4 if mode == 'aggressive' else 2.0)
+            bonus_push += face * (2.4 if mode == 'focused' else 2.0)
         elif count == 2 and face >= 5:
-            bonus_push += face * (1.2 if mode == 'aggressive' else 0.8)
+            bonus_push += face * (1.2 if mode == 'focused' else 0.8)
 
     return bonus_push + bonus_delta, bonus_delta
 
@@ -180,6 +281,12 @@ def _score_stage_category_advice(dice, scorecard, category_idx, mode):
     score = calc_score(dice, category_idx)
     utility = float(score)
     reason = f"즉시 {score}점"
+    yacht_bonus_active = (
+        category_idx != CATS['Yacht']
+        and score > 0
+        and _has_yacht_bonus(scorecard)
+        and calc_score(dice, CATS['Yacht']) == 50
+    )
 
     if category_idx < 6:
         face = category_idx + 1
@@ -199,7 +306,7 @@ def _score_stage_category_advice(dice, scorecard, category_idx, mode):
             reason = f"{name}에 기록하면 0점 처리입니다"
     elif category_idx == CATS['Choice']:
         if score >= 20:
-            utility += 3.0 if mode == 'safe' else 1.5
+            utility += 3.0 if mode == 'cover' else 1.5
             reason = f"즉시 {score}점으로 무난하게 착지할 수 있습니다"
         elif score > 0:
             utility += 1.0
@@ -208,14 +315,14 @@ def _score_stage_category_advice(dice, scorecard, category_idx, mode):
             reason = "Choice도 이번 턴엔 점수가 나지 않습니다"
     elif category_idx == CATS['4 of a Kind']:
         if score > 0:
-            utility += 6.0 if mode == 'aggressive' else 4.0
+            utility += 6.0 if mode == 'focused' else 4.0
             reason = f"4 of a Kind {score}점으로 하단 고점을 확보합니다"
         else:
             utility -= 1.5
             reason = "4 of a Kind에 적으면 0점입니다"
     elif category_idx == CATS['Full House']:
         if score > 0:
-            utility += 4.5 if mode == 'aggressive' else 3.0
+            utility += 4.5 if mode == 'focused' else 3.0
             reason = f"Full House {score}점으로 점수 효율이 좋습니다"
         else:
             utility -= 1.5
@@ -241,6 +348,10 @@ def _score_stage_category_advice(dice, scorecard, category_idx, mode):
         else:
             utility -= 4.0
             reason = "Yacht는 이번 턴을 비우는 희생 칸 후보로만 보세요"
+
+    if yacht_bonus_active:
+        utility += 100.0
+        reason = f"Yacht Bonus +100과 함께 {name} {score}점을 기록할 수 있습니다"
 
     return {
         "name": name,
@@ -317,277 +428,348 @@ def _build_score_stage_advice(dice, scorecard, open_categories, mode):
         "stage": "score",
     }
 
-def _find_4kind_keeps(dice):
-    """4 of a Kind를 keep할 수 있는 경우 찾기: 4개 이상 또는 3개"""
-    from collections import Counter
-    counts = Counter(dice)
-    
-    candidates = []
-    
-    # 경우 1: 같은 눈 4개 이상
-    for val in range(6, 0, -1):
-        if counts[val] >= 4:
-            candidates.append({'keep_val': val, 'keep_count': 4, 'prob_base': 1.0})
-            break
-    
-    # 경우 2: 같은 눈 3개 있는 경우 - 가장 큰 값부터
-    if not candidates:
-        for val in range(6, 0, -1):
-            if counts[val] >= 3:
-                candidates.append({'keep_val': val, 'keep_count': 3, 'prob_base': 0.33})
-                break
-    
-    return candidates
+def solve_best_move(dice, rolls_left, open_categories, strategy_mode='focused', scorecard=None):
+    mode = _normalize_strategy_mode(strategy_mode)
+    scorecard = _normalize_scorecard(scorecard)
+    open_categories = tuple(sorted(set(open_categories)))
+    dice_tuple = tuple(sorted(dice))
+    yacht_bonus_available = _has_yacht_bonus(scorecard)
 
-def solve_best_move(dice, rolls_left, open_categories, strategy_mode='safe', scorecard=None):
-    mode = strategy_mode if strategy_mode in ('safe', 'aggressive') else 'safe'
     if rolls_left == 0:
         return _build_score_stage_advice(dice, scorecard, open_categories, mode)
-    # 1. 기본 EV 계산 (점수형 카테고리나 족보 실패 시를 대비한 베이스라인)
-    best_ev = -1
-    best_keep_indices = []
 
-    for i in range(32):
-        keep_indices = []
-        kept_dice = []
-        for j in range(5):
-            if (i >> j) & 1:
-                keep_indices.append(j)
-                kept_dice.append(dice[j])
-        
-        num_reroll = 5 - len(kept_dice)
-        
-        if num_reroll == 0:
-            current_score = 0
-            for cat in open_categories:
-                current_score = max(current_score, calc_score(kept_dice, cat))
-            ev = current_score
-        else:
-            ev = 0
-            for outcome, prob in get_outcomes_probs(num_reroll):
-                next_dice = kept_dice + outcome
-                max_s = 0
-                for cat in open_categories:
-                    max_s = max(max_s, calc_score(next_dice, cat))
-                ev += prob * max_s
-        
-        if ev > best_ev:
-            best_ev = ev
-            best_keep_indices = keep_indices
+    def evaluate_keep_transition(kept_tuple, rerolls_remaining, state_solver):
+        reroll_count = 5 - len(kept_tuple)
+        total = 0.0
+        for outcome, prob in get_outcomes_probs(reroll_count):
+            next_dice = tuple(sorted(kept_tuple + tuple(outcome)))
+            total += prob * state_solver(next_dice, rerolls_remaining - 1)
+        return total
 
-    # 2. 주요 족보별 최대 확률 Keep 찾기 (3-Kind 제거됨)
+    @lru_cache(maxsize=None)
+    def terminal_best_utility(state_dice):
+        best_key = None
+        best_utility = float('-inf')
+        for category_idx in open_categories:
+            row = _score_stage_category_advice(list(state_dice), scorecard, category_idx, mode)
+            row_key = (
+                row["utility"],
+                row["score"],
+                -SACRIFICE_PRIORITY.get(row["name"], 99),
+            )
+            if best_key is None or row_key > best_key:
+                best_key = row_key
+                best_utility = row["utility"]
+        return best_utility
+
+    @lru_cache(maxsize=None)
+    def exact_turn_value(state_dice, rerolls_remaining):
+        if rerolls_remaining == 0:
+            return terminal_best_utility(state_dice)
+
+        best_value = float('-inf')
+        for kept_tuple in get_keep_options(state_dice):
+            value = evaluate_keep_transition(kept_tuple, rerolls_remaining, exact_turn_value)
+            if value > best_value:
+                best_value = value
+        return best_value
+
+    @lru_cache(maxsize=None)
+    def target_success_value(state_dice, rerolls_remaining, category_idx):
+        if rerolls_remaining == 0:
+            if category_idx == CATS['Yacht'] and yacht_bonus_available and CATS['Yacht'] not in open_categories:
+                return 1.0 if _can_cash_yacht_bonus(state_dice, open_categories, scorecard) else 0.0
+            return 1.0 if calc_score(state_dice, category_idx) > 0 else 0.0
+
+        best_value = 0.0
+        for kept_tuple in get_keep_options(state_dice):
+            value = evaluate_keep_transition(
+                kept_tuple,
+                rerolls_remaining,
+                lambda next_dice, next_rolls: target_success_value(next_dice, next_rolls, category_idx),
+            )
+            if value > best_value:
+                best_value = value
+        return best_value
+
+    @lru_cache(maxsize=None)
+    def target_score_value(state_dice, rerolls_remaining, category_idx):
+        if rerolls_remaining == 0:
+            return float(calc_score(state_dice, category_idx))
+
+        best_value = 0.0
+        for kept_tuple in get_keep_options(state_dice):
+            value = evaluate_keep_transition(
+                kept_tuple,
+                rerolls_remaining,
+                lambda next_dice, next_rolls: target_score_value(next_dice, next_rolls, category_idx),
+            )
+            if value > best_value:
+                best_value = value
+        return best_value
+
+    def _terminal_target_hit(state_dice, category_idx):
+        if category_idx == CATS['Yacht'] and yacht_bonus_available and CATS['Yacht'] not in open_categories:
+            return _can_cash_yacht_bonus(state_dice, open_categories, scorecard)
+        return calc_score(state_dice, category_idx) > 0
+
+    keep_action_values = []
+    keep_ev_map = {}
+    best_ev = float('-inf')
+    for kept_tuple in get_keep_options(dice_tuple):
+        value = evaluate_keep_transition(kept_tuple, rolls_left, exact_turn_value)
+        keep_action_values.append((kept_tuple, value))
+        keep_ev_map[kept_tuple] = value
+        if value > best_ev:
+            best_ev = value
+
     hand_cats = ['Yacht', '4 of a Kind', 'Full House', 'Large Straight', 'Small Straight']
-    # 우선순위(동률 시 점수가 높은 순)
     hand_priority = {'Yacht': 5, 'Large Straight': 4, 'Full House': 3, '4 of a Kind': 2, 'Small Straight': 1}
-    
+    hand_targets = []
     best_hand_moves = []
-    
+
     for cat_name in hand_cats:
         cat_idx = CATS[cat_name]
-        if cat_idx not in open_categories: continue
-        
-        # 4 of a Kind는 별도 로직
-        if cat_name == '4 of a Kind':
-            kind_candidates = _find_4kind_keeps(dice)
-            if kind_candidates:
-                for cand in kind_candidates:
-                    val = cand['keep_val']
-                    keep_count = cand['keep_count']
-                    prob_base = cand['prob_base']
-                    # 성공 시 기대값: 5개 전체 합 (4개 동일 + 나머지 1개 평균 3.5)
-                    if keep_count >= 4:
-                        conditional_ev = sum(dice)
-                    else:
-                        conditional_ev = val * 4 + 3.5
-                    
-                    best_hand_moves.append({
-                        'name': cat_name,
-                        'prob': prob_base,
-                        'keep_indices': [],  # 실제 인덱스는 나중에 매칭
-                        'priority': hand_priority[cat_name],
-                        'tie_values': [val],
-                        'tie_keeps': [],
-                        'conditional_ev': conditional_ev,
-                        'kind_val': val,
-                        'kind_count': keep_count
-                    })
-                continue
-            # kind_candidates가 없으면 일반 확률 탐색으로 진행
+        yacht_bonus_target = cat_name == 'Yacht' and yacht_bonus_available and cat_idx not in open_categories
+        if cat_idx not in open_categories and not yacht_bonus_target:
+            continue
+        display_name = 'Yacht Bonus' if yacht_bonus_target else cat_name
+        hand_targets.append({
+            "name": display_name,
+            "internal_name": cat_name,
+            "category_idx": cat_idx,
+            "bonus_active": yacht_bonus_target,
+            "priority": hand_priority[cat_name],
+        })
 
-        # 4 of a Kind 후보가 없으면, 모든 keep 조합에서 최대 확률 찾기 (일반 로직)
-        max_prob = -1.0
-        best_k = []
-        best_k_values = []
-        tie_sensitive = cat_name in ('Full House', 'Small Straight', 'Large Straight')
-        tie_candidates = []
-        
-        for i in range(32):
-            keep_indices = []
-            kept_dice = []
-            for j in range(5):
-                if (i >> j) & 1:
-                    keep_indices.append(j)
-                    kept_dice.append(dice[j])
-            
-            prob = get_success_probability(kept_dice, cat_idx)
-            tie_values = sorted([dice[idx] for idx in keep_indices], reverse=True)
-            if prob > max_prob + EPS:
-                max_prob = prob
-                best_k = keep_indices
-                best_k_values = tie_values
-                tie_candidates = [{'keep_indices': keep_indices, 'values': tie_values}]
-            elif abs(prob - max_prob) <= EPS and prob > 0:
-                tie_candidates.append({'keep_indices': keep_indices, 'values': tie_values})
-                # 확률이 같으면 더 큰 눈 조합을 우선
-                if tie_values > best_k_values:
-                    best_k = keep_indices
-                    best_k_values = tie_values
-        
-        # Full House는 모든 눈이 다르면 굳이 일부를 남기지 말고 전부 굴리는 선택을 우선
-        if cat_name == 'Full House' and max_prob > 0:
-            empty_keep = next((c for c in tie_candidates if not c['keep_indices']), None)
-            if empty_keep:
-                best_k = []
-                best_k_values = []
-                tie_candidates = [empty_keep] + [c for c in tie_candidates if c is not empty_keep]
-
-        if max_prob > 0:
-            # 4 of a Kind 일반 탐색 후 결과 (kind_candidates 없는 경우)
-            best_hand_moves.append({
-                'name': cat_name,
-                'prob': max_prob,
-                'keep_indices': best_k,
-                'priority': hand_priority[cat_name],
-                'tie_values': best_k_values,
-                'tie_keeps': sorted(tie_candidates, key=lambda t: t['values'], reverse=True),
-                'conditional_ev': sum(best_k) + 3.5 * (5 - len(best_k)) if cat_name == '4 of a Kind' else 0
+        action_rows = []
+        for kept_tuple in get_keep_options(dice_tuple):
+            success_prob = evaluate_keep_transition(
+                kept_tuple,
+                rolls_left,
+                lambda next_dice, next_rolls: target_success_value(next_dice, next_rolls, cat_idx),
+            )
+            expected_score = 0.0
+            if cat_name == '4 of a Kind':
+                expected_score = evaluate_keep_transition(
+                    kept_tuple,
+                    rolls_left,
+                    lambda next_dice, next_rolls: target_score_value(next_dice, next_rolls, cat_idx),
+                )
+            action_rows.append({
+                "kept_tuple": kept_tuple,
+                "prob": success_prob,
+                "expected_score": expected_score,
             })
-        continue
-        
-        # 다른 족보들 (Yacht, Full House, Straights)
-        max_prob = -1.0
-        best_k = []
-        best_k_values = []
-        tie_sensitive = cat_name in ('Full House', 'Small Straight', 'Large Straight')
-        tie_candidates = []
 
-        for i in range(32):
-            keep_indices = []
-            kept_dice = []
-            for j in range(5):
-                if (i >> j) & 1:
-                    keep_indices.append(j)
-                    kept_dice.append(dice[j])
-            
-            prob = get_success_probability(kept_dice, cat_idx)
-            tie_values = sorted([dice[idx] for idx in keep_indices], reverse=True)
-            if prob > max_prob + EPS:
-                max_prob = prob
-                best_k = keep_indices
-                best_k_values = tie_values
-                tie_candidates = [{'keep_indices': keep_indices, 'values': tie_values}]
-            elif abs(prob - max_prob) <= EPS:
-                tie_candidates.append({'keep_indices': keep_indices, 'values': tie_values})
-                if tie_sensitive:
-                    if cat_name in ('Small Straight', 'Large Straight'):
-                        if (len(keep_indices) < len(best_k)) or (
-                            len(keep_indices) == len(best_k) and tie_values > best_k_values
-                        ):
-                            best_k = keep_indices
-                            best_k_values = tie_values
-                    else:  # Full House
-                        if tie_values > best_k_values:
-                            best_k = keep_indices
-                            best_k_values = tie_values
-        
-        if max_prob > 0:
-            if tie_sensitive and cat_name in ('Small Straight', 'Large Straight'):
-                # Straight류: 같은 확률 중 가장 짧은 길이 선택
-                min_len = min(len(c['keep_indices']) for c in tie_candidates)
-                shortest_candidates = [c for c in tie_candidates if len(c['keep_indices']) == min_len]
-                # 같은 길이 내에서 더 큰 눈 조합 선택
-                best_candidate = max(shortest_candidates, key=lambda c: c['values'])
-                best_hand_moves.append({
-                    'name': cat_name,
-                    'prob': max_prob,
-                    'keep_indices': best_candidate['keep_indices'],
-                    'priority': hand_priority[cat_name],
-                    'tie_values': best_candidate['values'],
-                    'tie_keeps': sorted(tie_candidates, key=lambda t: t['values'], reverse=True)
+        max_prob = max((row["prob"] for row in action_rows), default=0.0)
+        if max_prob <= EPS:
+            continue
+
+        tie_rows = [row for row in action_rows if abs(row["prob"] - max_prob) <= EPS]
+        best_keep_for_cat = _choose_target_keep(cat_name, [row["kept_tuple"] for row in tie_rows])
+        selected_row = next(row for row in tie_rows if row["kept_tuple"] == best_keep_for_cat)
+        conditional_ev = selected_row["expected_score"] / max_prob if cat_name == '4 of a Kind' and max_prob > EPS else 0.0
+
+        best_hand_moves.append({
+            "name": display_name,
+            "internal_name": cat_name,
+            "bonus_active": yacht_bonus_target,
+            "category_idx": cat_idx,
+            "prob": max_prob,
+            "kept_tuple": best_keep_for_cat,
+            "keep_indices": _kept_tuple_to_indices(dice, best_keep_for_cat),
+            "priority": hand_priority[cat_name],
+            "tie_values": list(_keep_values_desc(best_keep_for_cat)),
+            "tie_keeps": [
+                {
+                    "keep_indices": _kept_tuple_to_indices(dice, row["kept_tuple"]),
+                    "values": list(_keep_values_desc(row["kept_tuple"])),
+                }
+                for row in tie_rows
+            ],
+            "conditional_ev": conditional_ev,
+        })
+
+    cover_success_prob = None
+    cover_fail_prob = None
+    cover_target_rows = []
+    cover_fallback = mode == 'cover' and not hand_targets
+
+    if mode == 'cover' and hand_targets:
+        @lru_cache(maxsize=None)
+        def cover_target_bias(state_dice, rerolls_remaining, kept_tuple):
+            rows = []
+            for target in hand_targets:
+                prob = evaluate_keep_transition(
+                    kept_tuple,
+                    rerolls_remaining,
+                    lambda next_dice, next_rolls, idx=target["category_idx"]: target_success_value(next_dice, next_rolls, idx),
+                )
+                if prob <= EPS:
+                    continue
+                rows.append({
+                    "name": target["name"],
+                    "prob": prob,
+                    "priority": target["priority"],
                 })
-            else:
-                best_hand_moves.append({
-                    'name': cat_name,
-                    'prob': max_prob,
-                    'keep_indices': best_k,
-                    'priority': hand_priority[cat_name],
-                    'tie_values': best_k_values,
-                    'tie_keeps': sorted(tie_candidates, key=lambda t: t['values'], reverse=True)
-                })
+            return _cover_upgrade_rank(rows)
 
-    # 3. 추천 결정: 확률이 가장 높은 족보 전략 선택 (확률 같으면 우선순위 높은 순)
-    if best_hand_moves:
-        # 4 of a Kind는 실제 인덱스 매칭
-        for move in best_hand_moves:
-            if move['name'] == '4 of a Kind':
-                kind_val = move.get('kind_val')
-                kind_count = move.get('kind_count')
-                if kind_val and kind_count:
-                    # 같은 눈 kind_count개만큼의 인덱스를 찾아서 keep_indices 설정
-                    indices = [i for i, d in enumerate(dice) if d == kind_val][:kind_count]
-                    move['keep_indices'] = indices
-                    move['tie_keeps'] = []
-        
-        primary_moves = best_hand_moves
-        max_same_count = max(Counter(dice).values())
-        if max_same_count < 4:
-            filtered_moves = [move for move in best_hand_moves if move['name'] != 'Yacht']
-            if filtered_moves:
-                primary_moves = filtered_moves
+        def terminal_cover_hit(state_dice):
+            return any(_terminal_target_hit(state_dice, target["category_idx"]) for target in hand_targets)
 
-        # 확률, 우선순위, 그리고 동률 시 더 큰 눈을 선호
-        primary_moves.sort(key=lambda x: _mode_rank(x, mode), reverse=True)
-        best_strategy = primary_moves[0]
-        # 선택된 족보 전략의 EV를 계산하여 베이스라인보다 과도하게 낮으면 유지하지 않음
-        strategy_keep = best_strategy['keep_indices']
-        kept_dice = [dice[i] for i in strategy_keep]
-        num_reroll = 5 - len(strategy_keep)
-        if num_reroll == 0:
-            strat_ev = 0
-            for cat in open_categories:
-                strat_ev = max(strat_ev, calc_score(kept_dice, cat))
-        else:
-            strat_ev = 0
-            for outcome, prob in get_outcomes_probs(num_reroll):
-                next_dice = kept_dice + outcome
-                max_s = 0
-                for cat in open_categories:
-                    max_s = max(max_s, calc_score(next_dice, cat))
-                strat_ev += prob * max_s
-        # 베이스라인 EV보다 낮으면 기본 EV 유지, 아니면 족보 전략 반영
-        if strat_ev >= best_ev:
-            best_keep_indices = strategy_keep
+        @lru_cache(maxsize=None)
+        def cover_success_value(state_dice, rerolls_remaining):
+            if rerolls_remaining == 0:
+                return 1.0 if terminal_cover_hit(state_dice) else 0.0
+            return cover_best_action(state_dice, rerolls_remaining)[1]
 
-    # Breakdown 생성 (dice_recommendations 이전에 먼저 생성)
+        @lru_cache(maxsize=None)
+        def cover_best_action(state_dice, rerolls_remaining):
+            if rerolls_remaining == 0:
+                return ((), 1.0 if terminal_cover_hit(state_dice) else 0.0)
+
+            best_value = float('-inf')
+            tied_keeps = []
+            for kept_tuple in get_keep_options(state_dice):
+                value = evaluate_keep_transition(kept_tuple, rerolls_remaining, cover_success_value)
+                if value > best_value + EPS:
+                    best_value = value
+                    tied_keeps = [kept_tuple]
+                elif abs(value - best_value) <= EPS:
+                    tied_keeps.append(kept_tuple)
+
+            best_keep = max(
+                tied_keeps,
+                key=lambda kept_tuple: (
+                    cover_target_bias(state_dice, rerolls_remaining, kept_tuple),
+                    len(kept_tuple),
+                    _keep_values_desc(kept_tuple),
+                ),
+            )
+            return (best_keep, best_value)
+
+        @lru_cache(maxsize=None)
+        def cover_policy_target_prob(state_dice, rerolls_remaining, category_idx):
+            if rerolls_remaining == 0:
+                return 1.0 if _terminal_target_hit(state_dice, category_idx) else 0.0
+            kept_tuple, _ = cover_best_action(state_dice, rerolls_remaining)
+            return evaluate_keep_transition(
+                kept_tuple,
+                rerolls_remaining,
+                lambda next_dice, next_rolls: cover_policy_target_prob(next_dice, next_rolls, category_idx),
+            )
+
+        best_keep_tuple, cover_success_prob = cover_best_action(dice_tuple, rolls_left)
+        cover_fail_prob = max(0.0, 1.0 - cover_success_prob)
+
+        for target in hand_targets:
+            prob = cover_policy_target_prob(dice_tuple, rolls_left, target["category_idx"])
+            if prob <= EPS:
+                continue
+            cover_target_rows.append({
+                "name": target["name"],
+                "internal_name": target["internal_name"],
+                "bonus_active": target["bonus_active"],
+                "prob": prob,
+                "priority": target["priority"],
+            })
+
+        cover_target_rows.sort(
+            key=lambda row: (row["prob"], row["priority"], _hand_score_hint(row["name"], row)),
+            reverse=True,
+        )
+    elif best_hand_moves:
+        best_focus_move = max(best_hand_moves, key=lambda move: _mode_rank(move, mode))
+        best_keep_tuple = best_focus_move["kept_tuple"]
+    else:
+        best_general_keeps = [kept for kept, value in keep_action_values if abs(value - best_ev) <= EPS]
+        best_keep_tuple = _choose_general_keep(best_general_keeps)
+
+    chosen_ev = keep_ev_map.get(best_keep_tuple, best_ev)
+    best_keep_indices = _kept_tuple_to_indices(dice, best_keep_tuple)
+
+    if mode == 'cover' and hand_targets:
+        kept_vals = [str(dice[i]) for i in sorted(best_keep_indices)]
+        keep_label = f"[{', '.join(kept_vals)}] keep" if kept_vals else "모두 굴리기"
+        covered_names = [row["name"] for row in cover_target_rows[:3]]
+        covered_str = " / ".join(covered_names) if covered_names else "열린 하단 족보"
+        breakdown = [
+            {
+                "name": "핸드 하나 이상 성공",
+                "prob": cover_success_prob,
+                "meter": cover_success_prob,
+                "val_str": f"{cover_success_prob * 100:.2f}%",
+                "type": "cover",
+                "keep_str": f"{keep_label} → {covered_str} 중 하나 이상",
+                "keep_indices": best_keep_indices,
+                "reason": f"겹치는 족보까지 한 번에 계산한 exact union 확률입니다.",
+            },
+            {
+                "name": "전부 실패",
+                "prob": cover_fail_prob,
+                "meter": cover_fail_prob,
+                "val_str": f"{cover_fail_prob * 100:.2f}%",
+                "type": "risk",
+                "keep_str": f"{keep_label} → 이번 턴에 하단 족보를 하나도 못 먹는 확률",
+                "keep_indices": best_keep_indices,
+                "reason": "독립 가정이 아니라 위 확률의 여집합으로 계산했습니다.",
+            },
+        ]
+
+        for row in cover_target_rows[:3]:
+            breakdown.append({
+                "name": row["name"],
+                "prob": row["prob"],
+                "meter": row["prob"],
+                "val_str": f"{row['prob'] * 100:.2f}%",
+                "type": "hand",
+                "keep_str": f"{keep_label} → 커버 경로에서 함께 열리는 후보",
+                "keep_indices": best_keep_indices,
+                "reason": _build_reason(row["name"], row["prob"], mode),
+            })
+
+        dice_recommendations = []
+        for idx in range(5):
+            action = "keep" if idx in best_keep_indices else "reroll"
+            dice_recommendations.append({
+                "index": idx,
+                "value": dice[idx],
+                "action": action,
+                "confidence": 100
+            })
+
+        rec_msg = "모두 굴리기" if not best_keep_indices else f"[{', '.join(kept_vals)}] Keep (커버 플레이)"
+        summary = f"커버 플레이: 핸드 하나 이상 {cover_success_prob * 100:.2f}%, 전부 실패 {cover_fail_prob * 100:.2f}%"
+
+        return {
+            "keep_indices": best_keep_indices,
+            "expected_value": round(chosen_ev, 2),
+            "dice_recommendations": dice_recommendations,
+            "message": rec_msg,
+            "breakdown": breakdown,
+            "strategy_mode": mode,
+            "primary_target": "핸드 하나 이상 성공",
+            "summary": summary,
+            "stage": "roll",
+            "cover_success_prob": round(cover_success_prob, 6),
+            "cover_fail_prob": round(cover_fail_prob, 6),
+        }
+
     breakdown = []
     hand_cats_display = ['4 of a Kind', 'Full House', 'Small Straight', 'Large Straight', 'Yacht']
-    
+
     for cat_name in hand_cats_display:
         cat_idx = CATS[cat_name]
-        if cat_idx not in open_categories:
-            continue  # 이미 점수를 받은 카테고리는 표시하지 않음
+        yacht_bonus_target = cat_name == 'Yacht' and yacht_bonus_available and cat_idx not in open_categories
+        if cat_idx not in open_categories and not yacht_bonus_target:
+            continue
 
-        # best_hand_moves에서 해당 족보 찾기
-        same_cat_moves = [m for m in best_hand_moves if m['name'] == cat_name]
-        
+        same_cat_moves = [move for move in best_hand_moves if move.get("internal_name") == cat_name]
         if not same_cat_moves:
-            # 모두 다른 눈이라 4 of a Kind, Yacht, Full House에 유의미한 keep이 없을 때는 다시 굴리기 제안
-            if len(set(dice)) == 5 and cat_name in ('Yacht', '4 of a Kind', 'Full House'):
-                keep_str = "Keep 후보 없음: 다시 돌리기"
-            else:
-                keep_str = "불가능"
+            keep_str = "Keep 후보 없음: 다시 돌리기" if len(set(dice)) == 5 and cat_name in ('Yacht', '4 of a Kind', 'Full House') else "불가능"
             breakdown.append({
-                "name": cat_name,
+                "name": "Yacht Bonus" if yacht_bonus_target else cat_name,
                 "prob": 0.0,
                 "val_str": "",
                 "type": "hand",
@@ -596,13 +778,11 @@ def solve_best_move(dice, rolls_left, open_categories, strategy_mode='safe', sco
                 "reason": "현재 턴에는 이 족보를 현실적으로 노리기 어렵습니다."
             })
             continue
-        
+
         move = same_cat_moves[0]
-        
-        # 확률이 정확히 0이면 불가능으로 표시
-        if move['prob'] == 0:
+        if move["prob"] == 0:
             breakdown.append({
-                "name": cat_name,
+                "name": move["name"],
                 "prob": 0.0,
                 "val_str": "",
                 "type": "hand",
@@ -611,159 +791,102 @@ def solve_best_move(dice, rolls_left, open_categories, strategy_mode='safe', sco
                 "reason": "이번 상태에선 완성 경로가 없습니다."
             })
             continue
-        
-        # 4 of a Kind: 여러 후보 표시
+
         if cat_name == '4 of a Kind':
-            if len(same_cat_moves) > 1:
-                keep_ev_strs = []
-                for m in same_cat_moves:
-                    val = m.get('kind_val')
-                    count = m.get('kind_count')
-                    ev = m.get('conditional_ev', 0)
-                    if val and count:
-                        keep_ev_strs.append(f"[{', '.join([str(val)] * count)}] → {round(ev, 1)}점")
-                keep_str = f"Keep 후보: {', '.join(keep_ev_strs)}"
-            else:
-                val = move.get('kind_val')
-                count = move.get('kind_count')
-                if val and count:
-                    keep_str = f"[{', '.join([str(val)] * count)}]"
-                else:
-                    keep_str = f"[{', '.join([str(v) for v in move.get('tie_values', [])])}]"
-                score_str = f"완성시 기대값 {round(move.get('conditional_ev', 0), 1)}점"
-                keep_str = f"{keep_str} keep → {score_str}"
-            
+            keep_vals = [str(dice[i]) for i in sorted(move["keep_indices"])]
+            keep_str = f"[{', '.join(keep_vals)}]" if keep_vals else "모두 굴리기"
+            keep_str = f"{keep_str} keep → 성공시 평균 {round(move.get('conditional_ev', 0), 1)}점"
             breakdown.append({
-                "name": cat_name,
-                "prob": move['prob'],
+                "name": move["name"],
+                "prob": move["prob"],
                 "val_str": f"{move['prob'] * 100:.2f}%",
                 "type": "hand",
                 "keep_str": keep_str,
-                "keep_indices": move['keep_indices'],
-                "reason": _build_reason(cat_name, move['prob'], mode)
+                "keep_indices": move["keep_indices"],
+                "reason": _build_reason(move["name"], move["prob"], mode)
             })
             continue
-        
-        # 다른 족보들
+
+        tie_keeps = move.get("tie_keeps") or []
         if cat_name == 'Yacht':
-            keep_vals = [str(dice[i]) for i in sorted(move['keep_indices'])]
+            keep_vals = [str(dice[i]) for i in sorted(move["keep_indices"])]
             keep_str = f"[{', '.join(keep_vals)}]" if keep_vals else "모두 굴리기"
-            score_str = "50점 (확정)"
-            if "Keep 후보" in keep_str:
-                final_keep = keep_str
-            elif keep_vals:
-                final_keep = f"{keep_str} keep"
-            else:
-                final_keep = keep_str
+            final_keep = keep_str if keep_str == "모두 굴리기" else f"{keep_str} keep"
+            score_str = "Yacht Bonus +100 발동" if move.get("bonus_active") else "50점 (확정)"
             breakdown.append({
-                "name": cat_name,
-                "prob": move['prob'],
+                "name": move["name"],
+                "prob": move["prob"],
                 "val_str": f"{move['prob'] * 100:.2f}%",
                 "type": "hand",
                 "keep_str": f"{final_keep} → {score_str}",
-                "keep_indices": move['keep_indices'],
-                "reason": _build_reason(cat_name, move['prob'], mode)
+                "keep_indices": move["keep_indices"],
+                "reason": _build_reason(move["name"], move["prob"], mode)
             })
             continue
 
-        tie_keeps = move.get('tie_keeps') or []
         if len(tie_keeps) > 1:
-            # Full House: 빈 keep가 있으면 그것만 남기고 나머지는 제거하여 "모두 굴리기"를 우선 노출
-            if cat_name == 'Full House':
-                empty_only = [c for c in tie_keeps if not c['keep_indices']]
-                if empty_only:
-                    tie_keeps = empty_only
-                else:
-                    tie_keeps = [c for c in tie_keeps if c['keep_indices']]
             normalized = []
-            for cand in tie_keeps:
-                vals = [dice[i] for i in sorted(cand['keep_indices'])]
-                norm_vals = tuple(sorted(vals, reverse=True))
-                normalized.append((norm_vals, len(vals)))
-            uniq = {}
-            for norm_vals, vlen in normalized:
-                if norm_vals not in uniq:
-                    uniq[norm_vals] = vlen
+            for candidate in tie_keeps:
+                values = [dice[i] for i in sorted(candidate["keep_indices"])]
+                normalized.append((tuple(sorted(values, reverse=True)), len(values)))
 
-            def sort_key(item):
-                vals, vlen = item
-                if cat_name in ('Small Straight', 'Large Straight'):
-                    return (vlen, vals)
-                else:
-                    return (-vlen, vals)
-
-            items = sorted(uniq.items(), key=sort_key, reverse=(cat_name not in ('Small Straight', 'Large Straight')))
+            unique_values = {}
+            for values, value_len in normalized:
+                if values not in unique_values:
+                    unique_values[values] = value_len
 
             if cat_name in ('Small Straight', 'Large Straight'):
-                min_len = min(vlen for (_, vlen) in items) if items else 0
-                min_items = [(vals, vlen) for (vals, vlen) in items if vlen == min_len]
-                min_items.sort(key=lambda x: x[0], reverse=True)
-                display = min_items[:1]
-                # 선택된 display의 keep_indices를 찾아서 업데이트
-                if display:
-                    target_vals = set(display[0][0])
-                    for cand in tie_keeps:
-                        cand_vals = set(dice[i] for i in cand['keep_indices'])
-                        if cand_vals == target_vals:
-                            move['keep_indices'] = cand['keep_indices']
-                            break
+                min_len = min((value_len for (_, value_len) in unique_values.items()), default=0)
+                display = [values for values, value_len in unique_values.items() if value_len == min_len]
+                display.sort(reverse=True)
+                display = display[:1]
+            elif cat_name == 'Full House' and tuple() in unique_values:
+                display = [tuple()]
             else:
-                display = items[:3]
+                display = sorted(unique_values.keys(), reverse=True)[:3]
 
-            all_keep_strs = [f"[{', '.join(map(str, vals))}]" for (vals, _) in display]
-            if len(all_keep_strs) == 1:
-                keep_str = all_keep_strs[0]
-            else:
-                keep_str = f"Keep 후보: {', '.join(all_keep_strs)}"
+            keep_labels = [f"[{', '.join(map(str, values))}]" if values else "모두 굴리기" for values in display]
+            keep_str = keep_labels[0] if len(keep_labels) == 1 else f"Keep 후보: {', '.join(keep_labels)}"
         else:
-            keep_vals = [str(dice[i]) for i in sorted(move['keep_indices'])]
+            keep_vals = [str(dice[i]) for i in sorted(move["keep_indices"])]
             keep_str = f"[{', '.join(keep_vals)}]" if keep_vals else "모두 굴리기"
-        
-        # 족보별 점수
-        if cat_name == 'Yacht':
-            score_str = "50점 (확정)"
-        elif cat_name == 'Large Straight':
+
+        if cat_name == 'Large Straight':
             score_str = "30점 (확정)"
         elif cat_name == 'Small Straight':
             score_str = "15점 (확정)"
-        elif cat_name == 'Full House':
-            score_str = "합계 점수"
         else:
-            score_str = "?"
-        
+            score_str = "합계 점수"
+
+        keep_prefix = keep_str if keep_str in ("모두 굴리기",) or "Keep 후보" in keep_str else f"{keep_str} keep"
         breakdown.append({
-            "name": cat_name,
-            "prob": move['prob'],
+            "name": move["name"],
+            "prob": move["prob"],
             "val_str": f"{move['prob'] * 100:.2f}%",
             "type": "hand",
-            "keep_str": f"{keep_str if 'Keep 후보' in keep_str else (keep_str if keep_str == '모두 굴리기' else keep_str + ' keep')} → {score_str}",
-            "keep_indices": move['keep_indices'],
-            "reason": _build_reason(cat_name, move['prob'], mode)
+            "keep_str": f"{keep_prefix} → {score_str}",
+            "keep_indices": move["keep_indices"],
+            "reason": _build_reason(move["name"], move["prob"], mode)
         })
-    
-    # 족보가 모두 불가능하거나, 족보를 모두 채웠을 때 상단부 표시
-    hand_rows = [b for b in breakdown if b.get("type") == "hand"]
-    hand_cats_idx = [CATS[name] for name in ['4 of a Kind', 'Full House', 'Small Straight', 'Large Straight', 'Yacht']]
-    all_hands_filled = all(cat_idx not in open_categories for cat_idx in hand_cats_idx)
-    
-    if (hand_rows and all(b.get("prob") == 0 for b in hand_rows)) or all_hands_filled:
+
+    hand_rows = [row for row in breakdown if row.get("type") == "hand"]
+    all_hands_filled = (
+        all(CATS[name] not in open_categories for name in ['4 of a Kind', 'Full House', 'Small Straight', 'Large Straight'])
+        and (CATS['Yacht'] not in open_categories and not yacht_bonus_available)
+    )
+
+    if (hand_rows and all(row.get("prob") == 0 for row in hand_rows)) or all_hands_filled:
         upper_cats = [CATS['Ones'], CATS['Twos'], CATS['Threes'], CATS['Fours'], CATS['Fives'], CATS['Sixes']]
         upper_names = ['Ones', 'Twos', 'Threes', 'Fours', 'Fives', 'Sixes']
 
         for idx, (cat_val, cat_name) in enumerate(zip(upper_cats, upper_names)):
             if cat_val not in open_categories:
-                continue  # 이미 점수를 받았으므로 표시 안 함
+                continue
 
-            target_val = idx + 1  # Ones=1, Twos=2, ...
+            target_val = idx + 1
             current_count = dice.count(target_val)
             reroll_count = 5 - current_count
-
-            if reroll_count == 0:
-                prob_get_more = 1.0
-            else:
-                prob_get_more = 1.0 - ((5.0/6.0) ** reroll_count)
-
-            # 한국어 조사 선택: 1(일), 3(삼), 6(육)은 받침 있음 → "이", 2(이), 4(사), 5(오)는 받침 없음 → "가"
+            prob_get_more = 1.0 if reroll_count == 0 else 1.0 - ((5.0 / 6.0) ** reroll_count)
             josa = "이" if target_val in [1, 3, 6] else "가"
 
             breakdown.append({
@@ -772,56 +895,93 @@ def solve_best_move(dice, rolls_left, open_categories, strategy_mode='safe', sco
                 "val_str": f"{prob_get_more * 100:.2f}%",
                 "type": "upper",
                 "keep_str": f"현재 나온 {target_val}들을 모두 Keep → {target_val}{josa} 적어도 하나 더 뜰 확률",
-                "keep_indices": [i for i, d in enumerate(dice) if d == target_val],
+                "keep_indices": [i for i, value in enumerate(dice) if value == target_val],
                 "reason": f"안전하게 상단 점수를 쌓을 수 있는 확률 {prob_get_more * 100:.1f}%"
             })
 
-    # breakdown에서 확률이 가장 높은 항목(not upper)을 추천
-    # 단, keep이 있는 것만 고려 (keep이 없으면 특정 족보를 "노리는" 게 아니므로)
-    best_keep_indices = []
-    rec_msg = "모두 굴리기"
-    
-    hand_breakdown = [b for b in breakdown if b.get('type') == 'hand']
-    if hand_breakdown:
-        # keep이 있는 족보 중에서 확률이 가장 높은 것 선택
-        hand_with_keep = [b for b in hand_breakdown if b.get('keep_indices')]
-        primary_candidates = hand_with_keep
-        max_same_count = max(Counter(dice).values())
-        if max_same_count < 4:
-            filtered_candidates = [row for row in hand_with_keep if row.get('name') != 'Yacht']
-            if filtered_candidates:
-                primary_candidates = filtered_candidates
-        if primary_candidates:
-            if mode == 'aggressive':
-                best_hand = max(primary_candidates, key=lambda x: _mode_rank(x, mode))
-            else:
-                best_hand = max(primary_candidates, key=lambda x: x.get('prob', 0))
-            best_keep_indices = best_hand['keep_indices']
-            kept_vals = [str(dice[i]) for i in sorted(best_keep_indices)]
-            rec_msg = f"[{', '.join(kept_vals)}] Keep"
-            if best_hand.get('name'):
-                rec_msg += f" ({best_hand['name']} 노리기)"
-        # else: keep이 없으면 그냥 "모두 굴리기" (족보 지목 안 함)
+    matching_rows = [
+        row for row in breakdown
+        if row.get("keep_indices") == best_keep_indices and row.get("keep_indices")
+    ]
 
-    # 4. 결과 생성
+    best_row = None
+    if matching_rows:
+        hand_matches = [row for row in matching_rows if row.get("type") == "hand"]
+        if hand_matches:
+            best_row = max(
+                hand_matches,
+                key=lambda row: _mode_rank({
+                    "name": row["name"],
+                    "prob": row.get("prob", 0),
+                    "priority": hand_priority.get(row["name"], 0),
+                    "tie_values": _keep_values_desc(tuple(dice[i] for i in row.get("keep_indices", []))),
+                }, mode)
+            )
+        else:
+            best_row = max(matching_rows, key=lambda row: (row.get("prob", 0), row.get("name", "")))
+
+    straight_upgrade = None
+    if mode == 'focused' and best_row and best_row.get("name") == "Small Straight" and CATS['Large Straight'] in open_categories:
+        small_prob_for_keep = evaluate_keep_transition(
+            best_keep_tuple,
+            rolls_left,
+            lambda next_dice, next_rolls: target_success_value(next_dice, next_rolls, CATS['Small Straight']),
+        )
+        large_prob_for_keep = evaluate_keep_transition(
+            best_keep_tuple,
+            rolls_left,
+            lambda next_dice, next_rolls: target_success_value(next_dice, next_rolls, CATS['Large Straight']),
+        )
+        if small_prob_for_keep >= 1.0 - EPS and large_prob_for_keep > EPS:
+            straight_upgrade = {
+                "name": "Large Straight",
+                "prob": large_prob_for_keep,
+                "val_str": f"{large_prob_for_keep * 100:.2f}%",
+                "keep_indices": best_keep_indices,
+                "reason": f"Large Straight {large_prob_for_keep * 100:.1f}%를 노리되, 실패해도 Small Straight는 유지됩니다.",
+            }
+    explaining_row = straight_upgrade or (best_row if best_row and (mode == 'focused' or best_row.get("prob", 0) >= 0.05) else None)
+    kept_vals = [str(dice[i]) for i in sorted(best_keep_indices)]
+    rec_msg = "모두 굴리기"
+    if best_keep_indices:
+        rec_msg = f"[{', '.join(kept_vals)}] Keep"
+        if straight_upgrade:
+            rec_msg += " (Large Straight 업그레이드)"
+        elif explaining_row and explaining_row.get("name") and not cover_fallback:
+            rec_msg += f" ({explaining_row['name']} 노리기)"
+
+    style_label = "집중 공략" if mode != 'cover' else "커버 플레이"
+    if cover_fallback and best_keep_indices:
+        summary = f"{style_label}: 커버 대상이 없어 일반 추천으로 전환, [{', '.join(kept_vals)}] keep, 기대값 {chosen_ev:.2f}"
+    elif cover_fallback:
+        summary = f"{style_label}: 커버 대상이 없어 일반 추천으로 전환, 기대값 {chosen_ev:.2f}"
+    elif straight_upgrade:
+        summary = f"{style_label} 추천: Large Straight {straight_upgrade['val_str']}, 실패해도 Small Straight 유지"
+    elif explaining_row:
+        summary = _build_summary(explaining_row, mode)
+    elif best_keep_indices:
+        summary = f"{style_label} 추천: [{', '.join(kept_vals)}] keep, 기대값 {chosen_ev:.2f}"
+    else:
+        summary = f"{style_label} 추천: 모두 굴리기, 기대값 {chosen_ev:.2f}"
+
     dice_recommendations = []
-    for i in range(5):
-        action = "keep" if i in best_keep_indices else "reroll"
+    for idx in range(5):
+        action = "keep" if idx in best_keep_indices else "reroll"
         dice_recommendations.append({
-            "index": i,
-            "value": dice[i],
+            "index": idx,
+            "value": dice[idx],
             "action": action,
             "confidence": 100
         })
 
     return {
         "keep_indices": best_keep_indices,
-        "expected_value": round(best_ev, 2),
+        "expected_value": round(chosen_ev, 2),
         "dice_recommendations": dice_recommendations,
         "message": rec_msg,
         "breakdown": breakdown,
         "strategy_mode": mode,
-        "primary_target": best_hand['name'] if hand_breakdown and 'best_hand' in locals() else None,
-        "summary": _build_summary(best_hand if hand_breakdown and 'best_hand' in locals() else None, mode),
+        "primary_target": explaining_row["name"] if explaining_row else None,
+        "summary": summary,
         "stage": "roll",
     }

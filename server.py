@@ -224,6 +224,10 @@ def _prune_room_activity(code, room, now=None):
 def index():
     return render_template('lobby.html')
 
+@app.route('/intro')
+def intro():
+    return render_template('intro.html')
+
 @app.route('/game/single')
 def game_single():
     return render_template('single-game.html')
@@ -354,7 +358,7 @@ def recommend():
         dice = data.get('dice', [])
         rolls_left = data.get('rolls_left', 0)
         scorecard = data.get('scorecard', [])
-        strategy_mode = data.get('strategy_mode', 'safe')
+        strategy_mode = data.get('strategy_mode', 'focused')
         open_categories = [i for i, score in enumerate(scorecard) if score is None]
 
         if not open_categories or rolls_left < 0:
