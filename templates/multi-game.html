@@ -596,6 +596,10 @@
             return (Date.now() - lastRoomContactAt) > ROOM_CONTACT_GRACE_MS;
         }
 
+        function shouldSkipHeartbeat() {
+            return (Date.now() - lastRoomContactAt) < Math.min(ROOM_HEARTBEAT_INTERVAL_MS * 0.75, currentSyncIntervalMs() * 2.5);
+        }
+
         async function fetchWithTimeout(url, options = {}, timeoutMs = currentRoomRequestTimeoutMs()) {
             if (typeof AbortController !== 'function') {
                 return fetch(url, options);
@@ -945,6 +949,7 @@
             syncRequestInFlight = true;
             const qs = new URLSearchParams();
             qs.set('u', username);
+            qs.set('sv', String(roomVersion));
             if (!isObserver && playerToken) qs.set('pt', playerToken);
             try {
                 const r = await fetchWithTimeout(
@@ -983,7 +988,15 @@
                 updateObserverUI();
                 if (data.state) {
                     turnLeftSeconds = data.state.turn_left_seconds != null ? data.state.turn_left_seconds : null;
-                    applyRemoteState(data.state);
+                    if (data.unchanged) {
+                        if (typeof data.state.version === 'number') {
+                            roomVersion = Math.max(roomVersion, data.state.version);
+                        }
+                        updateTurnTimer();
+                        renderObserverSummary();
+                    } else {
+                        applyRemoteState(data.state);
+                    }
                 }
             } catch (e) {
                 console.warn('pull failed', e);
@@ -999,6 +1012,7 @@
         async function sendRoomHeartbeat(options = {}) {
             const {immediate = false} = options;
             if (!roomCode || !username || connectionLostHandled) return;
+            if (!immediate && shouldSkipHeartbeat()) return;
             if (heartbeatRequestInFlight && !immediate) return;
             heartbeatRequestInFlight = true;
             try {

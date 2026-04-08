@@ -1,4 +1,5 @@
 import itertools
+from copy import deepcopy
 from collections import Counter
 from functools import lru_cache
 
@@ -261,6 +262,9 @@ def _normalize_scorecard(scorecard):
         base[idx] = value
     return base
 
+def _scorecard_to_tuple(scorecard):
+    return tuple(_normalize_scorecard(scorecard))
+
 def _score_stage_upper_bonus_push(face, count, current_upper, score, mode):
     projected_upper = current_upper + score
     bonus_delta = 35 if current_upper < 63 <= projected_upper else 0
@@ -428,9 +432,10 @@ def _build_score_stage_advice(dice, scorecard, open_categories, mode):
         "stage": "score",
     }
 
-def solve_best_move(dice, rolls_left, open_categories, strategy_mode='focused', scorecard=None):
-    mode = _normalize_strategy_mode(strategy_mode)
-    scorecard = _normalize_scorecard(scorecard)
+@lru_cache(maxsize=4096)
+def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scorecard_tuple):
+    dice = list(dice_key)
+    scorecard = list(scorecard_tuple)
     open_categories = tuple(sorted(set(open_categories)))
     dice_tuple = tuple(sorted(dice))
     yacht_bonus_available = _has_yacht_bonus(scorecard)
@@ -985,3 +990,33 @@ def solve_best_move(dice, rolls_left, open_categories, strategy_mode='focused', 
         "summary": summary,
         "stage": "roll",
     }
+
+def solve_best_move(dice, rolls_left, open_categories, strategy_mode='focused', scorecard=None):
+    mode = _normalize_strategy_mode(strategy_mode)
+    dice_key = tuple(int(v) for v in dice)
+    try:
+        rolls_left = int(rolls_left)
+    except (TypeError, ValueError):
+        rolls_left = 0
+    normalized_open_categories = []
+    for idx in open_categories:
+        try:
+            cat_idx = int(idx)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= cat_idx < 12:
+            normalized_open_categories.append(cat_idx)
+    result = _solve_best_move_cached(
+        dice_key,
+        rolls_left,
+        tuple(sorted(set(normalized_open_categories))),
+        mode,
+        _scorecard_to_tuple(scorecard),
+    )
+    return deepcopy(result)
+
+def get_solver_cache_info():
+    return _solve_best_move_cached.cache_info()
+
+def clear_solver_cache():
+    _solve_best_move_cached.cache_clear()

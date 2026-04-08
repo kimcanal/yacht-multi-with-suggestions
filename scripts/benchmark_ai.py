@@ -53,13 +53,13 @@ SCENARIOS = [
         "scorecard": [3, None, 9, None, None, 18, 22, None, None, None, None, 50],
     },
 ]
-
-
-def run_case(case: dict, repeats: int) -> tuple[float, float, float, str]:
+def run_case(case: dict, repeats: int, warm_cache: bool) -> tuple[float, float, float, str]:
     timings = []
     message = ""
     open_categories = [i for i, value in enumerate(case["scorecard"]) if value is None]
     for _ in range(repeats):
+        if not warm_cache:
+            yacht_engine.clear_solver_cache()
         started = time.perf_counter()
         result = yacht_engine.solve_best_move(
             case["dice"],
@@ -76,11 +76,13 @@ def run_case(case: dict, repeats: int) -> tuple[float, float, float, str]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repeats", type=int, default=5, help="number of runs per scenario")
+    parser.add_argument("--warm-cache", action="store_true", help="measure repeated hot-cache calls instead of cold calls")
     args = parser.parse_args()
 
-    print(f"Benchmarking {len(SCENARIOS)} AI scenarios, repeats={args.repeats}")
+    mode_label = "warm-cache" if args.warm_cache else "cold-cache"
+    print(f"Benchmarking {len(SCENARIOS)} AI scenarios, repeats={args.repeats}, mode={mode_label}")
     for case in SCENARIOS:
-        best, avg, worst, message = run_case(case, args.repeats)
+        best, avg, worst, message = run_case(case, args.repeats, args.warm_cache)
         print(
             f"- {case['name']}: mode={case['mode']} rolls={case['rolls_left']} "
             f"min={best:.2f}ms avg={avg:.2f}ms max={worst:.2f}ms"

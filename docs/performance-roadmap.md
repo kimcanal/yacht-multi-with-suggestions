@@ -17,13 +17,15 @@
   - p95 응답 시간
   - 가장 느린 케이스의 주사위 패턴
 
-현재 로컬 기준 대표 값은 `python3 scripts/benchmark_ai.py --repeats 3` 실행 시 대략 이렇습니다.
+현재 로컬 기준 대표 값은 `python3 scripts/benchmark_ai.py --repeats 2` 실행 시 대략 이렇습니다.
 
-- `straight_upgrade_focused`: 평균 `16.81ms`
-- `full_house_focus`: 평균 `784.11ms`
-- `full_house_cover`: 평균 `888.43ms`
-- `yacht_bonus_focused`: 평균 `773.31ms`
-- `yacht_bonus_cover`: 평균 `870.49ms`
+- `straight_upgrade_focused`: 평균 `16.22ms`
+- `full_house_focus`: 평균 `910.96ms`
+- `full_house_cover`: 평균 `1028.26ms`
+- `yacht_bonus_focused`: 평균 `774.75ms`
+- `yacht_bonus_cover`: 평균 `859.39ms`
+
+반대로 `python3 scripts/benchmark_ai.py --repeats 2 --warm-cache` 로 보면 동일 요청 재호출은 사실상 `0.1ms` 수준까지 내려갑니다. 즉 cold path 는 exact DP, hot path 는 결과 캐시 적중 여부가 핵심입니다.
 
 즉 현재 체감 병목은 프론트 렌더링이 아니라 `rolls_left=2` 인 exact DP 경로입니다.
 
@@ -41,6 +43,11 @@
 - 평균 payload 크기
 - 실패 재시도 횟수
 - 탭이 숨겨졌을 때 불필요한 트래픽 비율
+
+현재 저장소에는 이미 두 가지 완화책이 들어가 있습니다.
+
+- 클라이언트가 `sv`(state version)를 보내면 서버가 변경 없는 경우 `unchanged` 최소 payload 만 응답
+- 최근 sync 성공 직후에는 heartbeat 요청을 건너뜀
 
 ### C. 프론트 렌더 비용
 

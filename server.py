@@ -45,6 +45,12 @@ def _normalize_username(raw):
         return None
     return username
 
+def _safe_int(value, default=None):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
 def _issue_player_token():
     return secrets.token_urlsafe(24)
 
@@ -354,6 +360,7 @@ def system_status():
 @app.route('/api/recommend', methods=['POST'])
 def recommend():
     try:
+        started = time.perf_counter()
         data = request.json or {}
         dice = data.get('dice', [])
         rolls_left = data.get('rolls_left', 0)
@@ -365,7 +372,13 @@ def recommend():
             return jsonify({"message": "추천 불가", "keep_indices": [], "dice_recommendations": []})
 
         result = yacht_engine.solve_best_move(dice, rolls_left, open_categories, strategy_mode, scorecard)
-        return jsonify(result)
+        elapsed_ms = (time.perf_counter() - started) * 1000
+        cache_info = yacht_engine.get_solver_cache_info()
+        response = jsonify(result)
+        response.headers['X-AI-Elapsed-Ms'] = f"{elapsed_ms:.2f}"
+        response.headers['X-AI-Cache-Hits'] = str(cache_info.hits)
+        response.headers['X-AI-Cache-Misses'] = str(cache_info.misses)
+        return response
     except Exception as e:
         return jsonify({"error": str(e), "message": "AI 추천 오류"}), 500
 
@@ -564,7 +577,10 @@ def get_room(code):
     turn_left = None
     if state.get("turn_start_time"):
         turn_left = max(0, 30 - int(now - state["turn_start_time"]))
-    state["turn_left_seconds"] = turn_left
+    state_payload = dict(state)
+    state_payload["turn_left_seconds"] = turn_left
+    since_version = _safe_int(request.args.get('sv'))
+    current_version = _safe_int(state.get("version"), 0)
 
     p1 = room["host"]
     p2 = None
@@ -573,17 +589,26 @@ def get_room(code):
             p2 = p
             break
 
-    return jsonify({
+    payload = {
         "code": code,
         "host": room["host"],
         "players": room["players"],
         "observers": room.get("observers", []),
         "observer_count": len(room.get("observers", [])),
         "room_phase": _room_phase(room),
-        "state": state,
+        "state": state_payload,
         "player1": p1,
         "player2": p2
-    })
+    }
+    if since_version is not None and since_version == current_version:
+        payload["unchanged"] = True
+        payload["state"] = {
+            "version": current_version,
+            "turn_left_seconds": turn_left,
+            "turn": state.get("turn"),
+            "game_over": state.get("game_over", False),
+        }
+    return jsonify(payload)
 
 @app.route('/api/rooms/<code>/heartbeat', methods=['POST'])
 def heartbeat_room(code):
@@ -754,6 +779,14 @@ def leave_room(code):
         rooms.pop(code, None)
 
     return jsonify({"status": "left", "players": []})
+
+@app.route('/health', methods=['GET'])
+def healthcheck():
+    return jsonify({
+        "status": "ok",
+        "rooms": len(rooms),
+        "lobby_clients": len(lobby_clients),
+    })
 
 if __name__ == '__main__':
     print("🎲 Yacht Game Server Running on Port 8080...")

@@ -66,11 +66,23 @@ Flask 기반 웹 요트 다이스 게임입니다. 싱글플레이, 실시간 1 
 ## 설치 및 실행
 
 ```bash
-pip3 install flask psutil
+pip3 install -r requirements.txt
 python3 server.py
 ```
 
 기본 실행 주소는 `http://localhost:8080` 입니다.
+
+운영 환경에서는 아래처럼 `gunicorn` 실행을 권장합니다.
+
+```bash
+gunicorn -c gunicorn.conf.py wsgi:application
+```
+
+AI 계산 기준치는 아래 스크립트로 빠르게 측정할 수 있습니다.
+
+```bash
+python3 scripts/benchmark_ai.py --repeats 3
+```
 
 ## 게임 규칙 요약
 
@@ -101,6 +113,7 @@ python3 server.py
 ## 주요 API
 
 - `POST /api/recommend`: 현재 주사위 기준 AI 추천
+- `GET /health`: 간단한 서버 상태 확인
 - `GET /api/rooms`: 활성 방 목록
 - `POST /api/rooms`: 방 생성
 - `POST /api/rooms/<code>/join`: 방 입장
@@ -129,6 +142,8 @@ yacht_game/
 │       ├── multi-live.png
 │       └── single-cover.png
 ├── game_data.json
+├── gunicorn.conf.py
+├── requirements.txt
 ├── scripts/
 │   └── benchmark_ai.py
 ├── server.py
@@ -146,6 +161,7 @@ yacht_game/
 │   ├── lobby.html
 │   ├── multi-game.html
 │   └── single-game.html
+├── wsgi.py
 └── yacht_engine.py
 ```
 
