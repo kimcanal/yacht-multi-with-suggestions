@@ -10,6 +10,21 @@ HAND_FIXED_SCORES = {
     'Large Straight': 30,
     'Small Straight': 15,
 }
+UPPER_CAT_NAMES = ['Ones', 'Twos', 'Threes', 'Fours', 'Fives', 'Sixes']
+SACRIFICE_PRIORITY = {
+    'Ones': 0,
+    'Twos': 1,
+    'Yacht': 2,
+    'Threes': 3,
+    'Small Straight': 4,
+    'Large Straight': 5,
+    'Full House': 6,
+    '4 of a Kind': 7,
+    'Choice': 8,
+    'Fours': 9,
+    'Fives': 10,
+    'Sixes': 11,
+}
 
 OUTCOMES_CACHE = {}
 EPS = 1e-12
@@ -137,6 +152,171 @@ def _mode_rank(move, mode):
         return (score_hint * (0.45 + prob), prob, move.get('priority', 0), move.get('tie_values', []))
     return (prob, move.get('priority', 0), move.get('tie_values', []))
 
+def _normalize_scorecard(scorecard):
+    base = [None] * 12
+    if not isinstance(scorecard, list):
+        return base
+    for idx, value in enumerate(scorecard[:12]):
+        base[idx] = value
+    return base
+
+def _score_stage_upper_bonus_push(face, count, current_upper, score, mode):
+    projected_upper = current_upper + score
+    bonus_delta = 35 if current_upper < 63 <= projected_upper else 0
+    bonus_push = 0.0
+
+    if current_upper < 63:
+        progress = max(0, min(score, 63 - current_upper))
+        bonus_push += progress * 0.35
+        if count >= 3:
+            bonus_push += face * (2.4 if mode == 'aggressive' else 2.0)
+        elif count == 2 and face >= 5:
+            bonus_push += face * (1.2 if mode == 'aggressive' else 0.8)
+
+    return bonus_push + bonus_delta, bonus_delta
+
+def _score_stage_category_advice(dice, scorecard, category_idx, mode):
+    name = list(CATS.keys())[category_idx]
+    score = calc_score(dice, category_idx)
+    utility = float(score)
+    reason = f"즉시 {score}점"
+
+    if category_idx < 6:
+        face = category_idx + 1
+        count = dice.count(face)
+        current_upper = sum((value or 0) for value in scorecard[:6])
+        bonus_push, bonus_delta = _score_stage_upper_bonus_push(face, count, current_upper, score, mode)
+        utility += bonus_push
+        if bonus_delta:
+            reason = f"이번 기록으로 Upper Bonus +35를 바로 확보합니다"
+        elif count >= 3 and face >= 4:
+            reason = f"{name} {score}점으로 상단 보너스 페이스를 강하게 유지합니다"
+        elif count >= 3:
+            reason = f"{name} {score}점으로 상단 점수를 안정적으로 쌓습니다"
+        elif score > 0:
+            reason = f"{name} {score}점으로 손실 없이 턴을 정리합니다"
+        else:
+            reason = f"{name}에 기록하면 0점 처리입니다"
+    elif category_idx == CATS['Choice']:
+        if score >= 20:
+            utility += 3.0 if mode == 'safe' else 1.5
+            reason = f"즉시 {score}점으로 무난하게 착지할 수 있습니다"
+        elif score > 0:
+            utility += 1.0
+            reason = f"Choice {score}점으로 이번 턴 손실을 줄입니다"
+        else:
+            reason = "Choice도 이번 턴엔 점수가 나지 않습니다"
+    elif category_idx == CATS['4 of a Kind']:
+        if score > 0:
+            utility += 6.0 if mode == 'aggressive' else 4.0
+            reason = f"4 of a Kind {score}점으로 하단 고점을 확보합니다"
+        else:
+            utility -= 1.5
+            reason = "4 of a Kind에 적으면 0점입니다"
+    elif category_idx == CATS['Full House']:
+        if score > 0:
+            utility += 4.5 if mode == 'aggressive' else 3.0
+            reason = f"Full House {score}점으로 점수 효율이 좋습니다"
+        else:
+            utility -= 1.5
+            reason = "Full House에 적으면 0점입니다"
+    elif category_idx == CATS['Small Straight']:
+        if score > 0:
+            utility += 2.5
+            reason = "Small Straight 15점을 바로 확보합니다"
+        else:
+            utility -= 1.0
+            reason = "Small Straight에 적으면 0점입니다"
+    elif category_idx == CATS['Large Straight']:
+        if score > 0:
+            utility += 6.0
+            reason = "Large Straight 30점은 바로 챙길 가치가 큽니다"
+        else:
+            utility -= 1.0
+            reason = "Large Straight에 적으면 0점입니다"
+    elif category_idx == CATS['Yacht']:
+        if score > 0:
+            utility += 40.0
+            reason = "Yacht 50점은 바로 확정하는 편이 가장 좋습니다"
+        else:
+            utility -= 4.0
+            reason = "Yacht는 이번 턴을 비우는 희생 칸 후보로만 보세요"
+
+    return {
+        "name": name,
+        "score": score,
+        "utility": utility,
+        "reason": reason,
+    }
+
+def _score_stage_sacrifice_key(row):
+    return (
+        row["score"],
+        SACRIFICE_PRIORITY.get(row["name"], 99),
+    )
+
+def _build_score_stage_advice(dice, scorecard, open_categories, mode):
+    scorecard = _normalize_scorecard(scorecard)
+    rows = [_score_stage_category_advice(dice, scorecard, idx, mode) for idx in open_categories]
+    positive_rows = [row for row in rows if row["score"] > 0]
+    positive_rows.sort(key=lambda row: (row["utility"], row["score"]), reverse=True)
+
+    sacrifice_rows = [row for row in rows if row["score"] == 0]
+    if not sacrifice_rows:
+        sacrifice_rows = sorted(rows, key=_score_stage_sacrifice_key)[:2]
+    else:
+        sacrifice_rows.sort(key=_score_stage_sacrifice_key)
+
+    display_rows = []
+    for row in positive_rows[:3]:
+        display_rows.append({
+            "name": row["name"],
+            "prob": 0.0,
+            "meter": min(1.0, max(0.15, row["utility"] / 50.0)),
+            "val_str": f"{row['score']}점",
+            "type": "score",
+            "keep_str": "지금 기록 추천",
+            "keep_indices": [],
+            "reason": row["reason"],
+        })
+
+    for row in sacrifice_rows:
+        if any(existing["name"] == row["name"] for existing in display_rows):
+            continue
+        display_rows.append({
+            "name": row["name"],
+            "prob": 0.0,
+            "meter": 0.18,
+            "val_str": f"{row['score']}점",
+            "type": "sacrifice",
+            "keep_str": "망한 턴 정리용 희생 후보",
+            "keep_indices": [],
+            "reason": "이번 턴을 넘겨야 하면 손실이 작은 칸부터 비우는 편이 좋습니다" if row["name"] != "Yacht" else "Yacht는 마지막 수단용 희생 칸 후보로만 보세요",
+        })
+        if len(display_rows) >= 5:
+            break
+
+    if positive_rows:
+        best_row = positive_rows[0]
+        summary = f"점수 기록 추천: {best_row['name']} {best_row['score']}점"
+        primary_target = best_row["name"]
+    else:
+        best_row = None
+        summary = "점수가 잘 안 나오는 턴입니다. 희생 칸으로 정리하는 편이 낫습니다."
+        primary_target = None
+
+    return {
+        "keep_indices": [],
+        "expected_value": round(best_row["utility"], 2) if best_row else 0.0,
+        "dice_recommendations": [],
+        "message": primary_target or "점수 기록 단계",
+        "breakdown": display_rows,
+        "strategy_mode": mode,
+        "primary_target": primary_target,
+        "summary": summary,
+        "stage": "score",
+    }
+
 def _find_4kind_keeps(dice):
     """4 of a Kind를 keep할 수 있는 경우 찾기: 4개 이상 또는 3개"""
     from collections import Counter
@@ -159,8 +339,10 @@ def _find_4kind_keeps(dice):
     
     return candidates
 
-def solve_best_move(dice, rolls_left, open_categories, strategy_mode='safe'):
+def solve_best_move(dice, rolls_left, open_categories, strategy_mode='safe', scorecard=None):
     mode = strategy_mode if strategy_mode in ('safe', 'aggressive') else 'safe'
+    if rolls_left == 0:
+        return _build_score_stage_advice(dice, scorecard, open_categories, mode)
     # 1. 기본 EV 계산 (점수형 카테고리나 족보 실패 시를 대비한 베이스라인)
     best_ev = -1
     best_keep_indices = []
@@ -356,9 +538,16 @@ def solve_best_move(dice, rolls_left, open_categories, strategy_mode='safe'):
                     move['keep_indices'] = indices
                     move['tie_keeps'] = []
         
+        primary_moves = best_hand_moves
+        max_same_count = max(Counter(dice).values())
+        if max_same_count < 4:
+            filtered_moves = [move for move in best_hand_moves if move['name'] != 'Yacht']
+            if filtered_moves:
+                primary_moves = filtered_moves
+
         # 확률, 우선순위, 그리고 동률 시 더 큰 눈을 선호
-        best_hand_moves.sort(key=lambda x: _mode_rank(x, mode), reverse=True)
-        best_strategy = best_hand_moves[0]
+        primary_moves.sort(key=lambda x: _mode_rank(x, mode), reverse=True)
+        best_strategy = primary_moves[0]
         # 선택된 족보 전략의 EV를 계산하여 베이스라인보다 과도하게 낮으면 유지하지 않음
         strategy_keep = best_strategy['keep_indices']
         kept_dice = [dice[i] for i in strategy_keep]
@@ -596,11 +785,17 @@ def solve_best_move(dice, rolls_left, open_categories, strategy_mode='safe'):
     if hand_breakdown:
         # keep이 있는 족보 중에서 확률이 가장 높은 것 선택
         hand_with_keep = [b for b in hand_breakdown if b.get('keep_indices')]
-        if hand_with_keep:
+        primary_candidates = hand_with_keep
+        max_same_count = max(Counter(dice).values())
+        if max_same_count < 4:
+            filtered_candidates = [row for row in hand_with_keep if row.get('name') != 'Yacht']
+            if filtered_candidates:
+                primary_candidates = filtered_candidates
+        if primary_candidates:
             if mode == 'aggressive':
-                best_hand = max(hand_with_keep, key=lambda x: _mode_rank(x, mode))
+                best_hand = max(primary_candidates, key=lambda x: _mode_rank(x, mode))
             else:
-                best_hand = max(hand_with_keep, key=lambda x: x.get('prob', 0))
+                best_hand = max(primary_candidates, key=lambda x: x.get('prob', 0))
             best_keep_indices = best_hand['keep_indices']
             kept_vals = [str(dice[i]) for i in sorted(best_keep_indices)]
             rec_msg = f"[{', '.join(kept_vals)}] Keep"
@@ -627,5 +822,6 @@ def solve_best_move(dice, rolls_left, open_categories, strategy_mode='safe'):
         "breakdown": breakdown,
         "strategy_mode": mode,
         "primary_target": best_hand['name'] if hand_breakdown and 'best_hand' in locals() else None,
-        "summary": _build_summary(best_hand if hand_breakdown and 'best_hand' in locals() else None, mode)
+        "summary": _build_summary(best_hand if hand_breakdown and 'best_hand' in locals() else None, mode),
+        "stage": "roll",
     }

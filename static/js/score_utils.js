@@ -70,6 +70,51 @@ function calcTotals(card) {
     return { upper, bonus, total: upper + bonus + lower };
 }
 
+function countFilledCategories(card) {
+    if (!Array.isArray(card)) return 0;
+    return card.slice(0, CATS.length).filter((value) => value !== null && value !== undefined).length;
+}
+
+function buildTurnProgress(filledTurns, totalTurns, options = {}) {
+    const safeTotal = Math.max(1, Number(totalTurns) || CATS.length);
+    const safeFilled = Math.max(0, Math.min(safeTotal, Number(filledTurns) || 0));
+    const started = options.started !== undefined ? Boolean(options.started) : true;
+    const gameOver = Boolean(options.gameOver);
+
+    let current = 0;
+    if (gameOver) {
+        current = safeFilled;
+    } else if (!started && safeFilled === 0) {
+        current = 0;
+    } else {
+        current = Math.min(safeTotal, safeFilled + 1);
+    }
+
+    return {
+        current,
+        total: safeTotal,
+        filled: safeFilled,
+        started,
+        gameOver,
+        label: `${current}/${safeTotal}`,
+    };
+}
+
+function getSingleTurnProgress(card, gameOver = false) {
+    return buildTurnProgress(countFilledCategories(card), CATS.length, {
+        started: true,
+        gameOver,
+    });
+}
+
+function getMultiTurnProgress(myCard, oppCard, options = {}) {
+    return buildTurnProgress(
+        countFilledCategories(myCard) + countFilledCategories(oppCard),
+        CATS.length * 2,
+        options
+    );
+}
+
 function renderCard(card, isMine, title) {
     const totals = calcTotals(card);
     let h = '';

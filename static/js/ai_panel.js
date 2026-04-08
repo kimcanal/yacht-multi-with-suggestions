@@ -35,6 +35,24 @@ function bindAiModeControls(onChange) {
     updateAiModeButtons();
 }
 
+function getAiPanelTitle(aiRec) {
+    if (aiRec?.stage === 'score') return '점수 기록 추천';
+    return aiRec?.strategy_mode === 'aggressive' ? '한방형 추천' : '안전형 추천';
+}
+
+function getAiRowColor(item) {
+    if (item?.type === 'upper') return '#8be28b';
+    if (item?.type === 'score') return '#66d9ff';
+    if (item?.type === 'sacrifice') return '#ff9b7a';
+    return '#ffd36b';
+}
+
+function getAiRowMeter(item) {
+    const raw = Number(item?.meter ?? item?.prob ?? 0);
+    if (!Number.isFinite(raw)) return 0;
+    return Math.max(0, Math.min(raw, 1));
+}
+
 function renderAiPanel(targetId, aiRec, options = {}) {
     const root = document.getElementById(targetId);
     if (!root) return;
@@ -44,11 +62,10 @@ function renderAiPanel(targetId, aiRec, options = {}) {
     }
 
     const summary = aiRec.summary ? `<div class="ai-summary-line">${escapeHtml(aiRec.summary)}</div>` : '';
-    const styleLabel = aiRec.strategy_mode === 'aggressive' ? '한방형' : '안전형';
     const perspective = options.perspective ? `<div class="ai-perspective">${escapeHtml(options.perspective)}</div>` : '';
     const rows = aiRec.breakdown.slice(0, 5).map((item) => {
-        const color = item.type === 'upper' ? '#8be28b' : '#ffd36b';
-        const barWidth = Math.min((item.prob || 0) * 100, 100);
+        const color = getAiRowColor(item);
+        const barWidth = getAiRowMeter(item) * 100;
         const reason = item.reason ? `<div class="ai-reason">${escapeHtml(item.reason)}</div>` : '';
         return `
             <div class="breakdown-item">
@@ -69,7 +86,7 @@ function renderAiPanel(targetId, aiRec, options = {}) {
 
     root.innerHTML = `
         <div class="ai-panel-head">
-            <div class="ai-panel-title">${styleLabel} 추천</div>
+            <div class="ai-panel-title">${getAiPanelTitle(aiRec)}</div>
             ${perspective}
         </div>
         ${summary}

@@ -240,16 +240,16 @@ def lobby_heartbeat():
         data = request.json or {}
         client_id = (data.get('client_id') or '')[:64]
         username = _normalize_username(data.get('username')) or '익명'
-        
+
         if not client_id:
             return jsonify({"error": "client_id required"}), 400
-        
+
         # 접속 정보 갱신
         lobby_clients[client_id] = {
             'last_seen': time.time(),
             'username': username
         }
-        
+
         # 만료된 클라이언트 정리
         now = time.time()
         to_remove = []
@@ -257,10 +257,10 @@ def lobby_heartbeat():
             last_seen = info['last_seen'] if isinstance(info, dict) else info
             if now - last_seen > CLIENT_TIMEOUT:
                 to_remove.append(cid)
-        
+
         for cid in to_remove:
             del lobby_clients[cid]
-        
+
         return jsonify({"status": "ok", "active_clients": len(lobby_clients)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -269,7 +269,7 @@ def lobby_heartbeat():
 @app.route('/api/online-users', methods=['GET'])
 def online_users():
     now = time.time()
-    
+
     # 1. 대기실 유저 (Heartbeat 기준)
     lobby = {}
     for cid, info in lobby_clients.items():
@@ -297,7 +297,7 @@ def online_users():
         if 'room' in meta:
             entry['room'] = meta['room']
         result.append(entry)
-        
+
     return jsonify(result)
 
 # 기존 호환성 유지용 (lobby_users)
@@ -318,11 +318,11 @@ def system_status():
     try:
         cpu_percent = psutil.cpu_percent(interval=0.1)
         memory = psutil.virtual_memory()
-        
+
         now = time.time()
         active_count = 0
         to_remove = []
-        
+
         for cid, info in lobby_clients.items():
             try:
                 last_seen = info['last_seen'] if isinstance(info, dict) else info
@@ -332,10 +332,10 @@ def system_status():
                     to_remove.append(cid)
             except:
                 to_remove.append(cid)
-                
+
         for cid in to_remove:
             lobby_clients.pop(cid, None)
-            
+
         return jsonify({
             "cpu_percent": round(cpu_percent, 1),
             "memory_percent": round(memory.percent, 1),
@@ -353,14 +353,14 @@ def recommend():
         data = request.json or {}
         dice = data.get('dice', [])
         rolls_left = data.get('rolls_left', 0)
-        scorecard = data.get('scorecard', []) 
+        scorecard = data.get('scorecard', [])
         strategy_mode = data.get('strategy_mode', 'safe')
         open_categories = [i for i, score in enumerate(scorecard) if score is None]
-        
+
         if not open_categories or rolls_left < 0:
             return jsonify({"message": "추천 불가", "keep_indices": [], "dice_recommendations": []})
 
-        result = yacht_engine.solve_best_move(dice, rolls_left, open_categories, strategy_mode)
+        result = yacht_engine.solve_best_move(dice, rolls_left, open_categories, strategy_mode, scorecard)
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e), "message": "AI 추천 오류"}), 500
@@ -445,11 +445,11 @@ def create_room():
     username = _normalize_username((request.json or {}).get('username'))
     if not username:
         return jsonify({"error": "닉네임은 2~12자(한글/영문/숫자/_)만 가능합니다"}), 400
-    
+
     code = _generate_room_code()
     while code in rooms: code = _generate_room_code()
     now = time.time()
-        
+
     base_state = _default_room_state()
     base_state["scores"][username] = [None] * 12
     base_state["player_dice"][username] = [1]*5
@@ -457,7 +457,7 @@ def create_room():
     base_state["player_rolls_left"][username] = 3
     base_state["turn"] = username
     base_state["players"] = [username]
-    
+
     player_token = _issue_player_token()
     rooms[code] = {
         "host": username,
@@ -479,7 +479,7 @@ def join_room(code):
     if not username:
         return jsonify({"error": "닉네임은 2~12자(한글/영문/숫자/_)만 가능합니다"}), 400
     if code not in rooms: return jsonify({"error": "방 없음"}), 404
-        
+
     now = time.time()
     room = _prune_room_activity(code, rooms[code], now)
     if not room:
@@ -491,11 +491,11 @@ def join_room(code):
     room["players"].append(username)
     player_token = _issue_player_token()
     room.setdefault("player_tokens", {})[username] = player_token
-        
+
     state = _default_room_state()
     host = room["players"][0]
     guest = username
-        
+
     state["scores"] = {host: [None]*12, guest: [None]*12}
     state["player_dice"] = {host: [1]*5, guest: [1]*5}
     state["player_kept"] = {host: [0]*5, guest: [0]*5}
@@ -505,12 +505,12 @@ def join_room(code):
     state["turn_start_time"] = time.time()
     state["version"] = (room.get("state", {}).get("version", 0)) + 1
     state["updated_by"] = "system"
-        
+
     room["state"] = state
     room["last_update"] = now
     room["started_full"] = True
     _touch_player(room, username, now)
-        
+
     return jsonify({
         "code": code,
         "players": room["players"],
@@ -525,25 +525,25 @@ def observe_room(code):
     if not username:
         return jsonify({"error": "닉네임은 2~12자(한글/영문/숫자/_)만 가능합니다"}), 400
     if code not in rooms: return jsonify({"error": "방 없음"}), 404
-    
+
     now = time.time()
     room = _prune_room_activity(code, rooms[code], now)
     if not room:
         return jsonify({"error": "방 없음"}), 404
     if username in room["players"]:
         return jsonify({"error": "이미 플레이어입니다"}), 409
-        
+
     if username not in room.get("observers", []):
         room.setdefault("observers", []).append(username)
     _touch_observer(room, username, now)
-        
+
     return jsonify({"code": code, "observers": room["observers"], "players": room["players"], "state": room["state"]})
 
 @app.route('/api/rooms/<code>', methods=['GET'])
 def get_room(code):
     room = rooms.get(code)
     if not room: return jsonify({"error": "방 없음"}), 404
-    
+
     now = time.time()
     u = request.args.get('u')
     pt = request.args.get('pt')
@@ -561,14 +561,14 @@ def get_room(code):
     if state.get("turn_start_time"):
         turn_left = max(0, 30 - int(now - state["turn_start_time"]))
     state["turn_left_seconds"] = turn_left
-    
+
     p1 = room["host"]
     p2 = None
     for p in room["players"]:
         if p != p1:
             p2 = p
             break
-            
+
     return jsonify({
         "code": code,
         "host": room["host"],
@@ -642,7 +642,7 @@ def sync_room(code):
 
     prev_turn = state.get("turn")
     new_turn = data.get("turn", state.get("turn"))
-    
+
     turn_start_time = state.get("turn_start_time")
     if (prev_turn != new_turn) or (rolls_left == 3 and state.get("rolls_left") != 3):
         turn_start_time = time.time()
@@ -689,14 +689,14 @@ def roll_dice(code):
     room = _prune_room_activity(code, room, now)
     if not room or username not in room.get("players", []):
         return jsonify({"error": "방 없음"}), 404
-    
+
     state = room.get("state", _default_room_state())
     if state.get("turn") and state["turn"] != username:
         return jsonify({"error": "상대 턴"}), 403
-    
+
     rolls_left = state.get("rolls_left", 3)
     if rolls_left <= 0: return jsonify({"error": "남은 굴림 없음"}), 400
-    
+
     kept = _normalize_kept(data.get("kept", state["kept"]))
     if kept is None:
         return jsonify({"error": "잘못된 고정 주사위 데이터"}), 400
@@ -704,7 +704,7 @@ def roll_dice(code):
     for i in range(5):
         if not kept[i]:
             new_dice[i] = secrets.randbelow(6) + 1
-            
+
     state.setdefault("player_dice", {})[username] = new_dice
     state.setdefault("player_kept", {})[username] = kept
     state["dice"] = new_dice
@@ -712,10 +712,10 @@ def roll_dice(code):
     state["rolls_left"] = rolls_left - 1
     state["version"] = state.get("version", 0) + 1
     state["turn_start_time"] = now
-    
+
     room["state"] = state
     room["last_update"] = now
-    
+
     return jsonify({"dice": new_dice, "rolls_left": state["rolls_left"], "state": state})
 
 @app.route('/api/rooms/<code>/leave', methods=['POST', 'GET'])
@@ -728,11 +728,11 @@ def leave_room(code):
     if username in room.get("players", []) and not _is_valid_player(room, username, player_token):
         return jsonify({"error": "참가자 인증 실패"}), 403
     now = time.time()
-    
+
     if username in room["players"]:
         _remove_player(room, username, now)
         state = room.get("state", _default_room_state())
-        
+
         if len(room["players"]) > 0:
             winner = room["players"][0]
             _finalize_room_forfeit(room, winner, username, updated_by="system_leave", now=now)
@@ -748,7 +748,7 @@ def leave_room(code):
 
     if len(room.get("players", [])) == 0:
         rooms.pop(code, None)
-        
+
     return jsonify({"status": "left", "players": []})
 
 if __name__ == '__main__':
