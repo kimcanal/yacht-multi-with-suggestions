@@ -1,7 +1,9 @@
 import os
+import platform
 import random
 import string
 import time
+import threading
 import psutil
 import secrets
 import re
@@ -10,6 +12,11 @@ from collections import deque
 from flask import Flask, render_template, jsonify, request
 import yacht_engine
 import database
+
+try:
+    from yacht_ai.ml_policy import RollPolicyModel
+except Exception:
+    RollPolicyModel = None
 
 app = Flask(__name__)
 
@@ -25,12 +32,80 @@ RESET_ADMIN_TOKEN = os.getenv("YACHT_ADMIN_TOKEN", "").strip()
 AI_METRIC_WINDOW = 200
 AI_SLOW_LOG_MS = float(os.getenv("YACHT_AI_SLOW_LOG_MS", "700"))
 AI_SLOW_SAMPLE_WINDOW = 6
+AI_POLICY_MODEL_PATH = os.getenv("YACHT_AI_POLICY_MODEL", "").strip()
+AI_POLICY_MIN_CONFIDENCE = float(os.getenv("YACHT_AI_POLICY_MIN_CONFIDENCE", "0.95"))
 ai_recent_latencies = deque(maxlen=AI_METRIC_WINDOW)
 ai_recent_stages = deque(maxlen=AI_METRIC_WINDOW)
 ai_recent_slow_samples = deque(maxlen=AI_SLOW_SAMPLE_WINDOW)
 ai_request_count = 0
 ai_error_count = 0
 ai_max_latency_ms = 0.0
+ai_policy_model = None
+ai_policy_model_status = "disabled"
+AI_WARMUP_ENABLED = os.getenv("YACHT_AI_WARMUP", "1") == "1"
+
+
+def _detect_cpu_model():
+    cpuinfo_path = "/proc/cpuinfo"
+    try:
+        with open(cpuinfo_path, "r", encoding="utf-8", errors="ignore") as cpuinfo_file:
+            for line in cpuinfo_file:
+                if line.lower().startswith("model name"):
+                    return line.split(":", 1)[1].strip()
+    except OSError:
+        pass
+
+    processor = platform.processor().strip()
+    if processor:
+        return processor
+    return platform.machine() or "Unknown CPU"
+
+
+CPU_MODEL = _detect_cpu_model()
+
+if AI_POLICY_MODEL_PATH:
+    if RollPolicyModel is None:
+        ai_policy_model_status = "import_failed"
+        print("[AI] learned roll policy unavailable: missing numpy or import failure")
+    else:
+        try:
+            ai_policy_model = RollPolicyModel.load(AI_POLICY_MODEL_PATH)
+            ai_policy_model_status = "loaded"
+            print(f"[AI] learned roll policy loaded from {AI_POLICY_MODEL_PATH}")
+        except Exception as exc:
+            ai_policy_model_status = f"load_failed:{exc}"
+            print(f"[AI] learned roll policy load failed: {exc}")
+
+
+def _warm_ai_runtime():
+    warm_cases = [
+        ([1, 2, 3, 4, 6], 1, [None] * 12, "focused"),
+        ([6, 6, 5, 1, 5], 2, [None] * 12, "focused"),
+        ([6, 6, 5, 1, 5], 2, [None] * 12, "cover"),
+        ([6, 6, 6, 1, 2], 2, [None] * 12, "focused"),
+        ([6, 6, 6, 1, 2], 0, [3, 6, 9, 12, 15, None, None, None, None, None, None, None], "focused"),
+    ]
+    started = time.perf_counter()
+    try:
+        for dice, rolls_left, scorecard, mode in warm_cases:
+            open_categories = [idx for idx, value in enumerate(scorecard) if value is None]
+            yacht_engine.solve_best_move(dice, rolls_left, open_categories, mode, scorecard)
+            if ai_policy_model and rolls_left > 0:
+                ai_policy_model.recommend_roll(
+                    dice,
+                    rolls_left,
+                    mode,
+                    scorecard,
+                    min_confidence=AI_POLICY_MIN_CONFIDENCE,
+                )
+        elapsed_ms = (time.perf_counter() - started) * 1000
+        print(f"[AI] runtime warm-up complete in {elapsed_ms:.1f}ms")
+    except Exception as exc:
+        print(f"[AI] runtime warm-up failed: {exc}")
+
+
+if AI_WARMUP_ENABLED:
+    threading.Thread(target=_warm_ai_runtime, daemon=True).start()
 
 
 def _percentile(values, ratio):
@@ -63,6 +138,8 @@ def _ai_metrics_snapshot():
         "ai_cache_misses": cache_info.misses,
         "ai_cache_hit_rate": round(hit_rate * 100, 1),
         "ai_recent_slow_samples": list(ai_recent_slow_samples),
+        "ai_policy_model_status": ai_policy_model_status,
+        "ai_policy_model_enabled": bool(ai_policy_model),
     }
 
 
@@ -404,6 +481,7 @@ def system_status():
             lobby_clients.pop(cid, None)
 
         payload = {
+            "cpu_model": CPU_MODEL,
             "cpu_percent": round(cpu_percent, 1),
             "memory_percent": round(memory.percent, 1),
             "memory_used_gb": round(memory.used / (1024**3), 2),
@@ -424,14 +502,27 @@ def recommend():
         data = request.json or {}
         dice = data.get('dice', [])
         rolls_left = data.get('rolls_left', 0)
+        normalized_rolls_left = _safe_int(rolls_left, 0)
         scorecard = data.get('scorecard', [])
         strategy_mode = data.get('strategy_mode', 'focused')
         open_categories = [i for i, score in enumerate(scorecard) if score is None]
 
-        if not open_categories or rolls_left < 0:
+        if not open_categories or normalized_rolls_left < 0:
             return jsonify({"message": "추천 불가", "keep_indices": [], "dice_recommendations": []})
 
-        result = yacht_engine.solve_best_move(dice, rolls_left, open_categories, strategy_mode, scorecard)
+        result = None
+        if ai_policy_model and normalized_rolls_left > 0:
+            result = ai_policy_model.recommend_roll(
+                dice,
+                normalized_rolls_left,
+                strategy_mode,
+                scorecard,
+                min_confidence=AI_POLICY_MIN_CONFIDENCE,
+            )
+
+        if result is None:
+            result = yacht_engine.solve_best_move(dice, normalized_rolls_left, open_categories, strategy_mode, scorecard)
+
         elapsed_ms = (time.perf_counter() - started) * 1000
         ai_request_count += 1
         ai_recent_latencies.append(elapsed_ms)
@@ -443,7 +534,7 @@ def recommend():
                 elapsed_ms,
                 result.get("stage"),
                 strategy_mode,
-                rolls_left,
+                normalized_rolls_left,
                 dice,
                 open_categories,
                 result,
@@ -451,7 +542,7 @@ def recommend():
             print(
                 "[AI] slow recommend "
                 f"elapsed_ms={elapsed_ms:.2f} stage={result.get('stage')} "
-                f"mode={strategy_mode} rolls_left={rolls_left} dice={dice} "
+                f"mode={strategy_mode} rolls_left={normalized_rolls_left} dice={dice} "
                 f"open_categories={open_categories} cache_hits={cache_info.hits} "
                 f"cache_misses={cache_info.misses}"
             )
@@ -459,6 +550,7 @@ def recommend():
         response.headers['X-AI-Elapsed-Ms'] = f"{elapsed_ms:.2f}"
         response.headers['X-AI-Cache-Hits'] = str(cache_info.hits)
         response.headers['X-AI-Cache-Misses'] = str(cache_info.misses)
+        response.headers['X-AI-Policy-Source'] = result.get("policy_source", "exact")
         return response
     except Exception as e:
         ai_error_count += 1

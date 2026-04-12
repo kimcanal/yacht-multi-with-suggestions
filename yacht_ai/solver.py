@@ -3,6 +3,7 @@ from functools import lru_cache
 
 from .advice import (
     build_reason,
+    build_recommendation_context_row,
     build_score_stage_advice,
     build_summary,
     build_upper_roll_rows,
@@ -20,7 +21,9 @@ from .scoring import (
     calc_score,
     can_cash_yacht_bonus,
     get_keep_options,
-    get_outcomes_probs,
+    get_precomputed_target_score_value,
+    get_precomputed_target_success_value,
+    get_transition_distribution,
     has_yacht_bonus,
     keep_values_desc,
     kept_tuple_to_indices,
@@ -39,10 +42,8 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
         return build_score_stage_advice(dice, scorecard, open_categories, mode)
 
     def evaluate_keep_transition(kept_tuple, rerolls_remaining, state_solver):
-        reroll_count = 5 - len(kept_tuple)
         total = 0.0
-        for outcome, prob in get_outcomes_probs(reroll_count):
-            next_dice = tuple(sorted(kept_tuple + tuple(outcome)))
+        for next_dice, prob in get_transition_distribution(kept_tuple):
             total += prob * state_solver(next_dice, rerolls_remaining - 1)
         return total
 
@@ -64,10 +65,11 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
 
     @lru_cache(maxsize=None)
     def exact_turn_value(state_dice, rerolls_remaining):
+        stop_value = terminal_best_utility(state_dice)
         if rerolls_remaining == 0:
-            return terminal_best_utility(state_dice)
+            return stop_value
 
-        best_value = float("-inf")
+        best_value = stop_value
         for kept_tuple in get_keep_options(state_dice):
             value = evaluate_keep_transition(kept_tuple, rerolls_remaining, exact_turn_value)
             if value > best_value:
@@ -76,12 +78,19 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
 
     @lru_cache(maxsize=None)
     def target_success_value(state_dice, rerolls_remaining, category_idx):
-        if rerolls_remaining == 0:
-            if category_idx == CATS["Yacht"] and yacht_bonus_available and CATS["Yacht"] not in open_categories:
-                return 1.0 if can_cash_yacht_bonus(state_dice, open_categories, scorecard) else 0.0
-            return 1.0 if calc_score(state_dice, category_idx) > 0 else 0.0
+        yacht_bonus_target = category_idx == CATS["Yacht"] and yacht_bonus_available and CATS["Yacht"] not in open_categories
+        if not yacht_bonus_target:
+            return get_precomputed_target_success_value(state_dice, rerolls_remaining, category_idx)
 
-        best_value = 0.0
+        if yacht_bonus_target:
+            stop_value = 1.0 if can_cash_yacht_bonus(state_dice, open_categories, scorecard) else 0.0
+        else:
+            stop_value = 1.0 if calc_score(state_dice, category_idx) > 0 else 0.0
+
+        if rerolls_remaining == 0:
+            return stop_value
+
+        best_value = stop_value
         for kept_tuple in get_keep_options(state_dice):
             value = evaluate_keep_transition(
                 kept_tuple,
@@ -94,19 +103,7 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
 
     @lru_cache(maxsize=None)
     def target_score_value(state_dice, rerolls_remaining, category_idx):
-        if rerolls_remaining == 0:
-            return float(calc_score(state_dice, category_idx))
-
-        best_value = 0.0
-        for kept_tuple in get_keep_options(state_dice):
-            value = evaluate_keep_transition(
-                kept_tuple,
-                rerolls_remaining,
-                lambda next_dice, next_rolls: target_score_value(next_dice, next_rolls, category_idx),
-            )
-            if value > best_value:
-                best_value = value
-        return best_value
+        return get_precomputed_target_score_value(state_dice, rerolls_remaining, category_idx)
 
     def terminal_target_hit(state_dice, category_idx):
         if category_idx == CATS["Yacht"] and yacht_bonus_available and CATS["Yacht"] not in open_categories:
@@ -230,9 +227,10 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
 
         @lru_cache(maxsize=None)
         def cover_success_value(state_dice, rerolls_remaining):
+            stop_value = 1.0 if terminal_cover_hit(state_dice) else 0.0
             if rerolls_remaining == 0:
-                return 1.0 if terminal_cover_hit(state_dice) else 0.0
-            return cover_best_action(state_dice, rerolls_remaining)[1]
+                return stop_value
+            return max(stop_value, cover_best_action(state_dice, rerolls_remaining)[1])
 
         @lru_cache(maxsize=None)
         def cover_best_action(state_dice, rerolls_remaining):
@@ -261,6 +259,8 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
 
         @lru_cache(maxsize=None)
         def cover_policy_target_prob(state_dice, rerolls_remaining, category_idx):
+            if terminal_cover_hit(state_dice):
+                return 1.0 if terminal_target_hit(state_dice, category_idx) else 0.0
             if rerolls_remaining == 0:
                 return 1.0 if terminal_target_hit(state_dice, category_idx) else 0.0
             kept_tuple, _ = cover_best_action(state_dice, rerolls_remaining)
@@ -622,13 +622,40 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
 
     explaining_row = straight_upgrade or (best_row if best_row and (mode == "focused" or best_row.get("prob", 0) >= 0.05) else None)
     kept_vals = [str(dice[i]) for i in sorted(best_keep_indices)]
+    all_dice_kept = len(best_keep_indices) == 5
+    if explaining_row and not all_dice_kept:
+        featured_rows = []
+        if straight_upgrade:
+            keep_label = "모두 굴리기" if not kept_vals else f"[{', '.join(kept_vals)}] keep"
+            featured_rows.append(
+                {
+                    "name": "Large Straight 업그레이드",
+                    "prob": straight_upgrade["prob"],
+                    "val_str": straight_upgrade["val_str"],
+                    "type": "hand",
+                    "keep_str": f"{keep_label} → 실패해도 Small Straight 유지",
+                    "keep_indices": best_keep_indices,
+                    "reason": straight_upgrade["reason"],
+                }
+            )
+        elif explaining_row.get("name"):
+            featured_rows.append(explaining_row)
+
+        seen_featured = {row.get("name") for row in featured_rows}
+        breakdown = featured_rows + [row for row in breakdown if row.get("name") not in seen_featured]
+
     rec_msg = "모두 굴리기"
     if best_keep_indices:
-        rec_msg = f"[{', '.join(kept_vals)}] Keep"
-        if straight_upgrade:
-            rec_msg += " (Large Straight 업그레이드)"
-        elif explaining_row and explaining_row.get("name") and not cover_fallback:
-            rec_msg += f" ({explaining_row['name']} 노리기)"
+        if all_dice_kept:
+            rec_msg = "지금 기록 추천"
+            if explaining_row and explaining_row.get("name"):
+                rec_msg += f" ({explaining_row['name']})"
+        else:
+            rec_msg = f"[{', '.join(kept_vals)}] Keep"
+            if straight_upgrade:
+                rec_msg += " (Large Straight 업그레이드)"
+            elif explaining_row and explaining_row.get("name") and not cover_fallback:
+                rec_msg += f" ({explaining_row['name']} 노리기)"
 
     style_label = "집중 공략" if mode != "cover" else "커버 플레이"
     if cover_fallback and best_keep_indices:
@@ -639,10 +666,113 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
         summary = f"{style_label} 추천: Large Straight {straight_upgrade['val_str']}, 실패해도 Small Straight 유지"
     elif explaining_row:
         summary = build_summary(explaining_row, mode)
-    elif best_keep_indices:
+    elif best_keep_indices and not all_dice_kept:
         summary = f"{style_label} 추천: [{', '.join(kept_vals)}] keep, 기대값 {chosen_ev:.2f}"
+    elif all_dice_kept:
+        summary = f"{style_label} 추천: 지금 기록하는 편이 기대값 {chosen_ev:.2f}로 가장 좋습니다"
     else:
         summary = f"{style_label} 추천: 모두 굴리기, 기대값 {chosen_ev:.2f}"
+
+    def format_keep_tuple(kept_tuple):
+        kept_vals_local = list(keep_values_desc(kept_tuple))
+        if len(kept_vals_local) == 5:
+            return "지금 기록"
+        if not kept_vals_local:
+            return "모두 굴리기"
+        return f"[{', '.join(map(str, reversed(kept_vals_local)))}] Keep"
+
+    decision_rows = []
+    stop_now_advice = build_score_stage_advice(dice, scorecard, open_categories, mode)
+    stop_now_value = float(stop_now_advice.get("expected_value", 0.0))
+    stop_now_target = stop_now_advice.get("primary_target") or stop_now_advice.get("message")
+    stop_gain = None
+
+    if not all_dice_kept:
+        stop_gain = chosen_ev - stop_now_value
+        stop_keep_str = (
+            f"{stop_now_target}로 바로 기록하는 것보다 한 번 더 보는 편이 유리합니다"
+            if stop_gain >= 0
+            else f"{stop_now_target}로 바로 기록하는 편이 더 유리합니다"
+        )
+        decision_rows.append(
+            {
+                "name": "지금 멈추기 비교",
+                "prob": 0.0,
+                "meter": min(1.0, max(0.1, abs(stop_gain) / 12.0)),
+                "val_str": f"EV {stop_gain:+.2f}",
+                "type": "decision",
+                "keep_str": stop_keep_str,
+                "keep_indices": best_keep_indices,
+                "reason": stop_now_advice.get("summary", ""),
+            }
+        )
+
+    alternative_actions = sorted(
+        ((kept_tuple, value) for kept_tuple, value in keep_action_values if kept_tuple != best_keep_tuple),
+        key=lambda item: (item[1], len(item[0]), keep_values_desc(item[0])),
+        reverse=True,
+    )
+    if alternative_actions:
+        alt_keep_tuple, alt_value = alternative_actions[0]
+        alt_gap = chosen_ev - alt_value
+        alt_keep_label = format_keep_tuple(alt_keep_tuple)
+        if alt_gap >= 0:
+            alt_reason = f"차선책보다 기대값이 {alt_gap:.2f}점 높습니다."
+            alt_keep_str = f"{alt_keep_label} 대비 현재 추천 우세"
+        else:
+            target_reason = ""
+            if straight_upgrade:
+                target_reason = (
+                    f" 대신 현재 추천은 Large Straight {straight_upgrade['val_str']}를 보면서 "
+                    "실패해도 Small Straight를 유지합니다."
+                )
+            elif mode == "focused" and explaining_row and explaining_row.get("type") == "hand":
+                target_reason = (
+                    f" 대신 현재 추천은 {explaining_row['name']} 성공 확률 "
+                    f"{explaining_row.get('val_str', '')}를 더 높게 봅니다."
+                )
+            elif mode == "focused" and explaining_row and explaining_row.get("type") == "upper":
+                target_reason = " 대신 현재 추천은 Upper Bonus 페이스를 더 좋게 가져갑니다."
+            alt_reason = f"{alt_keep_label} 쪽이 기대값 {abs(alt_gap):.2f}점만큼 더 높습니다.{target_reason}"
+            alt_keep_str = (
+                f"{alt_keep_label} 쪽은 EV 우세, 현재 추천은 {explaining_row.get('name', '목표')} 우선"
+                if explaining_row and explaining_row.get("name")
+                else f"{alt_keep_label} 쪽이 조금 더 유리"
+            )
+        decision_rows.append(
+            {
+                "name": "차선책 비교",
+                "prob": 0.0,
+                "meter": min(1.0, max(0.1, abs(alt_gap) / 10.0)),
+                "val_str": f"EV {alt_gap:+.2f}",
+                "type": "decision",
+                "keep_str": alt_keep_str,
+                "keep_indices": best_keep_indices,
+                "reason": alt_reason,
+            }
+        )
+
+    recommendation_context_row = build_recommendation_context_row(
+        mode,
+        chosen_ev,
+        explaining_row,
+        straight_upgrade,
+        best_keep_indices,
+        stop_now_target,
+        stop_gain,
+    )
+    if recommendation_context_row:
+        breakdown = breakdown[:1] + [recommendation_context_row] + breakdown[1:]
+
+    if decision_rows:
+        breakdown = breakdown[:3] + decision_rows[:2] + breakdown[3:]
+    if all_dice_kept:
+        summary = stop_now_advice.get("summary", summary)
+        score_breakdown = stop_now_advice.get("breakdown", [])
+        breakdown = score_breakdown[:3] + decision_rows[:2] + score_breakdown[3:]
+        explaining_row = {
+            "name": stop_now_advice.get("primary_target"),
+        } if stop_now_advice.get("primary_target") else explaining_row
 
     dice_recommendations = []
     for idx in range(5):

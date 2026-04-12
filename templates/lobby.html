@@ -262,7 +262,13 @@
                             <div class="status-label"><span>Active Games</span> <span id="active-rooms" style="color:#fff; font-weight:700;">-</span></div>
                         </div>
                         <div class="status-row">
-                            <div class="status-label"><span>CPU Usage (Intel N100)</span> <span id="cpu-usage">-</span></div>
+                            <div class="status-label">
+                                <span>
+                                    <span>CPU Usage</span>
+                                    <span id="cpu-model" style="display:block; font-size:0.75em; color:#888; font-weight:400;"></span>
+                                </span>
+                                <span id="cpu-usage">-</span>
+                            </div>
                             <div class="bar-bg"><div class="bar-fill" id="cpu-bar"></div></div>
                         </div>
                         <div class="status-row">
@@ -576,6 +582,7 @@
                 // 숫자도 함께 표시
                 document.getElementById('cpu-usage').textContent = data.cpu_percent + '%';
                 document.getElementById('memory-usage').textContent = data.memory_percent + '%';
+                document.getElementById('cpu-model').textContent = data.cpu_model || '';
                 
                 // [NEW] 실제 메모리 사용량(GB)도 표시
                 if (data.memory_used_gb !== undefined && data.memory_total_gb !== undefined) {

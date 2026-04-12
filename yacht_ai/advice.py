@@ -1,10 +1,19 @@
+from functools import lru_cache
+
 from .constants import (
+    CATEGORY_CLOSING_COST,
     CATS,
     CATEGORY_NAMES,
     EPS,
+    FUTURE_CATEGORY_WEIGHT,
+    FRESH_TURN_CATEGORY_EV,
+    FRESH_TURN_CATEGORY_HIT_RATE,
     FOCUSED_HAND_PRIORITY,
     HAND_FIXED_SCORES,
     SACRIFICE_PRIORITY,
+    SCORE_STAGE_PRESSURE_RELIEF,
+    SCORE_STAGE_QUALITY_WEIGHT,
+    UPPER_FRESH_COUNT_PROBS,
     UPPER_CAT_NAMES,
 )
 from .scoring import calc_score, has_yacht_bonus
@@ -74,6 +83,43 @@ def build_summary(best_item, mode):
     return f"{style_label} 추천: {best_item['name']} 확률 {best_item['val_str']}"
 
 
+def build_recommendation_context_row(mode, chosen_ev, explaining_row, straight_upgrade, keep_indices, stop_now_target, stop_gain):
+    if not keep_indices or not explaining_row:
+        return None
+
+    reason = "현재 턴 점수와 남은 점수판 가치를 함께 반영한 추천입니다."
+    if straight_upgrade:
+        reason = (
+            f"Large Straight {straight_upgrade['val_str']}를 노리면서 실패해도 Small Straight를 유지합니다."
+        )
+    elif explaining_row.get("type") == "upper":
+        reason = f"{explaining_row['name']} 쪽이 Upper Bonus 페이스를 가장 좋게 끌어올립니다."
+    elif mode == "focused" and explaining_row.get("type") == "hand":
+        reason = (
+            f"focused 모드에서는 {explaining_row['name']} 완성 경로를 더 높게 두고, "
+            "이 keep이 그 확률을 가장 잘 살립니다."
+        )
+    elif explaining_row.get("name"):
+        reason = f"{explaining_row['name']} 쪽이 이번 턴 기준으로 가장 납득되는 선택입니다."
+
+    if stop_now_target and stop_gain is not None:
+        if stop_gain >= 0:
+            reason += f" 지금 {stop_now_target}로 바로 적는 선택보다도 EV가 {stop_gain:.2f}점 높습니다."
+        else:
+            reason += f" 다만 지금 {stop_now_target}로 적는 쪽이 EV는 {abs(stop_gain):.2f}점 높습니다."
+
+    return {
+        "name": "추천 근거",
+        "prob": 0.0,
+        "meter": min(1.0, max(0.15, abs(chosen_ev) / 30.0)),
+        "val_str": f"EV {chosen_ev:.2f}",
+        "type": "decision",
+        "keep_str": "현재 턴 점수 + 남은 칸 가치 함께 반영",
+        "keep_indices": keep_indices,
+        "reason": reason,
+    }
+
+
 def mode_rank(move, mode):
     score_hint = hand_score_hint(move["name"], move)
     prob = move.get("prob", 0)
@@ -101,6 +147,8 @@ def cover_upgrade_rank(target_rows):
 
 def normalize_scorecard(scorecard):
     base = [None] * 12
+    if isinstance(scorecard, tuple) and len(scorecard) == 12:
+        return list(scorecard)
     if not isinstance(scorecard, list):
         return base
     for idx, value in enumerate(scorecard[:12]):
@@ -109,6 +157,8 @@ def normalize_scorecard(scorecard):
 
 
 def scorecard_to_tuple(scorecard):
+    if isinstance(scorecard, tuple) and len(scorecard) == 12:
+        return scorecard
     return tuple(normalize_scorecard(scorecard))
 
 
@@ -128,26 +178,260 @@ def score_stage_upper_bonus_push(face, count, current_upper, score, mode):
     return bonus_push + bonus_delta, bonus_delta
 
 
+def _upper_open_tuple(scorecard):
+    return tuple(idx + 1 for idx, value in enumerate(scorecard[:6]) if value is None)
+
+
+@lru_cache(maxsize=2048)
+def _upper_bonus_probability(current_upper, open_faces):
+    capped_upper = max(0, min(int(current_upper), 63))
+    if capped_upper >= 63:
+        return 1.0
+    if not open_faces:
+        return 0.0
+
+    dist = {capped_upper: 1.0}
+    for face in open_faces:
+        next_dist = {}
+        for subtotal, subtotal_prob in dist.items():
+            for count, count_prob in UPPER_FRESH_COUNT_PROBS.items():
+                next_total = min(63, subtotal + face * count)
+                next_dist[next_total] = next_dist.get(next_total, 0.0) + (subtotal_prob * count_prob)
+        dist = next_dist
+
+    return sum(prob for total, prob in dist.items() if total >= 63)
+
+
+@lru_cache(maxsize=4096)
+def _upper_bonus_outlook_cached(scorecard_tuple):
+    current_upper = sum((value or 0) for value in scorecard_tuple[:6])
+    open_faces = _upper_open_tuple(scorecard_tuple)
+    return (current_upper, open_faces, _upper_bonus_probability(current_upper, open_faces))
+
+
+def upper_bonus_outlook(scorecard):
+    current_upper, open_faces, bonus_prob = _upper_bonus_outlook_cached(scorecard_to_tuple(scorecard))
+    return {
+        "current_upper": current_upper,
+        "open_faces": open_faces,
+        "bonus_prob": bonus_prob,
+    }
+
+
+def projected_scorecard(scorecard, category_idx, score):
+    next_scorecard = list(scorecard_to_tuple(scorecard))
+    next_scorecard[category_idx] = score
+    return tuple(next_scorecard)
+
+
+@lru_cache(maxsize=4096)
+def _scorecard_phase_weight_cached(scorecard_tuple):
+    open_count = sum(1 for value in scorecard_tuple if value is None)
+    if open_count <= 0:
+        return 0.0
+    return (open_count / 12.0) ** 0.85
+
+
+def scorecard_phase_weight(scorecard):
+    return _scorecard_phase_weight_cached(scorecard_to_tuple(scorecard))
+
+
+@lru_cache(maxsize=4096)
+def _remaining_state_value_cached(scorecard_tuple):
+    phase_weight = _scorecard_phase_weight_cached(scorecard_tuple)
+    open_names = [CATEGORY_NAMES[idx] for idx, value in enumerate(scorecard_tuple) if value is None]
+    closing_value = sum(CATEGORY_CLOSING_COST.get(name, 0.0) for name in open_names) * phase_weight
+    upper_value = 35.0 * _upper_bonus_outlook_cached(scorecard_tuple)[2]
+    return closing_value + upper_value
+
+
+def remaining_state_value(scorecard):
+    return _remaining_state_value_cached(scorecard_to_tuple(scorecard))
+
+
+def score_stage_reference_score(category_idx, future_ev):
+    if category_idx < 6 or category_idx == CATS["Choice"]:
+        return max(1.0, future_ev)
+    if category_idx == CATS["4 of a Kind"]:
+        return 20.0
+    if category_idx == CATS["Full House"]:
+        return 20.0
+    if category_idx == CATS["Small Straight"]:
+        return 15.0
+    if category_idx == CATS["Large Straight"]:
+        return 30.0
+    if category_idx == CATS["Yacht"]:
+        return 50.0
+    return max(1.0, future_ev)
+
+
+@lru_cache(maxsize=8192)
+def _score_stage_future_pressure_cached(scorecard_tuple, category_idx):
+    name = CATEGORY_NAMES[category_idx]
+    closing_cost = CATEGORY_CLOSING_COST.get(name, FRESH_TURN_CATEGORY_EV.get(name, 0.0))
+    hit_rate = FRESH_TURN_CATEGORY_HIT_RATE.get(name, 0.0)
+    open_count = sum(1 for value in scorecard_tuple if value is None)
+    phase_weight = (open_count / 12.0) ** 0.85 if open_count > 0 else 0.0
+    pressure = closing_cost * phase_weight * FUTURE_CATEGORY_WEIGHT
+
+    if category_idx == CATS["Choice"]:
+        pressure += 0.25
+    elif category_idx == CATS["Small Straight"]:
+        pressure += 0.2
+    elif category_idx == CATS["Large Straight"]:
+        pressure += 0.35
+    elif category_idx == CATS["Full House"]:
+        pressure += 0.15
+    elif category_idx == CATS["4 of a Kind"]:
+        pressure += 0.1
+    elif category_idx == CATS["Yacht"]:
+        pressure += 0.1
+
+    if category_idx < 6:
+        current_upper = sum((value or 0) for value in scorecard_tuple[:6])
+        if current_upper >= 63:
+            pressure *= 0.55
+
+    if has_yacht_bonus(scorecard_tuple) and category_idx != CATS["Yacht"]:
+        pressure += hit_rate * (0.9 if category_idx == CATS["Choice"] else 0.45)
+
+    return max(0.0, pressure)
+
+
+def score_stage_future_pressure(scorecard, category_idx):
+    return _score_stage_future_pressure_cached(scorecard_to_tuple(scorecard), category_idx)
+
+
+@lru_cache(maxsize=4096)
+def _scorecard_context_cached(scorecard_tuple):
+    upper_current, _open_faces, upper_bonus_prob = _upper_bonus_outlook_cached(scorecard_tuple)
+    return {
+        "current_upper": upper_current,
+        "current_state_value": _remaining_state_value_cached(scorecard_tuple),
+        "upper_bonus_prob": upper_bonus_prob,
+        "yacht_bonus_available": has_yacht_bonus(scorecard_tuple),
+        "future_pressures": tuple(
+            _score_stage_future_pressure_cached(scorecard_tuple, category_idx) for category_idx in range(12)
+        ),
+    }
+
+
+@lru_cache(maxsize=16384)
+def _scorecard_transition_context_cached(scorecard_tuple, category_idx, score):
+    next_scorecard = list(scorecard_tuple)
+    next_scorecard[category_idx] = score
+    next_scorecard = tuple(next_scorecard)
+    upper_after_prob = _upper_bonus_outlook_cached(next_scorecard)[2]
+    next_state_value = _remaining_state_value_cached(next_scorecard)
+    return next_scorecard, next_state_value, upper_after_prob
+
+
+def score_stage_long_term_profile(scorecard, category_idx, score, future_ev, base_future_pressure):
+    phase_weight = scorecard_phase_weight(scorecard)
+    reference_score = score_stage_reference_score(category_idx, future_ev)
+    realization_ratio = 0.0
+    if reference_score > EPS:
+        realization_ratio = max(0.0, min(score / reference_score, 1.0))
+
+    quality_gap = score - future_ev
+    quality_bonus = quality_gap * phase_weight * SCORE_STAGE_QUALITY_WEIGHT
+    quality_bonus = max(-3.0, min(4.0, quality_bonus))
+
+    future_pressure = max(0.0, base_future_pressure * (1.0 - (SCORE_STAGE_PRESSURE_RELIEF * realization_ratio)))
+    future_pressure_saved = max(0.0, base_future_pressure - future_pressure)
+
+    return {
+        "reference_score": reference_score,
+        "realization_ratio": realization_ratio,
+        "quality_gap": quality_gap,
+        "quality_bonus": quality_bonus,
+        "future_pressure": future_pressure,
+        "future_pressure_saved": future_pressure_saved,
+        "long_term_delta": quality_bonus - future_pressure,
+    }
+
+
+def score_stage_long_term_note(row):
+    score = row.get("score", 0.0)
+    future_ev = row.get("future_ev", 0.0)
+    quality_gap = row.get("quality_gap", 0.0)
+    future_pressure = row.get("future_pressure", 0.0)
+    future_pressure_saved = row.get("future_pressure_saved", 0.0)
+
+    if score <= 0:
+        if future_pressure >= 2.5:
+            return f"지금 비우면 남은 점수판 가치 손실이 {future_pressure:.1f}점 수준이라 부담이 큽니다"
+        return ""
+
+    if quality_gap >= 6.0:
+        return f"이 칸은 새 턴 기준 평균 {future_ev:.1f}점 안팎인데, 이번에 크게 잘 떠서 바로 확정하는 편이 좋습니다"
+    if quality_gap <= -6.0:
+        return f"평균적으로는 {future_ev:.1f}점 정도 기대되는 칸이라 낮은 기록이지만, 다른 열린 칸 손실이 더 큽니다"
+    if future_pressure_saved >= 0.8:
+        return f"이번 기록이 좋아 이 칸을 닫는 장기 부담도 {future_pressure_saved:.1f}점 정도 줄었습니다"
+    return ""
+
+
+def score_stage_sacrifice_reason(row):
+    name = row["name"]
+    closing_cost = row.get("closing_cost", row.get("future_ev", 0.0))
+    category_idx = row.get("category_idx")
+    before_bonus_prob = row.get("before_bonus_prob")
+    after_bonus_prob = row.get("after_bonus_prob")
+    bonus_drop = row.get("bonus_prob_drop", 0.0)
+
+    if category_idx is not None and category_idx < 6 and bonus_drop >= 0.03:
+        return (
+            f"{name}를 비우면 Upper Bonus 가능성이 "
+            f"{before_bonus_prob * 100:.1f}% → {after_bonus_prob * 100:.1f}%로 내려갑니다"
+        )
+    if name in ("Ones", "Twos"):
+        return f"{name}는 장기 손실 추정이 {closing_cost:.1f}점 수준이라 희생 부담이 가장 낮은 편입니다"
+    if name == "Yacht":
+        return f"Yacht는 장기 손실 추정이 {closing_cost:.1f}점 수준이라 마지막 수단용 희생 후보입니다"
+    if category_idx == CATS["Choice"]:
+        return f"Choice는 범용 칸이라 아깝지만, 이번 상태에선 다른 칸 손실이 더 커 보입니다"
+    if category_idx in (CATS["Large Straight"], CATS["Small Straight"]):
+        return f"{name}는 이번엔 포기지만, 다른 열린 칸 대비 손실이 덜한 편입니다"
+    return f"현재 점수판 기준 {name}의 장기 손실 추정이 낮은 편이라 희생 후보로 둘 수 있습니다"
+
+
 def score_stage_category_advice(dice, scorecard, category_idx, mode):
+    scorecard = scorecard_to_tuple(scorecard)
+    scorecard_context = _scorecard_context_cached(scorecard)
     name = CATEGORY_NAMES[category_idx]
     score = calc_score(dice, category_idx)
+    next_scorecard, next_state_value, upper_after_prob = _scorecard_transition_context_cached(scorecard, category_idx, score)
+    current_state_value = scorecard_context["current_state_value"]
     utility = float(score)
     reason = f"즉시 {score}점"
+    future_ev = FRESH_TURN_CATEGORY_EV.get(name, 0.0)
+    closing_cost = CATEGORY_CLOSING_COST.get(name, future_ev)
+    base_future_pressure = scorecard_context["future_pressures"][category_idx]
+    long_term_profile = score_stage_long_term_profile(scorecard, category_idx, score, future_ev, base_future_pressure)
+    future_pressure = long_term_profile["future_pressure"]
+    upper_before_prob = scorecard_context["upper_bonus_prob"]
+    bonus_prob_delta = upper_after_prob - upper_before_prob
     yacht_bonus_active = (
         category_idx != CATS["Yacht"]
         and score > 0
-        and has_yacht_bonus(scorecard)
+        and scorecard_context["yacht_bonus_available"]
         and calc_score(dice, CATS["Yacht"]) == 50
     )
 
     if category_idx < 6:
         face = category_idx + 1
         count = dice.count(face)
-        current_upper = sum((value or 0) for value in scorecard[:6])
+        current_upper = scorecard_context["current_upper"]
         bonus_push, bonus_delta = score_stage_upper_bonus_push(face, count, current_upper, score, mode)
         utility += bonus_push
         if bonus_delta:
             reason = "이번 기록으로 Upper Bonus +35를 바로 확보합니다"
+        elif bonus_prob_delta >= 0.12:
+            reason = (
+                f"{name} {score}점으로 Upper Bonus 가능성이 "
+                f"{upper_before_prob * 100:.1f}% → {upper_after_prob * 100:.1f}%로 올라갑니다"
+            )
         elif count >= 3 and face >= 4:
             reason = f"{name} {score}점으로 상단 보너스 페이스를 강하게 유지합니다"
         elif count >= 3:
@@ -205,21 +489,93 @@ def score_stage_category_advice(dice, scorecard, category_idx, mode):
         utility += 100.0
         reason = f"Yacht Bonus +100과 함께 {name} {score}점을 기록할 수 있습니다"
 
+    utility += long_term_profile["quality_bonus"]
+    utility += 35.0 * bonus_prob_delta
+    utility -= future_pressure
+    long_term_note = score_stage_long_term_note(
+        {
+            "score": score,
+            "future_ev": future_ev,
+            "quality_gap": long_term_profile["quality_gap"],
+            "future_pressure": future_pressure,
+            "future_pressure_saved": long_term_profile["future_pressure_saved"],
+        }
+    )
+
     return {
         "name": name,
+        "category_idx": category_idx,
         "score": score,
         "utility": utility,
         "reason": reason,
+        "future_ev": future_ev,
+        "closing_cost": closing_cost,
+        "base_future_pressure": base_future_pressure,
+        "future_pressure": future_pressure,
+        "future_pressure_saved": long_term_profile["future_pressure_saved"],
+        "quality_gap": long_term_profile["quality_gap"],
+        "quality_bonus": long_term_profile["quality_bonus"],
+        "reference_score": long_term_profile["reference_score"],
+        "realization_ratio": long_term_profile["realization_ratio"],
+        "long_term_delta": long_term_profile["long_term_delta"],
+        "long_term_note": long_term_note,
+        "current_state_value": current_state_value,
+        "next_state_value": next_state_value,
+        "state_value_delta": next_state_value - current_state_value,
+        "before_bonus_prob": upper_before_prob,
+        "after_bonus_prob": upper_after_prob,
+        "bonus_prob_drop": max(0.0, upper_before_prob - upper_after_prob),
+        "bonus_prob_delta": bonus_prob_delta,
     }
 
 
 def _score_stage_sacrifice_key(row):
-    return (row["score"], SACRIFICE_PRIORITY.get(row["name"], 99))
+    return (
+        row["score"],
+        row.get("future_pressure", 0.0),
+        SACRIFICE_PRIORITY.get(row["name"], 99),
+    )
+
+
+def _rebalance_choice_score_stage(rows):
+    choice_idx = CATS["Choice"]
+    choice_row = next((row for row in rows if row["category_idx"] == choice_idx and row["score"] > 0), None)
+    if not choice_row or choice_row["score"] >= 20:
+        return
+
+    specialty_thresholds = {
+        CATS["4 of a Kind"]: 18,
+        CATS["Full House"]: 16,
+        CATS["Small Straight"]: 15,
+        CATS["Large Straight"]: 30,
+        CATS["Yacht"]: 50,
+    }
+    specialty_rows = [
+        row
+        for row in rows
+        if row["category_idx"] in specialty_thresholds
+        and row["score"] >= specialty_thresholds[row["category_idx"]]
+    ]
+    if not specialty_rows:
+        return
+
+    best_specialty = max(specialty_rows, key=lambda row: (row["utility"], row["score"]))
+    choice_gap = choice_row["score"] - best_specialty["score"]
+    if best_specialty["utility"] + 2.0 < choice_row["utility"] and choice_gap >= 5:
+        return
+
+    penalty = 2.6 + max(0.0, (20 - choice_row["score"]) * 0.35)
+    choice_row["utility"] -= penalty
+    choice_row["reason"] = (
+        f"Choice {choice_row['score']}점으로 손실은 줄이지만, "
+        f"{best_specialty['name']}처럼 다시 만들기 어려운 족보를 우선 보는 편이 낫습니다"
+    )
 
 
 def build_score_stage_advice(dice, scorecard, open_categories, mode):
-    scorecard = normalize_scorecard(scorecard)
+    scorecard = scorecard_to_tuple(scorecard)
     rows = [score_stage_category_advice(dice, scorecard, idx, mode) for idx in open_categories]
+    _rebalance_choice_score_stage(rows)
     positive_rows = [row for row in rows if row["score"] > 0]
     positive_rows.sort(key=lambda row: (row["utility"], row["score"]), reverse=True)
 
@@ -231,6 +587,9 @@ def build_score_stage_advice(dice, scorecard, open_categories, mode):
 
     display_rows = []
     for row in positive_rows[:3]:
+        reason = row["reason"]
+        if row.get("long_term_note"):
+            reason = f"{reason} {row['long_term_note']}"
         display_rows.append(
             {
                 "name": row["name"],
@@ -240,9 +599,26 @@ def build_score_stage_advice(dice, scorecard, open_categories, mode):
                 "type": "score",
                 "keep_str": "지금 기록 추천",
                 "keep_indices": [],
-                "reason": row["reason"],
+                "reason": reason,
             }
         )
+
+    if positive_rows:
+        best_row = positive_rows[0]
+        if best_row.get("long_term_note"):
+            display_rows.insert(
+                1,
+                {
+                    "name": "장기 가치",
+                    "prob": 0.0,
+                    "meter": min(1.0, max(0.15, abs(best_row.get("quality_gap", 0.0)) / 12.0)),
+                    "val_str": f"평균대비 {best_row.get('quality_gap', 0.0):+.1f}",
+                    "type": "decision",
+                    "keep_str": "이번 점수 + 남은 칸 가치까지 반영",
+                    "keep_indices": [],
+                    "reason": best_row["long_term_note"],
+                }
+            )
 
     for row in sacrifice_rows:
         if any(existing["name"] == row["name"] for existing in display_rows):
@@ -256,11 +632,7 @@ def build_score_stage_advice(dice, scorecard, open_categories, mode):
                 "type": "sacrifice",
                 "keep_str": "망한 턴 정리용 희생 후보",
                 "keep_indices": [],
-                "reason": (
-                    "이번 턴을 넘겨야 하면 손실이 작은 칸부터 비우는 편이 좋습니다"
-                    if row["name"] != "Yacht"
-                    else "Yacht는 마지막 수단용 희생 칸 후보로만 보세요"
-                ),
+                "reason": score_stage_sacrifice_reason(row),
             }
         )
         if len(display_rows) >= 5:
@@ -268,11 +640,18 @@ def build_score_stage_advice(dice, scorecard, open_categories, mode):
 
     if positive_rows:
         best_row = positive_rows[0]
-        summary = f"점수 기록 추천: {best_row['name']} {best_row['score']}점"
+        summary = f"점수 기록 추천: {best_row['name']} {best_row['score']}점. {best_row['reason']}"
         primary_target = best_row["name"]
     else:
         best_row = None
-        summary = "점수가 잘 안 나오는 턴입니다. 희생 칸으로 정리하는 편이 낫습니다."
+        best_sacrifice = sacrifice_rows[0] if sacrifice_rows else None
+        if best_sacrifice:
+            summary = (
+                f"점수가 잘 안 나오는 턴입니다. "
+                f"{best_sacrifice['name']}는 장기 손실 추정 {best_sacrifice.get('closing_cost', 0.0):.1f}점 수준이라 먼저 비우는 편이 낫습니다."
+            )
+        else:
+            summary = "점수가 잘 안 나오는 턴입니다. 희생 칸으로 정리하는 편이 낫습니다."
         primary_target = None
 
     return {
@@ -289,10 +668,12 @@ def build_score_stage_advice(dice, scorecard, open_categories, mode):
 
 
 def build_upper_roll_rows(dice, scorecard, open_categories, mode, keep_ev_map):
+    scorecard = scorecard_to_tuple(scorecard)
     current_upper = sum((value or 0) for value in scorecard[:6])
     if current_upper >= 63:
         return []
 
+    before_bonus_prob = upper_bonus_outlook(scorecard)["bonus_prob"]
     rows = []
     for cat_name in UPPER_CAT_NAMES:
         cat_idx = CATS[cat_name]
@@ -313,6 +694,7 @@ def build_upper_roll_rows(dice, scorecard, open_categories, mode, keep_ev_map):
             current_score,
             mode,
         )
+        after_bonus_prob = upper_bonus_outlook(projected_scorecard(scorecard, cat_idx, current_score))["bonus_prob"]
         keep_ev = keep_ev_map.get(kept_tuple, 0.0)
         reroll_count = 5 - len(keep_indices)
         prob_get_more = 1.0 if reroll_count == 0 else 1.0 - ((5.0 / 6.0) ** reroll_count)
@@ -322,10 +704,19 @@ def build_upper_roll_rows(dice, scorecard, open_categories, mode, keep_ev_map):
 
         if bonus_delta:
             reason = f"지금 {cat_name}에 적으면 Upper Bonus +35를 바로 확보할 수 있습니다."
+            summary_text = f"상단 보너스 추천: {cat_name} EV {keep_ev:.1f}, 이번 턴 보너스 마감권"
+        elif current_score > 0 and after_bonus_prob >= before_bonus_prob + 0.05:
+            reason = (
+                f"현재 상단 {current_upper}/63. {cat_name} {current_score}점이면 "
+                f"Upper Bonus 가능성이 {before_bonus_prob * 100:.1f}% → {after_bonus_prob * 100:.1f}%로 올라갑니다."
+            )
+            summary_text = f"상단 보너스 추천: {cat_name} EV {keep_ev:.1f}, 보너스 확률 {after_bonus_prob * 100:.0f}%"
         elif current_score > 0:
             reason = f"현재 상단 {current_upper}/63. {cat_name} {current_score}점이면 목표까지 {remaining_after_score}점 남습니다."
+            summary_text = f"상단 보너스 추천: {cat_name} EV {keep_ev:.1f}"
         else:
             reason = f"{cat_name}를 모아 상단 보너스 페이스를 이어갈 수 있습니다."
+            summary_text = f"상단 보너스 추천: {cat_name} EV {keep_ev:.1f}"
 
         rows.append(
             {
@@ -337,7 +728,7 @@ def build_upper_roll_rows(dice, scorecard, open_categories, mode, keep_ev_map):
                 "keep_str": f"{keep_label} → Upper Bonus 페이스",
                 "keep_indices": keep_indices,
                 "reason": reason,
-                "summary_text": f"상단 보너스 추천: {cat_name} EV {keep_ev:.1f}",
+                "summary_text": summary_text,
                 "ev": keep_ev,
                 "bonus_delta": bonus_delta,
                 "bonus_push": bonus_push,

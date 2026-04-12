@@ -51,6 +51,7 @@ function getAiPanelTitle(aiRec) {
 function getAiRowColor(item) {
     if (item?.type === 'cover') return '#7ee787';
     if (item?.type === 'risk') return '#ff8e72';
+    if (item?.type === 'decision') return '#8fb8ff';
     if (item?.type === 'upper') return '#8be28b';
     if (item?.type === 'score') return '#66d9ff';
     if (item?.type === 'sacrifice') return '#ff9b7a';

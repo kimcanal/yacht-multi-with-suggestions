@@ -51,6 +51,7 @@ def main() -> None:
             "yacht_ai/scoring.py",
             "yacht_ai/advice.py",
             "yacht_ai/solver.py",
+            "yacht_ai/ml_policy.py",
         ],
     )
     run_step("golden", [python, "scripts/check_ai_golden.py"])

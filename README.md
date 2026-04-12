@@ -53,15 +53,17 @@ Flask 기반 웹 요트 다이스 게임입니다. 싱글플레이, 실시간 1 
 굴림 단계에서는 남은 roll 수와 현재 점수판을 함께 고려합니다. 웹 UI에서는 버튼 아래 설명 카드와 동일한 기준으로 두 모드를 구분하고, 소개 페이지 `/intro` 에서도 같은 설명을 확인할 수 있습니다.
 
 - `집중 공략`
+  - 매번 `지금 바로 기록`과 `한 번 더 굴리기`를 같이 비교합니다. 이미 지금 점수가 더 좋으면 `지금 기록 추천`으로 멈추는 쪽을 먼저 보여줍니다.
   - 지금 손패에서 가장 유망한 한 족보를 목표로 두고 성공 확률이 가장 좋은 keep을 찾습니다.
   - 이미 `Small Straight`가 잡혀 있다면, 같은 keep으로 `Large Straight` 업그레이드를 노릴 수 있는지도 함께 봅니다.
+  - 설명 패널에는 추천 족보 외에도 `추천 근거`, `지금 멈추기 비교`, `차선책 비교`를 같이 보여줘서 왜 이 keep을 택했는지 바로 읽을 수 있게 합니다.
 - `커버 플레이`
   - `4 of a Kind`, `Full House`, `Small Straight`, `Large Straight`, `Yacht` 중 열린 하단 족보를 묶어서
     `하나 이상 성공할 확률`을 최대화합니다.
   - 함께 `전부 실패할 확률`도 exact 계산으로 보여줍니다.
   - 애매한 턴에서 "한 족보를 깊게 갈지, 여러 족보를 동시에 열어둘지" 판단할 때 특히 유용합니다.
 
-점수 기록 단계에서는 이번 턴 즉시 점수, Upper Bonus 흐름, Yacht Bonus 가치, 희생 칸 우선순위를 같이 고려합니다.
+점수 기록 단계에서는 이번 턴 즉시 점수, Upper Bonus 흐름과 `도달 확률 변화`, Yacht Bonus 가치, `새 턴 기준 기대치`, 그리고 "이 점수를 지금 적으면 그 칸을 닫는 장기 부담이 얼마나 줄어드는지"를 같이 고려합니다. UI에는 이 맥락을 `장기 가치` 줄로 함께 보여줍니다.
 
 ## 설치 및 실행
 
@@ -98,6 +100,39 @@ VDI에서 ML 실험용 teacher data를 만들려면 아래처럼 JSONL을 뽑으
 python3 scripts/generate_teacher_data.py --all-dice --contexts-per-dice 4 --output artifacts/teacher_data.jsonl --overwrite
 ```
 
+roll stage를 distill한 학습 정책을 만들려면 teacher data에서 roll 샘플만 읽어 아래처럼 학습할 수 있습니다.
+
+```bash
+python3 scripts/train_roll_policy.py \
+  --data artifacts/teacher_data.jsonl \
+  --output artifacts/roll_policy_model.json
+```
+
+서버에서 학습 정책을 켜려면 모델 경로를 환경 변수로 넘기면 됩니다. score stage는 기존 exact 추천을 그대로 쓰고, roll stage만 confidence 기준으로 학습 정책을 우선 사용합니다. 학습 정책이 자신 있게 내놓은 답이라도 exact 기준과 차이가 크면 자동으로 exact 추천으로 fallback 합니다.
+
+```bash
+export YACHT_AI_POLICY_MODEL=artifacts/roll_policy_model.json
+export YACHT_AI_POLICY_MIN_CONFIDENCE=0.95
+python3 server.py
+```
+
+학습 품질과 fallback threshold를 다시 점검하고 싶으면 아래 평가 스크립트를 쓰면 됩니다.
+
+```bash
+python3 scripts/eval_roll_policy.py \
+  --data artifacts/teacher_roll_32768.jsonl \
+  --model artifacts/roll_policy_model.json
+```
+
+희생 칸 우선순위나 장기 손실 추정을 다시 보정하고 싶으면 rollout 기반 calibration 스크립트를 돌릴 수 있습니다.
+
+```bash
+python3 scripts/estimate_closing_costs.py \
+  --trials 12 \
+  --workers 8 \
+  --output artifacts/closing_costs_12.json
+```
+
 ## 게임 규칙 요약
 
 주사위 5개를 굴려 12개 카테고리에 한 번씩 기록하고, 최종 합계를 경쟁합니다.
@@ -121,7 +156,7 @@ python3 scripts/generate_teacher_data.py --all-dice --contexts-per-dice 4 --outp
 
 - Backend: Python 3, Flask
 - Frontend: HTML, CSS, JavaScript
-- Game Engine: Python exact turn-DP + score-stage heuristic
+- Game Engine: Python exact turn-DP + early-stop comparison + future-pressure heuristic
 - Monitoring: psutil
 
 ## 주요 API
