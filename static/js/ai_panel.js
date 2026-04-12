@@ -71,12 +71,17 @@ function renderAiPanel(targetId, aiRec, options = {}) {
         return;
     }
 
+    const isScoreStage = aiRec?.stage === 'score';
     const summary = aiRec.summary ? `<div class="ai-summary-line">${escapeHtml(aiRec.summary)}</div>` : '';
     const perspective = options.perspective ? `<div class="ai-perspective">${escapeHtml(options.perspective)}</div>` : '';
     const rows = aiRec.breakdown.slice(0, 5).map((item) => {
         const color = getAiRowColor(item);
-        const barWidth = getAiRowMeter(item) * 100;
         const reason = item.reason ? `<div class="ai-reason">${escapeHtml(item.reason)}</div>` : '';
+        const progress = isScoreStage ? '' : `
+                    <div style="background:rgba(255,255,255,0.08); border-radius:999px; height:8px; overflow:hidden;">
+                        <div style="background:${color}; border-radius:999px; height:100%; width:${getAiRowMeter(item) * 100}%; transition:width 0.35s ease;"></div>
+                    </div>
+        `;
         return `
             <div class="breakdown-item">
                 <div style="flex:1;">
@@ -85,9 +90,7 @@ function renderAiPanel(targetId, aiRec, options = {}) {
                         <span class="breakdown-val" style="color:${color};">${escapeHtml(item.val_str || '')}</span>
                     </div>
                     <div style="font-size:0.88em; color:#98a4b3; margin-bottom:6px;">${escapeHtml(item.keep_str || '')}</div>
-                    <div style="background:rgba(255,255,255,0.08); border-radius:999px; height:8px; overflow:hidden;">
-                        <div style="background:${color}; border-radius:999px; height:100%; width:${barWidth}%; transition:width 0.35s ease;"></div>
-                    </div>
+                    ${progress}
                     ${reason}
                 </div>
             </div>

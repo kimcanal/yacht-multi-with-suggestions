@@ -275,6 +275,16 @@
                             </div>
                             <div class="bar-bg"><div class="bar-fill" id="memory-bar"></div></div>
                         </div>
+                        <div class="status-row">
+                            <div class="status-label">
+                                <span>AI Recommend</span>
+                                <div style="text-align:right;">
+                                    <span id="ai-latency" style="display:block;">-</span>
+                                    <span id="ai-cache" style="font-size:0.75em; color:#888; font-weight:400;"></span>
+                                </div>
+                            </div>
+                            <div id="ai-slow-list" style="display:flex; flex-direction:column; gap:6px; margin-top:8px; font-size:0.74em; color:#8d98a7;"></div>
+                        </div>
                         <div style="margin-top:15px; text-align:center; font-size:0.75em; color:#555; font-family:'Rajdhani'">ID: <span id="client-id-disp">...</span></div>
                     </div>
                 </div>
@@ -572,6 +582,36 @@
                     document.getElementById('memory-actual').textContent = `(${data.memory_used_gb}GB / ${data.memory_total_gb}GB)`;
                 } else {
                     document.getElementById('memory-actual').textContent = '';
+                }
+
+                const aiAvg = Number(data.ai_recent_avg_ms || 0).toFixed(1);
+                const aiP95 = Number(data.ai_recent_p95_ms || 0).toFixed(1);
+                document.getElementById('ai-latency').textContent = `${aiAvg}ms avg / ${aiP95}ms p95`;
+                document.getElementById('ai-cache').textContent =
+                    `${data.ai_recent_samples || 0} samples · roll ${data.ai_recent_roll_count || 0} / score ${data.ai_recent_score_count || 0} · cache ${Number(data.ai_cache_hit_rate || 0).toFixed(1)}%`;
+
+                const slowSamples = Array.isArray(data.ai_recent_slow_samples) ? data.ai_recent_slow_samples : [];
+                const slowRoot = document.getElementById('ai-slow-list');
+                if (slowRoot) {
+                    if (!slowSamples.length) {
+                        slowRoot.innerHTML = '<div style="color:#666;">최근 느린 케이스 없음</div>';
+                    } else {
+                        slowRoot.innerHTML = slowSamples.slice(0, 3).map((sample) => {
+                            const elapsed = Number(sample.elapsed_ms || 0).toFixed(0);
+                            const stage = escapeHtml(sample.stage || 'unknown');
+                            const mode = escapeHtml(sample.mode || 'focused');
+                            const dice = Array.isArray(sample.dice) && sample.dice.length ? sample.dice.join(', ') : '-';
+                            const target = sample.target ? ` → ${escapeHtml(sample.target)}` : '';
+                            const rollsLeft = escapeHtml(sample.rolls_left ?? '-');
+                            const openSlots = escapeHtml(sample.open_slots ?? '-');
+                            return `
+                                <div style="padding-top:6px; border-top:1px solid rgba(255,255,255,0.06);">
+                                    <div><span style="color:#ffb86b;">${elapsed}ms</span> · ${stage} · ${mode}${target}</div>
+                                    <div style="margin-top:2px; color:#6f7d8d;">[${escapeHtml(dice)}] / roll ${rollsLeft} / open ${openSlots}</div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
                 }
             }).catch(()=>{});
         }

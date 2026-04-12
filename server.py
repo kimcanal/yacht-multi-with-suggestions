@@ -6,6 +6,7 @@ import psutil
 import secrets
 import re
 import hmac
+from collections import deque
 from flask import Flask, render_template, jsonify, request
 import yacht_engine
 import database
@@ -21,6 +22,62 @@ PLAYER_ROOM_TIMEOUT = 35
 OBSERVER_ROOM_TIMEOUT = 90
 USERNAME_RE = re.compile(r"^[A-Za-z0-9가-힣_]{2,12}$")
 RESET_ADMIN_TOKEN = os.getenv("YACHT_ADMIN_TOKEN", "").strip()
+AI_METRIC_WINDOW = 200
+AI_SLOW_LOG_MS = float(os.getenv("YACHT_AI_SLOW_LOG_MS", "700"))
+AI_SLOW_SAMPLE_WINDOW = 6
+ai_recent_latencies = deque(maxlen=AI_METRIC_WINDOW)
+ai_recent_stages = deque(maxlen=AI_METRIC_WINDOW)
+ai_recent_slow_samples = deque(maxlen=AI_SLOW_SAMPLE_WINDOW)
+ai_request_count = 0
+ai_error_count = 0
+ai_max_latency_ms = 0.0
+
+
+def _percentile(values, ratio):
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    index = max(0, min(len(ordered) - 1, int((len(ordered) - 1) * ratio)))
+    return ordered[index]
+
+
+def _ai_metrics_snapshot():
+    recent = list(ai_recent_latencies)
+    recent_stages = list(ai_recent_stages)
+    cache_info = yacht_engine.get_solver_cache_info()
+    total_cache_queries = cache_info.hits + cache_info.misses
+    hit_rate = (cache_info.hits / total_cache_queries) if total_cache_queries else 0.0
+    score_count = sum(1 for stage in recent_stages if stage == "score")
+    roll_count = sum(1 for stage in recent_stages if stage == "roll")
+    return {
+        "ai_requests_total": ai_request_count,
+        "ai_errors_total": ai_error_count,
+        "ai_recent_samples": len(recent),
+        "ai_recent_avg_ms": round(sum(recent) / len(recent), 2) if recent else 0.0,
+        "ai_recent_p95_ms": round(_percentile(recent, 0.95), 2) if recent else 0.0,
+        "ai_recent_max_ms": round(max(recent), 2) if recent else 0.0,
+        "ai_max_latency_ms": round(ai_max_latency_ms, 2),
+        "ai_recent_roll_count": roll_count,
+        "ai_recent_score_count": score_count,
+        "ai_cache_hits": cache_info.hits,
+        "ai_cache_misses": cache_info.misses,
+        "ai_cache_hit_rate": round(hit_rate * 100, 1),
+        "ai_recent_slow_samples": list(ai_recent_slow_samples),
+    }
+
+
+def _record_ai_slow_sample(elapsed_ms, stage, mode, rolls_left, dice, open_categories, result):
+    ai_recent_slow_samples.appendleft({
+        "elapsed_ms": round(elapsed_ms, 2),
+        "stage": stage or "unknown",
+        "mode": mode or "focused",
+        "rolls_left": int(rolls_left) if isinstance(rolls_left, int) or str(rolls_left).isdigit() else rolls_left,
+        "dice": list(dice)[:5] if isinstance(dice, list) else [],
+        "open_slots": len(open_categories) if isinstance(open_categories, list) else 0,
+        "target": result.get("primary_target"),
+        "summary": result.get("summary"),
+        "recorded_at": int(time.time()),
+    })
 
 # 캐시 방지 설정
 @app.after_request
@@ -346,19 +403,22 @@ def system_status():
         for cid in to_remove:
             lobby_clients.pop(cid, None)
 
-        return jsonify({
+        payload = {
             "cpu_percent": round(cpu_percent, 1),
             "memory_percent": round(memory.percent, 1),
             "memory_used_gb": round(memory.used / (1024**3), 2),
             "memory_total_gb": round(memory.total / (1024**3), 2),
             "online_count": active_count,
             "active_rooms": len(rooms)
-        })
+        }
+        payload.update(_ai_metrics_snapshot())
+        return jsonify(payload)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/recommend', methods=['POST'])
 def recommend():
+    global ai_request_count, ai_error_count, ai_max_latency_ms
     try:
         started = time.perf_counter()
         data = request.json or {}
@@ -373,13 +433,35 @@ def recommend():
 
         result = yacht_engine.solve_best_move(dice, rolls_left, open_categories, strategy_mode, scorecard)
         elapsed_ms = (time.perf_counter() - started) * 1000
+        ai_request_count += 1
+        ai_recent_latencies.append(elapsed_ms)
+        ai_recent_stages.append(result.get("stage", "unknown"))
+        ai_max_latency_ms = max(ai_max_latency_ms, elapsed_ms)
         cache_info = yacht_engine.get_solver_cache_info()
+        if elapsed_ms >= AI_SLOW_LOG_MS:
+            _record_ai_slow_sample(
+                elapsed_ms,
+                result.get("stage"),
+                strategy_mode,
+                rolls_left,
+                dice,
+                open_categories,
+                result,
+            )
+            print(
+                "[AI] slow recommend "
+                f"elapsed_ms={elapsed_ms:.2f} stage={result.get('stage')} "
+                f"mode={strategy_mode} rolls_left={rolls_left} dice={dice} "
+                f"open_categories={open_categories} cache_hits={cache_info.hits} "
+                f"cache_misses={cache_info.misses}"
+            )
         response = jsonify(result)
         response.headers['X-AI-Elapsed-Ms'] = f"{elapsed_ms:.2f}"
         response.headers['X-AI-Cache-Hits'] = str(cache_info.hits)
         response.headers['X-AI-Cache-Misses'] = str(cache_info.misses)
         return response
     except Exception as e:
+        ai_error_count += 1
         return jsonify({"error": str(e), "message": "AI 추천 오류"}), 500
 
 # --- 리더보드 & 게임 데이터 ---
@@ -789,8 +871,8 @@ def healthcheck():
     })
 
 if __name__ == '__main__':
-    print("🎲 Yacht Game Server Running on Port 8080...")
     host = os.getenv("YACHT_HOST", "0.0.0.0")
     port = int(os.getenv("YACHT_PORT", "8080"))
     debug = os.getenv("FLASK_DEBUG", "0") == "1"
+    print(f"🎲 Yacht Game Server Running on Port {port}...")
     app.run(host=host, port=port, debug=debug)

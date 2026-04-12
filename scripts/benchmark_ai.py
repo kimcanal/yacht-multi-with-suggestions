@@ -52,6 +52,13 @@ SCENARIOS = [
         "rolls_left": 2,
         "scorecard": [3, None, 9, None, None, 18, 22, None, None, None, None, 50],
     },
+    {
+        "name": "upper_bonus_finish_focused",
+        "mode": "focused",
+        "dice": [6, 6, 6, 1, 2],
+        "rolls_left": 2,
+        "scorecard": [3, 6, 9, 12, 15, None, None, None, None, None, None, None],
+    },
 ]
 def run_case(case: dict, repeats: int, warm_cache: bool) -> tuple[float, float, float, str]:
     timings = []

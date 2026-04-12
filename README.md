@@ -84,6 +84,14 @@ AI 계산 기준치는 아래 스크립트로 빠르게 측정할 수 있습니�
 python3 scripts/benchmark_ai.py --repeats 3
 ```
 
+AI 회귀 검증과 soak 검증은 아래 스크립트로 실행할 수 있습니다.
+
+```bash
+python3 scripts/check_ai_golden.py
+python3 scripts/soak_ai.py --cases 250
+python3 scripts/verify_ai.py --benchmark-repeats 1 --warm-cases 120 --cold-cases 40
+```
+
 ## 게임 규칙 요약
 
 주사위 5개를 굴려 12개 카테고리에 한 번씩 기록하고, 최종 합계를 경쟁합니다.
@@ -145,7 +153,10 @@ yacht_game/
 ├── gunicorn.conf.py
 ├── requirements.txt
 ├── scripts/
-│   └── benchmark_ai.py
+│   ├── benchmark_ai.py
+│   ├── check_ai_golden.py
+│   ├── soak_ai.py
+│   └── verify_ai.py
 ├── server.py
 ├── static/
 │   ├── favicon.ico
@@ -161,6 +172,12 @@ yacht_game/
 │   ├── lobby.html
 │   ├── multi-game.html
 │   └── single-game.html
+├── yacht_ai/
+│   ├── __init__.py
+│   ├── advice.py
+│   ├── constants.py
+│   ├── scoring.py
+│   └── solver.py
 ├── wsgi.py
 └── yacht_engine.py
 ```

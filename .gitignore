@@ -6,3 +6,4 @@ __pycache__/
 backup/
 game_data.json
 nohup.out
+.venv/
