@@ -92,6 +92,12 @@ python3 scripts/soak_ai.py --cases 250
 python3 scripts/verify_ai.py --benchmark-repeats 1 --warm-cases 120 --cold-cases 40
 ```
 
+VDI에서 ML 실험용 teacher data를 만들려면 아래처럼 JSONL을 뽑으면 됩니다.
+
+```bash
+python3 scripts/generate_teacher_data.py --all-dice --contexts-per-dice 4 --output artifacts/teacher_data.jsonl --overwrite
+```
+
 ## 게임 규칙 요약
 
 주사위 5개를 굴려 12개 카테고리에 한 번씩 기록하고, 최종 합계를 경쟁합니다.
