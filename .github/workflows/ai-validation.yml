@@ -2,15 +2,17 @@ name: AI Validation
 
 on:
   push:
-    branches:
-      - main
-      - master
   pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: ai-validation-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate-ai:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -19,14 +21,20 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
+          cache: "pip"
 
       - name: Install Dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validate Hosting Script
+        run: bash -n yacht-hosting.sh
 
       - name: Run AI Validation Suite
-        run: >
-          python scripts/verify_ai.py
-          --benchmark-repeats 1
-          --warm-cases 120
-          --cold-cases 40
+        run: |
+          python scripts/verify_ai.py \
+            --benchmark-repeats 1 \
+            --warm-cases 120 \
+            --cold-cases 40
