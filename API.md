@@ -98,9 +98,72 @@ curl -s "$BASE_URL/api/recommend" \
 
 로비에서 사용하는 멀티 전적 리더보드 조회 엔드포인트입니다.
 
+### `GET /api/leaderboard/recent`
+
+최근 저장된 경기 기록 조회.
+
+Query:
+
+- `limit` — 기본 `8`, 최대 `50`
+- `username` — 넣으면 해당 유저가 포함된 경기만 필터
+
+Example response:
+
+```json
+[
+  {
+    "player1": "alpha1",
+    "score1": 190,
+    "player2": "gamma34",
+    "score2": 190,
+    "winner": "DRAW",
+    "timestamp": "2026-04-17T14:22:31.123456",
+    "is_multiplayer": true,
+    "margin": 0
+  }
+]
+```
+
 ### `GET /api/leaderboard/single`
 
 싱글 점수 리더보드 조회
+
+### `GET /api/leaderboard/users/<username>`
+
+특정 유저의 멀티 전적 요약 조회.
+
+Query:
+
+- `recent_limit` — 같이 내려주는 최근 경기 수, 기본 `5`, 최대 `10`
+
+Example response:
+
+```json
+{
+  "username": "alpha1",
+  "rank": 1,
+  "wins": 2,
+  "draws": 1,
+  "losses": 0,
+  "games_played": 3,
+  "total_score": 606,
+  "avg_score": 202.0,
+  "win_rate": 66.7,
+  "last_played_at": "2026-04-17T14:22:31.123456",
+  "current_streak": { "type": "draw", "count": 1 },
+  "recent_form": ["D", "W", "W"],
+  "recent_games": [
+    {
+      "username": "alpha1",
+      "opponent": "gamma34",
+      "score": 190,
+      "opponent_score": 190,
+      "result": "draw",
+      "timestamp": "2026-04-17T14:22:31.123456"
+    }
+  ]
+}
+```
 
 ### `POST /api/leaderboard/single`
 
@@ -390,6 +453,48 @@ Response:
   "dice": [2, 3, 3, 5, 1],
   "rolls_left": 2,
   "state": {}
+}
+```
+
+### `POST /api/rooms/<code>/rematch`
+
+게임 종료 후 재대결 신청. 두 플레이어가 모두 동의하면 같은 방 상태가 새 경기로 리셋됩니다.
+
+Request:
+
+```json
+{
+  "username": "Host01",
+  "player_token": "secret-token"
+}
+```
+
+Waiting response:
+
+```json
+{
+  "status": "waiting",
+  "rematch_pending_players": ["Host01"],
+  "rematch_waiting_for": ["Guest01"]
+}
+```
+
+Started response:
+
+```json
+{
+  "status": "started",
+  "players": ["Host01", "Guest01"],
+  "rematch_pending_players": [],
+  "rematch_waiting_for": [],
+  "state": {
+    "turn": "Guest01",
+    "game_over": false,
+    "scores": {
+      "Host01": [null, null, null, null, null, null, null, null, null, null, null, null],
+      "Guest01": [null, null, null, null, null, null, null, null, null, null, null, null]
+    }
+  }
 }
 ```
 

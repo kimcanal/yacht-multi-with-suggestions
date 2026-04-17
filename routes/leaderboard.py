@@ -38,6 +38,32 @@ def leaderboard_multi():
     return jsonify(database.get_leaderboard())
 
 
+@leaderboard_bp.route("/api/leaderboard/recent", methods=["GET"])
+def leaderboard_recent():
+    raw_username = request.args.get("username")
+    username = normalize_username(raw_username) if raw_username else None
+    if raw_username and not username:
+        return jsonify({"error": "Invalid username"}), 400
+
+    limit = request.args.get("limit", 8)
+    return jsonify(database.get_recent_games(limit=limit, username=username))
+
+
+@leaderboard_bp.route("/api/leaderboard/users/<username>", methods=["GET"])
+def leaderboard_user_profile(username):
+    normalized_username = normalize_username(username)
+    if not normalized_username:
+        return jsonify({"error": "Invalid username"}), 400
+
+    profile = database.get_user_profile(
+        normalized_username,
+        recent_limit=request.args.get("recent_limit", 5),
+    )
+    if not profile:
+        return jsonify({"error": "사용자 없음"}), 404
+    return jsonify(profile)
+
+
 @leaderboard_bp.route("/api/leaderboard/reset", methods=["POST"])
 def reset_leaderboard():
     admin_token = request.headers.get("X-Admin-Token", "")
