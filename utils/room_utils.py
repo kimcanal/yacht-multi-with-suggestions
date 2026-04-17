@@ -64,6 +64,7 @@ def remove_player(room, username, now=None):
     if username in room.get("players", []):
         room["players"].remove(username)
     room.get("player_tokens", {}).pop(username, None)
+    room.setdefault("rematch_requests", {}).pop(username, None)
     room.setdefault("player_last_seen", {}).pop(username, None)
     if room.get("host") == username:
         room["host"] = room["players"][0] if room.get("players") else username
@@ -109,6 +110,41 @@ def finalize_room_forfeit(room, winner, loser, updated_by="system", now=None):
         score_total(scores.get(loser)),
         result_override="player1_win",
     )
+
+
+def start_room_rematch(room, updated_by="system_rematch", now=None):
+    now = now or time.time()
+    players = list(room.get("players", []))
+    if len(players) < 2:
+        return None
+
+    prev_state = room.get("state") or {}
+    previous_winner = prev_state.get("winner")
+    previous_turn = prev_state.get("turn")
+
+    if previous_winner in players:
+        starter = next((player for player in players if player != previous_winner), players[0])
+    elif previous_turn in players:
+        starter = next((player for player in players if player != previous_turn), players[0])
+    else:
+        starter = players[0]
+
+    new_state = default_room_state()
+    new_state["scores"] = {player: [None] * 12 for player in players}
+    new_state["player_dice"] = {player: [1] * 5 for player in players}
+    new_state["player_kept"] = {player: [0] * 5 for player in players}
+    new_state["player_rolls_left"] = {player: 3 for player in players}
+    new_state["players"] = players
+    new_state["turn"] = starter
+    new_state["turn_start_time"] = now
+    new_state["version"] = prev_state.get("version", 0) + 1
+    new_state["updated_by"] = updated_by
+
+    room["state"] = new_state
+    room["last_update"] = now
+    room["started_full"] = True
+    room["rematch_requests"] = {}
+    return new_state
 
 
 def prune_room_activity(code, room, now=None):

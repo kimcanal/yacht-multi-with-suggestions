@@ -130,10 +130,11 @@ function renderCard(card, isMine, title) {
         const classes = `score-item ${card[i] !== null ? 'filled' : ''} ${!isMine ? 'disabled' : ''}`;
         const desc = CAT_DESC[c] || '';
         const diceEx = '예시) ' + CAT_DICE[c] || '';
+        const tipLayoutAttr = clickable ? 'data-tip-layout="score-preview"' : '';
         const handlers = clickable
             ? `onclick="pickCategory(${i})" onmouseenter="showTip(this); previewScore(${i})" onmouseleave="hideTip(this); clearPreview()" ontouchstart="showTip(this); previewScore(${i})" ontouchend="hideTip(this); clearPreview()"`
             : `onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"`;
-        h += `<div class="${classes}" ${handlers} data-desc="${desc}" data-dice="${diceEx}"><span class="score-name">${c}</span><span class="score-val">${card[i] !== null ? card[i] : '-'}${p}</span><div class="custom-tip" style="display:none;"></div></div>`;
+        h += `<div class="${classes}" ${handlers} ${tipLayoutAttr} data-desc="${desc}" data-dice="${diceEx}"><span class="score-name">${c}</span><span class="score-val">${card[i] !== null ? card[i] : '-'}${p}</span><div class="custom-tip" style="display:none;"></div></div>`;
     });
     h += `<div class="total-score"><span>TOTAL</span><span>${totals.total}</span></div>`;
 
@@ -143,6 +144,206 @@ function renderCard(card, isMine, title) {
     return `<div class="scorecard-title" style="${titleStyle}">${escapeHtml(title)}</div><div>${h}</div>`;
 }
 
+function getScoreMeta(categoryName) {
+    return {
+        desc: CAT_DESC[categoryName] || '',
+        diceEx: CAT_DICE[categoryName] ? `예시) ${CAT_DICE[categoryName]}` : '',
+    };
+}
+
+function getTooltipHandlers() {
+    return `onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"`;
+}
+
+function getPreviewHandlers(categoryIndex) {
+    return `onmouseenter="previewScore(${categoryIndex})" onmouseleave="clearPreview()" ontouchstart="previewScore(${categoryIndex})" ontouchend="clearPreview()"`;
+}
+
+function getTurnTitleStyle(active) {
+    return active
+        ? 'color: #00ff00; text-shadow: 0 0 20px rgba(0, 255, 0, 0.8); font-weight: bold;'
+        : 'color: #00ffcc;';
+}
+
+function flashScoreSelection(categoryIndex) {
+    const selector = `[data-score-flash="${categoryIndex}"]`;
+    document.querySelectorAll(selector).forEach((el) => {
+        el.classList.remove('score-commit-flash');
+        void el.offsetWidth;
+        el.classList.add('score-commit-flash');
+        setTimeout(() => el.classList.remove('score-commit-flash'), 520);
+    });
+}
+
+function buildValueMarkup(value, preview) {
+    if (preview) {
+        return `<span class="compare-score-main">${value}</span><span class="score-preview">(${preview})</span>`;
+    }
+    return `<span class="compare-score-main">${value}</span>`;
+}
+
+function renderCompactScoreRow(card, categoryIndex, options = {}) {
+    const categoryName = CATS[categoryIndex];
+    const { desc, diceEx } = getScoreMeta(categoryName);
+    const clickable = Boolean(options.interactive) && !gameOver && isMyTurn() && card[categoryIndex] === null && rollsLeft < 3;
+    const previewScoreValue = clickable ? calcScore(dice, categoryIndex) : null;
+    const preview = card[categoryIndex] === null && previewScoreValue !== null ? previewScoreValue : null;
+    const valueMarkup = buildValueMarkup(card[categoryIndex] !== null ? card[categoryIndex] : '-', preview);
+    const classes = `score-item compact-score-row ${card[categoryIndex] !== null ? 'filled' : ''} ${clickable ? 'compact-clickable' : ''}`;
+    const clickAttr = clickable ? `onclick="pickCategory(${categoryIndex})"` : '';
+    const previewHandlers = clickable ? getPreviewHandlers(categoryIndex) : '';
+    const tipLayoutAttr = clickable ? 'data-tip-layout="score-preview"' : '';
+    return `
+        <div class="${classes}" data-score-flash="${categoryIndex}" ${getTooltipHandlers()} ${clickAttr} ${previewHandlers} ${tipLayoutAttr} data-desc="${escapeHtml(desc)}" data-dice="${escapeHtml(diceEx)}">
+            <span class="score-name">${escapeHtml(categoryName)}</span>
+            <span class="score-val">${valueMarkup}</span>
+            <div class="custom-tip" style="display:none;"></div>
+        </div>
+    `;
+}
+
+function renderSummaryItem(label, value, options = {}) {
+    const idAttr = options.id ? ` id="${options.id}"` : '';
+    const extraClass = options.extraClass ? ` ${options.extraClass}` : '';
+    const desc = options.desc || '';
+    return `
+        <div class="score-item${extraClass}" ${getTooltipHandlers()} data-desc="${escapeHtml(desc)}" data-dice="">
+            <span class="score-name">${escapeHtml(label)}</span>
+            <span class="score-val"${idAttr}>${value}</span>
+            <div class="custom-tip" style="display:none;"></div>
+        </div>
+    `;
+}
+
+function renderCompactSingleCard(card, title, options = {}) {
+    const totals = calcTotals(card);
+    const titleStyle = getTurnTitleStyle(options.active !== false);
+    const showSectionHeads = options.showSectionHeads !== false;
+    const upperRows = CATS.slice(0, 6).map((_, index) => renderCompactScoreRow(card, index, { interactive: options.interactive !== false })).join('');
+    const lowerRows = CATS.slice(6).map((_, index) => renderCompactScoreRow(card, index + 6, { interactive: options.interactive !== false })).join('');
+    const flatRows = `${upperRows}<div class="compact-score-divider"><span>63점 보너스 체크</span></div>${lowerRows}`;
+    const layoutClass = showSectionHeads ? 'compact-score-layout' : 'compact-score-layout no-section-heads';
+    const sectionsMarkup = showSectionHeads
+        ? `
+            <div class="compact-score-section">
+                <div class="compact-score-head">Upper</div>
+                ${upperRows}
+            </div>
+            <div class="compact-score-section">
+                <div class="compact-score-head">Lower</div>
+                ${lowerRows}
+            </div>
+        `
+        : `
+            <div class="compact-score-section compact-score-section-flat">
+                ${flatRows}
+            </div>
+        `;
+    return `
+        <div class="scorecard-title" style="${titleStyle}">${escapeHtml(title)}</div>
+        <div class="${layoutClass}">
+            ${sectionsMarkup}
+        </div>
+        <div class="compact-summary-grid">
+            ${renderSummaryItem('Subtotal', `${totals.upper}/63`, {
+                id: options.previewIds ? 'summary-subtotal' : '',
+                extraClass: 'subtotal compact-summary-card',
+                desc: '상단 항목의 점수 합계. 목표는 63점입니다.',
+            })}
+            ${renderSummaryItem('Upper Bonus', `+${totals.bonus}`, {
+                id: options.previewIds ? 'summary-bonus' : '',
+                extraClass: 'bonus compact-summary-card',
+                desc: '상단 합계 63점 이상이면 보너스 35점을 받습니다.',
+            })}
+            <div class="total-score compact-total">
+                <span>TOTAL</span>
+                <span${options.previewIds ? ' id="summary-total"' : ''}>${totals.total}</span>
+            </div>
+        </div>
+    `;
+}
+
+function renderCompareStatRow(label, leftValue, rightValue, options = {}) {
+    const leftIdAttr = options.leftId ? ` id="${options.leftId}"` : '';
+    const desc = options.desc || '';
+    const extraClass = options.extraClass ? ` ${options.extraClass}` : '';
+    return `
+        <div class="compare-row${extraClass}">
+            <div class="compare-cat-cell tip-trigger" ${getTooltipHandlers()} data-desc="${escapeHtml(desc)}" data-dice="">
+                ${escapeHtml(label)}
+                <div class="custom-tip" style="display:none;"></div>
+            </div>
+            <div class="compare-value-cell"><span class="compare-score-main"${leftIdAttr}>${leftValue}</span></div>
+            <div class="compare-value-cell"><span class="compare-score-main">${rightValue}</span></div>
+        </div>
+    `;
+}
+
+function renderCompareCategoryRow(categoryIndex, leftCard, rightCard, options = {}) {
+    const categoryName = CATS[categoryIndex];
+    const { desc, diceEx } = getScoreMeta(categoryName);
+    const clickable = Boolean(options.leftInteractive) && !gameOver && isMyTurn() && leftCard[categoryIndex] === null && rollsLeft < 3;
+    const preview = clickable ? calcScore(dice, categoryIndex) : null;
+    const leftValueMarkup = buildValueMarkup(leftCard[categoryIndex] !== null ? leftCard[categoryIndex] : '-', leftCard[categoryIndex] === null ? preview : null);
+    const rightValueMarkup = buildValueMarkup(rightCard[categoryIndex] !== null ? rightCard[categoryIndex] : '-', null);
+    const leftCellClasses = `compare-value-cell ${leftCard[categoryIndex] !== null ? 'filled' : ''} ${clickable ? 'clickable' : ''}`;
+    const rightCellClasses = `compare-value-cell ${rightCard[categoryIndex] !== null ? 'filled' : ''}`;
+    const clickAttr = clickable ? `onclick="pickCategory(${categoryIndex})"` : '';
+    const previewHandlers = clickable ? getPreviewHandlers(categoryIndex) : '';
+    return `
+        <div class="compare-row">
+            <div class="compare-cat-cell tip-trigger" ${getTooltipHandlers()} data-desc="${escapeHtml(desc)}" data-dice="${escapeHtml(diceEx)}">
+                ${escapeHtml(categoryName)}
+                <div class="custom-tip" style="display:none;"></div>
+            </div>
+            <div class="${leftCellClasses}" data-score-flash="${categoryIndex}" ${clickAttr} ${previewHandlers}>${leftValueMarkup}</div>
+            <div class="${rightCellClasses}">${rightValueMarkup}</div>
+        </div>
+    `;
+}
+
+function renderCompareBoard(leftCard, rightCard, options = {}) {
+    const leftTotals = calcTotals(leftCard);
+    const rightTotals = calcTotals(rightCard);
+    const leftTitleStyle = getTurnTitleStyle(Boolean(options.leftActive));
+    const rightTitleStyle = getTurnTitleStyle(Boolean(options.rightActive));
+
+    let rows = '';
+    for (let i = 0; i < CATS.length; i++) {
+        if (i === 6) {
+            rows += renderCompareStatRow('Subtotal', `${leftTotals.upper}/63`, `${rightTotals.upper}/63`, {
+                leftId: options.previewIds ? 'summary-subtotal' : '',
+                extraClass: ' compare-summary',
+                desc: '상단 항목의 점수 합계입니다. 목표는 63점입니다.',
+            });
+            rows += renderCompareStatRow('Upper Bonus', `+${leftTotals.bonus}`, `+${rightTotals.bonus}`, {
+                leftId: options.previewIds ? 'summary-bonus' : '',
+                extraClass: ' compare-summary',
+                desc: '상단 합계 63점 이상이면 보너스 35점을 받습니다.',
+            });
+        }
+        rows += renderCompareCategoryRow(i, leftCard, rightCard, {
+            leftInteractive: options.leftInteractive,
+        });
+    }
+    rows += renderCompareStatRow('TOTAL', `${leftTotals.total}`, `${rightTotals.total}`, {
+        leftId: options.previewIds ? 'summary-total' : '',
+        extraClass: ' compare-total',
+        desc: '상단 합계, 보너스, 하단 점수를 모두 더한 최종 합계입니다.',
+    });
+
+    return `
+        <div class="compare-board">
+            <div class="compare-board-head">
+                <div class="compare-cat-head">카테고리</div>
+                <div class="compare-side-head" style="${leftTitleStyle}">${escapeHtml(options.leftTitle || '나')}</div>
+                <div class="compare-side-head" style="${rightTitleStyle}">${escapeHtml(options.rightTitle || '상대')}</div>
+            </div>
+            ${rows}
+        </div>
+    `;
+}
+
 function showTip(el) {
     hideTip(el);
     const desc = el.getAttribute('data-desc') || '';
@@ -150,50 +351,89 @@ function showTip(el) {
     if (!desc && !diceText) return;
     const tip = el.querySelector('.custom-tip');
     if (tip) {
+        const tipLayout = el.getAttribute('data-tip-layout') || 'default';
+        const scorePreviewLayout = tipLayout === 'score-preview';
         tip.style.display = 'flex';
         tip.style.flexDirection = 'column';
         tip.style.alignItems = 'flex-start';
-        tip.innerHTML = `<div class="tip-dice" style="font-weight:bold; color:#00ffd0; font-size:1.08em; margin-bottom:2px;">${diceText}</div><div class="tip-desc" style="font-size:1.04em; line-height:1.6; color:#fff;">${desc}</div>`;
+        const diceMarkup = diceText
+            ? `<div class="tip-dice" style="font-weight:800; color:#7ef3cb; font-size:1.04em; margin-bottom:6px;">${diceText}</div>`
+            : '';
+        tip.innerHTML = `${diceMarkup}<div class="tip-desc" style="font-size:1.01em; line-height:1.6; color:#f8fbff; font-weight:600;">${desc}</div>`;
         tip.style.position = 'absolute';
-        tip.style.left = '60%';
         const rect = el.getBoundingClientRect();
         const tipHeight = 80;
-        if (rect.top < tipHeight) {
-            tip.style.top = '100%';
-            tip.style.marginTop = '10px';
+        tip.style.left = '';
+        tip.style.right = '';
+        tip.style.top = '';
+        tip.style.bottom = '';
+        tip.style.marginTop = '0';
+        if (scorePreviewLayout) {
+            const placeAbove = (window.innerHeight - rect.bottom < 150) && rect.top > 140;
+            const alignRight = rect.left + 340 > window.innerWidth - 20;
+            if (alignRight) {
+                tip.style.right = '0';
+            } else {
+                tip.style.left = '0';
+            }
+            tip.style.transform = 'none';
+            tip.style.width = 'min(320px, calc(100vw - 40px))';
+            tip.style.minWidth = '180px';
+            tip.style.maxWidth = '320px';
+            if (placeAbove) {
+                tip.style.bottom = 'calc(100% + 8px)';
+            } else {
+                tip.style.top = 'calc(100% + 8px)';
+            }
         } else {
-            tip.style.top = '-64px';
-            tip.style.marginTop = '0';
+            tip.style.left = '60%';
+            if (rect.top < tipHeight) {
+                tip.style.top = '100%';
+                tip.style.marginTop = '10px';
+            } else {
+                tip.style.top = '-64px';
+            }
+            tip.style.transform = 'translateX(-50%)';
+            tip.style.minWidth = '180px';
+            tip.style.maxWidth = '320px';
+            tip.style.width = 'max-content';
         }
-        tip.style.transform = 'translateX(-50%)';
-        tip.style.background = 'linear-gradient(135deg, #23234a 80%, #1a1a2e 100%)';
-        tip.style.opacity = '0.97';
-        tip.style.color = '#fff';
-        tip.style.padding = '13px 20px 12px 20px';
-        tip.style.borderRadius = '13px';
+        tip.style.background = '#16192f';
+        tip.style.opacity = '1';
+        tip.style.color = '#f8fbff';
+        tip.style.padding = '14px 18px 13px 18px';
+        tip.style.borderRadius = '12px';
         tip.style.fontSize = '1em';
-        tip.style.boxShadow = '0 6px 32px 0 rgba(0,0,0,0.28), 0 1.5px 0 #00ffd0 inset';
+        tip.style.boxShadow = '0 16px 36px rgba(0,0,0,0.46), 0 0 0 1px rgba(126,243,203,0.18)';
         tip.style.zIndex = '1500';
         tip.style.whiteSpace = 'pre-line';
         tip.style.pointerEvents = 'none';
-        tip.style.minWidth = '180px';
-        tip.style.maxWidth = '320px';
-        tip.style.width = 'max-content';
         tip.style.height = 'auto';
         tip.style.textAlign = 'left';
         tip.style.fontFamily = 'inherit';
+        tip.style.backdropFilter = 'none';
+        tip.style.webkitBackdropFilter = 'none';
         tip.style.overflowWrap = 'break-word';
         tip.style.wordBreak = 'keep-all';
-        tip.style.border = '1.5px solid #00ffd0';
+        tip.style.border = '1.5px solid #7ef3cb';
         tip.style.overflow = 'visible';
         tip.style.boxSizing = 'border-box';
         if (window.innerWidth < 600) {
             tip.style.fontSize = '0.98em';
-            tip.style.padding = '9px 8px 8px 8px';
-            tip.style.minWidth = '120px';
+            tip.style.padding = '10px 10px 9px 10px';
             tip.style.maxWidth = '90vw';
             tip.style.width = 'auto';
-            tip.style.top = '-54px';
+            if (scorePreviewLayout) {
+                tip.style.left = '0';
+                tip.style.right = '0';
+                tip.style.minWidth = '0';
+                tip.style.bottom = '';
+                tip.style.top = 'calc(100% + 8px)';
+                tip.style.transform = 'none';
+            } else {
+                tip.style.minWidth = '120px';
+                tip.style.top = '-54px';
+            }
         }
     }
 }
@@ -211,19 +451,19 @@ function previewScore(i) {
     temp[i] = sc;
     const newTotals = calcTotals(temp);
 
-    const totalEl = document.querySelector('.scorecard-area .total-score span:last-child');
+    const totalEl = document.getElementById('summary-total') || document.querySelector('.scorecard-area .total-score span:last-child');
     if (totalEl) {
         const diff = newTotals.total - curTotals.total;
         totalEl.innerHTML = `${curTotals.total} <span style="color:#00ffcc; font-size:0.8em"> (+${diff}) ➜ ${newTotals.total}</span>`;
     }
 
-    const subtotalEl = document.querySelector('.score-item.subtotal .score-val');
+    const subtotalEl = document.getElementById('summary-subtotal') || document.querySelector('.score-item.subtotal .score-val');
     if (subtotalEl) {
         const diff = newTotals.upper - curTotals.upper;
         subtotalEl.innerHTML = `${curTotals.upper}/63 <span style="color:#00ffcc; font-size:0.8em"> (+${diff}) ➜ ${newTotals.upper}/63</span>`;
     }
 
-    const bonusEl = document.querySelector('.score-item.bonus .score-val');
+    const bonusEl = document.getElementById('summary-bonus') || document.querySelector('.score-item.bonus .score-val');
     if (bonusEl && newTotals.bonus > curTotals.bonus) {
         bonusEl.innerHTML = `+${curTotals.bonus} <span style="color:#ffd700; font-weight:bold"> (+35) ➜ ${newTotals.bonus}</span>`;
         bonusEl.parentElement.style.background = 'rgba(255, 215, 0, 0.25)';

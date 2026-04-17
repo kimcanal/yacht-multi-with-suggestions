@@ -198,6 +198,82 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(leaderboard_payload[0]["username"], "host1")
         self.assertEqual(leaderboard_payload[0]["wins"], 1)
 
+    def test_rematch_requires_both_players_and_resets_room(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        self.assertEqual(created.status_code, 200)
+        code = created.get_json()["code"]
+        host_token = created.get_json()["player_token"]
+
+        joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
+        self.assertEqual(joined.status_code, 200)
+        guest_token = joined.get_json()["player_token"]
+
+        finished = self.client.post(
+            f"/api/rooms/{code}/sync",
+            json={
+                "username": "host1",
+                "player_token": host_token,
+                "dice": [6, 6, 6, 6, 6],
+                "kept": [1, 1, 1, 1, 1],
+                "rolls_left": 0,
+                "scores": {
+                    "host1": [3, 6, 9, 12, 15, 18, 26, 24, 22, 15, 30, 50],
+                    "guest1": [1, 4, 6, 8, 10, 12, 20, 18, 0, 0, 0, 0],
+                },
+                "turn": "host1",
+                "game_over": True,
+                "winner": "host1",
+                "loser": "guest1",
+                "end_reason": "score",
+            },
+        )
+        self.assertEqual(finished.status_code, 200)
+        self.assertTrue(finished.get_json()["state"]["game_over"])
+
+        waiting = self.client.post(
+            f"/api/rooms/{code}/rematch",
+            json={"username": "host1", "player_token": host_token},
+        )
+        self.assertEqual(waiting.status_code, 200)
+        waiting_payload = waiting.get_json()
+        self.assertEqual(waiting_payload["status"], "waiting")
+        self.assertEqual(waiting_payload["rematch_pending_players"], ["host1"])
+        self.assertEqual(waiting_payload["rematch_waiting_for"], ["guest1"])
+
+        room_waiting = self.client.get(f"/api/rooms/{code}", query_string={"u": "host1", "pt": host_token, "sv": 2})
+        self.assertEqual(room_waiting.status_code, 200)
+        room_waiting_payload = room_waiting.get_json()
+        self.assertTrue(room_waiting_payload["unchanged"])
+        self.assertEqual(room_waiting_payload["rematch_pending_players"], ["host1"])
+
+        started = self.client.post(
+            f"/api/rooms/{code}/rematch",
+            json={"username": "guest1", "player_token": guest_token},
+        )
+        self.assertEqual(started.status_code, 200)
+        started_payload = started.get_json()
+        self.assertEqual(started_payload["status"], "started")
+        self.assertFalse(started_payload["state"]["game_over"])
+        self.assertEqual(started_payload["state"]["turn"], "guest1")
+        self.assertEqual(started_payload["rematch_pending_players"], [])
+
+        reset_room = self.client.get(f"/api/rooms/{code}", query_string={"u": "guest1", "pt": guest_token})
+        self.assertEqual(reset_room.status_code, 200)
+        reset_payload = reset_room.get_json()
+        self.assertEqual(reset_payload["room_phase"], "playing")
+        self.assertEqual(reset_payload["state"]["turn"], "guest1")
+        self.assertFalse(reset_payload["state"]["game_over"])
+        self.assertEqual(reset_payload["state"]["scores"]["host1"], [None] * 12)
+        self.assertEqual(reset_payload["state"]["scores"]["guest1"], [None] * 12)
+        self.assertEqual(reset_payload["rematch_pending_players"], [])
+
+        guest_roll = self.client.post(
+            f"/api/rooms/{code}/roll",
+            json={"username": "guest1", "player_token": guest_token, "kept": [0, 0, 0, 0, 0]},
+        )
+        self.assertEqual(guest_roll.status_code, 200)
+        self.assertEqual(guest_roll.get_json()["rolls_left"], 2)
+
     def test_leaderboard_endpoints_and_reset(self):
         single_saved = self.client.post(
             "/api/leaderboard/single",
@@ -217,10 +293,52 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(saved_game.status_code, 200)
         self.assertEqual(saved_game.get_json()["status"], "success")
 
+        second_game = self.client.post(
+            "/api/save-game",
+            json={"player1": "beta12", "score1": 198, "player2": "alpha1", "score2": 205},
+        )
+        self.assertEqual(second_game.status_code, 200)
+
+        draw_game = self.client.post(
+            "/api/save-game",
+            json={"player1": "alpha1", "score1": 190, "player2": "gamma34", "score2": 190},
+        )
+        self.assertEqual(draw_game.status_code, 200)
+
         multi_leaderboard = self.client.get("/api/leaderboard/multi")
         self.assertEqual(multi_leaderboard.status_code, 200)
         multi_payload = multi_leaderboard.get_json()
-        self.assertEqual([entry["username"] for entry in multi_payload[:2]], ["alpha1", "beta12"])
+        self.assertEqual([entry["username"] for entry in multi_payload[:3]], ["alpha1", "gamma34", "beta12"])
+
+        recent_games = self.client.get("/api/leaderboard/recent", query_string={"limit": 2})
+        self.assertEqual(recent_games.status_code, 200)
+        recent_payload = recent_games.get_json()
+        self.assertEqual(len(recent_payload), 2)
+        self.assertEqual(recent_payload[0]["winner"], "DRAW")
+        self.assertEqual(recent_payload[1]["winner"], "alpha1")
+
+        alpha_recent = self.client.get(
+            "/api/leaderboard/recent",
+            query_string={"username": "alpha1", "limit": 2},
+        )
+        self.assertEqual(alpha_recent.status_code, 200)
+        alpha_recent_payload = alpha_recent.get_json()
+        self.assertEqual(alpha_recent_payload[0]["result"], "draw")
+        self.assertEqual(alpha_recent_payload[0]["opponent"], "gamma34")
+        self.assertEqual(alpha_recent_payload[1]["result"], "win")
+
+        alpha_profile = self.client.get("/api/leaderboard/users/alpha1")
+        self.assertEqual(alpha_profile.status_code, 200)
+        alpha_profile_payload = alpha_profile.get_json()
+        self.assertEqual(alpha_profile_payload["wins"], 2)
+        self.assertEqual(alpha_profile_payload["draws"], 1)
+        self.assertEqual(alpha_profile_payload["losses"], 0)
+        self.assertEqual(alpha_profile_payload["games_played"], 3)
+        self.assertEqual(alpha_profile_payload["rank"], 1)
+        self.assertEqual(alpha_profile_payload["recent_form"], ["D", "W", "W"])
+        self.assertEqual(alpha_profile_payload["current_streak"], {"type": "draw", "count": 1})
+        self.assertAlmostEqual(alpha_profile_payload["avg_score"], 202.0)
+        self.assertAlmostEqual(alpha_profile_payload["win_rate"], 66.7)
 
         denied_reset = self.client.post(
             "/api/leaderboard/reset",

@@ -8,7 +8,7 @@ from config import TURN_TIME_LIMIT
 from utils.room_utils import (
     default_room_state, finalize_room_forfeit, generate_room_code,
     prune_room_activity, remove_observer, remove_player, room_phase,
-    touch_observer, touch_player,
+    start_room_rematch, touch_observer, touch_player,
 )
 from utils.validation import (
     is_valid_player, issue_player_token,
@@ -18,6 +18,17 @@ from utils.validation import (
 rooms_bp = Blueprint("rooms", __name__)
 
 _INVALID_USERNAME = "닉네임은 2~12자(한글/영문/숫자/_)만 가능합니다"
+
+
+def _rematch_payload(room):
+    players = room.get("players", [])
+    requests = room.get("rematch_requests", {})
+    pending_players = [player for player in players if player in requests]
+    waiting_for = [player for player in players if player not in requests]
+    return {
+        "rematch_pending_players": pending_players,
+        "rematch_waiting_for": waiting_for,
+    }
 
 
 @rooms_bp.route("/api/rooms", methods=["GET"])
@@ -70,6 +81,7 @@ def create_room():
         "started_full": False,
         "player_last_seen": {username: now},
         "observer_last_seen": {},
+        "rematch_requests": {},
     }
     return jsonify({"code": code, "players": rooms[code]["players"], "player_token": player_token})
 
@@ -110,6 +122,7 @@ def join_room(code):
     room["state"] = state
     room["last_update"] = now
     room["started_full"] = True
+    room["rematch_requests"] = {}
     touch_player(room, username, now)
 
     return jsonify({
@@ -190,6 +203,7 @@ def get_room(code):
         "player1": p1,
         "player2": p2,
     }
+    payload.update(_rematch_payload(room))
 
     if since_version is not None and since_version == current_version:
         payload["unchanged"] = True
@@ -298,6 +312,8 @@ def sync_room(code):
 
     room["state"] = new_state
     room["last_update"] = now
+    if not is_game_over:
+        room["rematch_requests"] = {}
     return jsonify({"state": new_state})
 
 
@@ -347,6 +363,50 @@ def roll_dice(code):
     room["state"] = state
     room["last_update"] = now
     return jsonify({"dice": new_dice, "rolls_left": state["rolls_left"], "state": state})
+
+
+@rooms_bp.route("/api/rooms/<code>/rematch", methods=["POST"])
+def rematch_room(code):
+    room = rooms.get(code)
+    if not room:
+        return jsonify({"error": "방 없음"}), 404
+
+    data = request.json or {}
+    username = normalize_username(data.get("username"))
+    player_token = data.get("player_token")
+
+    if username not in room.get("players", []) or not is_valid_player(room, username, player_token):
+        return jsonify({"error": "참가자 인증 실패"}), 403
+
+    now = time.time()
+    touch_player(room, username, now)
+    room = prune_room_activity(code, room, now)
+    if not room or username not in room.get("players", []):
+        return jsonify({"error": "방 없음"}), 404
+
+    state = room.get("state", default_room_state())
+    if not state.get("game_over"):
+        return jsonify({"error": "게임이 아직 끝나지 않았습니다"}), 409
+    if len(room.get("players", [])) < 2:
+        return jsonify({"error": "재대결 가능한 상대가 없습니다"}), 409
+
+    requests = room.setdefault("rematch_requests", {})
+    requests[username] = now
+    pending_payload = _rematch_payload(room)
+
+    if len(pending_payload["rematch_pending_players"]) >= 2:
+        new_state = start_room_rematch(room, now=now)
+        payload = {
+            "status": "started",
+            "players": room.get("players", []),
+            "state": new_state,
+        }
+        payload.update(_rematch_payload(room))
+        return jsonify(payload)
+
+    payload = {"status": "waiting"}
+    payload.update(pending_payload)
+    return jsonify(payload)
 
 
 @rooms_bp.route("/api/rooms/<code>/leave", methods=["POST", "GET"])

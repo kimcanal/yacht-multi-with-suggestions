@@ -12,9 +12,6 @@
             color: #fff;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             padding: 20px;
             overflow-x: hidden;
         }
@@ -31,10 +28,15 @@
         }
         @media (max-width: 995px) { body { padding: 10px; } }
         .game-wrapper {
-            max-width: 1400px; margin: 0 auto; display: flex; gap: 40px;
-            flex-wrap: wrap; justify-content: center; align-items: flex-start;
+            width: 100%;
+            max-width: 1560px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(0, 1.12fr) minmax(380px, 560px);
+            gap: 28px;
+            align-items: start;
         }
-        .main-area { flex: 1 1 400px; max-width: 100%; }
+        .main-area { min-width: 0; max-width: 100%; }
         .title {
             font-size: 3em; font-weight: 700; margin-bottom: 30px;
             text-shadow: 0 0 30px rgba(0, 255, 200, 0.3); color: #00ffcc;
@@ -108,12 +110,23 @@
         .scorecard-area {
             background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 30px;
             backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1);
-            flex: 1 1 350px; max-width: 100%; margin: 0 auto;
+            width: 100%; max-width: 100%; margin: 0 auto; position: sticky; top: 18px; align-self: start;
+        }
+        body.solo-play-mode .game-wrapper {
+            max-width: 1660px;
+            grid-template-columns: minmax(0, 1fr) minmax(460px, 690px);
+        }
+        body.solo-play-mode .scorecard-area {
+            padding: 32px 28px;
+        }
+        @media (max-width: 1180px) {
+            .game-wrapper { grid-template-columns: 1fr; }
+            .scorecard-area { position: static; }
         }
         @media (max-width: 995px) {
             .game-wrapper { gap: 24px; }
-            .main-area { max-width: 480px; }
-            .scorecard-area { max-width: 450px; }
+            .main-area { max-width: 100%; }
+            .scorecard-area { max-width: 100%; }
             .dice-area { padding: 20px 12px; }
         }
         @media (max-width: 480px) {
@@ -123,18 +136,147 @@
         }
         .scorecard-title { font-size: 1.8em; font-weight: 700; margin-bottom: 25px; color: #00ffcc; text-align: center; }
         .score-item {
-            display: flex; justify-content: space-between; align-items: center; padding: 14px 16px;
-            margin: 8px 0; font-size: 1.05em; background: rgba(255, 255, 255, 0.05); border-radius: 10px;
+            display: flex; justify-content: space-between; align-items: center; padding: 10px 12px;
+            margin: 6px 0; font-size: 0.96em; background: rgba(255, 255, 255, 0.05); border-radius: 10px;
             cursor: pointer; transition: all 0.3s ease; border-left: 4px solid transparent; position: relative;
         }
         .score-item:hover:not(.filled):not(.bonus) {
             background: rgba(102, 126, 234, 0.3); border-left-color: #667eea; transform: translateX(5px);
         }
+        @keyframes scoreCommitPulse {
+            0% { transform: scale(1); }
+            35% {
+                transform: scale(1.03);
+                box-shadow: 0 0 0 1px rgba(255,215,122,0.26), 0 0 22px rgba(255,215,122,0.2);
+                background: rgba(255,215,122,0.18);
+            }
+            100% { transform: scale(1); }
+        }
+        .score-item.score-commit-flash,
+        .compare-value-cell.score-commit-flash {
+            animation: scoreCommitPulse 0.48s ease;
+        }
         .score-item.filled { background: rgba(0, 255, 204, 0.15); cursor: default; border-left-color: #00ffcc; }
         .score-item.bonus { background: rgba(255, 215, 0, 0.15); border-left-color: #ffd700; font-weight: bold; cursor: default; }
         .score-name { font-weight: 500; font-size: 1.05em; flex: 1; }
         .score-val { font-weight: bold; color: #ffd700; font-size: 1.1em; min-width: 60px; text-align: right; }
-        .score-preview { font-size: 0.85em; color: #00ffcc; margin-left: 10px; opacity: 0.8; }
+        .score-preview {
+            display:inline-flex; align-items:center; justify-content:center; white-space:nowrap;
+            margin-left:10px; padding:4px 9px; border-radius:999px;
+            background:rgba(0,255,204,0.18); border:1px solid rgba(0,255,204,0.34);
+            color:#a7fff0; font-size:0.78em; font-weight:900; line-height:1.1; opacity:1;
+            box-shadow:0 0 14px rgba(0,255,204,0.12);
+        }
+        .compact-score-layout { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; }
+        .compact-score-layout.no-section-heads { grid-template-columns:1fr; gap:10px; }
+        .compact-score-section { min-width:0; }
+        .compact-score-section-flat { display:grid; gap:8px; }
+        .compact-score-divider {
+            display:flex; align-items:center; justify-content:center; gap:10px;
+            margin:6px 0 4px; color:#8fa3b8; font-size:0.72rem; font-weight:800;
+        }
+        .compact-score-divider::before,
+        .compact-score-divider::after {
+            content:''; flex:1; height:1px; background:rgba(255,255,255,0.12);
+        }
+        .compact-score-divider span {
+            display:inline-flex; align-items:center; padding:0 2px; white-space:nowrap;
+        }
+        .compact-score-head {
+            margin-bottom:10px; padding:8px 10px; border-radius:10px; background:rgba(255,255,255,0.06);
+            color:#9fb0c2; font-size:0.78rem; font-weight:800; text-transform:uppercase;
+        }
+        .compact-score-row { margin:0; min-width:0; }
+        .compact-score-row .score-name { font-size:0.94em; }
+        .compact-score-row.compact-clickable {
+            border-left-color:#59f0c2;
+            background:linear-gradient(135deg, rgba(89,240,194,0.14), rgba(255,255,255,0.05));
+            box-shadow:inset 0 0 0 1px rgba(89,240,194,0.16);
+        }
+        .compact-score-row.compact-clickable:hover {
+            background:linear-gradient(135deg, rgba(89,240,194,0.22), rgba(102,126,234,0.14));
+            border-left-color:#7ef3cb;
+            box-shadow:0 10px 24px rgba(89,240,194,0.1), inset 0 0 0 1px rgba(126,243,203,0.24);
+        }
+        .compact-score-row.compact-clickable .score-val { color:#ffef9d; }
+        #scorecard.scorecard-mode-solo .scorecard-title { font-size:2em; margin-bottom:22px; }
+        #scorecard.scorecard-mode-solo .compact-score-layout {
+            grid-template-columns:1fr;
+            gap:18px;
+        }
+        #scorecard.scorecard-mode-solo .compact-score-section {
+            display:grid;
+            gap:8px;
+        }
+        #scorecard.scorecard-mode-solo .compact-score-head {
+            padding:10px 12px;
+            font-size:0.82rem;
+        }
+        #scorecard.scorecard-mode-solo .compact-score-row {
+            padding:13px 14px;
+            min-height:56px;
+        }
+        #scorecard.scorecard-mode-solo .compact-score-row .score-name {
+            font-size:1.01em;
+            font-weight:700;
+        }
+        #scorecard.scorecard-mode-solo .score-val {
+            font-size:1.16em;
+        }
+        #scorecard.scorecard-mode-solo .compact-summary-grid {
+            gap:12px;
+            margin-top:18px;
+        }
+        .compact-summary-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; margin-top:14px; }
+        .compact-summary-grid .score-item { margin:0; }
+        .compact-summary-card { min-width:0; }
+        .compact-total {
+            margin-top:0; padding:12px 14px; border-top:none; border-left:4px solid #ffd700;
+            border-radius:10px; background:rgba(255, 215, 0, 0.12);
+        }
+        .compare-board { display:grid; gap:8px; }
+        .compare-board-head, .compare-row {
+            display:grid; grid-template-columns:minmax(118px, 1.2fr) minmax(72px, 0.76fr) minmax(72px, 0.76fr);
+            gap:8px; align-items:stretch;
+        }
+        .compare-cat-head, .compare-side-head, .compare-cat-cell, .compare-value-cell {
+            border-radius:10px; padding:10px 12px; min-width:0;
+        }
+        .compare-cat-head {
+            background:rgba(255,255,255,0.05); color:#9fb0c2; font-size:0.78rem; font-weight:800; text-transform:uppercase;
+        }
+        .compare-side-head {
+            background:rgba(255,255,255,0.05); text-align:right; font-size:0.88rem; font-weight:800;
+        }
+        .compare-row { position:relative; }
+        .compare-cat-cell {
+            background:rgba(255,255,255,0.04); color:#f0f4fa; display:flex; align-items:center; font-weight:700;
+        }
+        .compare-cat-cell.tip-trigger {
+            position:relative; cursor:help;
+        }
+        .compare-value-cell {
+            background:rgba(255,255,255,0.04); color:#ffd700; display:flex; align-items:center; justify-content:flex-end; gap:8px; font-weight:800;
+        }
+        .compare-value-cell.clickable {
+            cursor:pointer; border-left:3px solid #59f0c2; transition:0.2s ease;
+            background:linear-gradient(135deg, rgba(89,240,194,0.14), rgba(255,255,255,0.05));
+            box-shadow:inset 0 0 0 1px rgba(89,240,194,0.16);
+        }
+        .compare-value-cell.clickable:hover {
+            background:linear-gradient(135deg, rgba(89,240,194,0.22), rgba(102,126,234,0.14));
+            border-left-color:#7ef3cb;
+            box-shadow:0 10px 22px rgba(89,240,194,0.08), inset 0 0 0 1px rgba(126,243,203,0.24);
+        }
+        .compare-value-cell.filled { background:rgba(0,255,204,0.12); }
+        .compare-row.compare-summary .compare-cat-cell,
+        .compare-row.compare-summary .compare-value-cell { background:rgba(255,255,255,0.08); }
+        .compare-row.compare-total .compare-cat-cell,
+        .compare-row.compare-total .compare-value-cell {
+            background:rgba(255,215,0,0.12); border-left-color:#ffd700; color:#ffd700;
+        }
+        .compare-score-main { white-space:nowrap; color:#ffd700; }
+        .compare-value-cell .score-preview { margin-left:0; }
         .total-score {
             margin-top: 20px; padding-top: 20px; border-top: 2px solid rgba(255, 255, 255, 0.2);
             display: flex; justify-content: space-between; font-size: 1.3em; font-weight: bold; color: #ffd700;
@@ -142,7 +284,8 @@
         .ai-breakdown {
             margin-top: 0; background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 12px; font-size: 0.9em; text-align: left;
         }
-        .ai-mode-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:10px 0 12px; }
+        .ai-mode-row { display:flex; gap:8px; justify-content:center; align-items:center; flex-wrap:wrap; margin:10px 0 12px; }
+        .ai-mode-row-label { color:#9fb0c2; font-size:0.8rem; font-weight:800; }
         .ai-mode-btn {
             border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:#dbe4ee;
             border-radius:999px; padding:7px 14px; font-size:0.85rem; font-weight:700; cursor:pointer; transition:0.2s ease;
@@ -166,11 +309,67 @@
             display:inline-flex; align-items:center; justify-content:center; min-width:44px; padding:3px 8px;
             border-radius:999px; background:rgba(255,255,255,0.08); color:#7ef3cb; font-size:0.76em; font-weight:800;
         }
-        .ai-panel-head { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:10px; }
+        .ai-panel-shell { display:grid; gap:10px; }
+        .ai-panel-head { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; margin-bottom:0; }
         .ai-panel-title { font-weight:800; color:#f4f7fb; }
-        .ai-summary-line { margin-bottom:10px; color:#9ab0c2; line-height:1.4; font-size:0.9em; }
-        .ai-perspective { color:#59f0c2; font-size:0.8em; font-weight:700; }
-        .ai-reason { margin-top:6px; color:#76dcb6; font-size:0.84em; }
+        .ai-panel-toggle {
+            border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.06); color:#dbe4ee;
+            border-radius:999px; padding:7px 12px; font-size:0.76rem; font-weight:800; cursor:pointer; transition:0.2s ease; white-space:nowrap;
+        }
+        .ai-panel-toggle:hover { background:rgba(255,255,255,0.11); }
+        .ai-summary-band {
+            display:grid; gap:10px; padding:12px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06);
+        }
+        .ai-summary-main { display:grid; gap:8px; }
+        .ai-primary-pill {
+            display:inline-flex; align-items:center; max-width:100%; width:max-content; min-width:0;
+            padding:6px 10px; border-radius:999px; background:rgba(89,240,194,0.14); color:#7ef3cb; font-size:0.78rem; font-weight:800;
+        }
+        .ai-summary-line { margin-bottom:0; color:#d3deea; line-height:1.45; font-size:0.88em; }
+        .ai-perspective { color:#59f0c2; font-size:0.77em; font-weight:700; margin-top:2px; }
+        .ai-meta-row { display:flex; gap:8px; flex-wrap:wrap; }
+        .ai-meta-chip {
+            display:inline-flex; align-items:center; padding:5px 9px; border-radius:999px;
+            background:rgba(255,255,255,0.06); color:#9fb0c2; font-size:0.74rem; font-weight:800;
+        }
+        .ai-breakdown-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
+        .ai-breakdown-card {
+            min-width:0; padding:11px 12px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);
+        }
+        .ai-row-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+        .ai-row-name { color:#f2f4f8; font-weight:800; min-width:0; }
+        .ai-row-keep { color:#9ab0c2; font-size:0.82em; line-height:1.45; margin-bottom:8px; }
+        .ai-row-bar { background:rgba(255,255,255,0.08); border-radius:999px; height:8px; overflow:hidden; }
+        .ai-row-bar-fill { border-radius:999px; height:100%; transition:width 0.35s ease; }
+        .ai-row-reason { margin-top:8px; color:#76dcb6; font-size:0.8em; line-height:1.45; }
+        .ai-more-note { color:#93a3b8; font-size:0.78em; line-height:1.4; }
+        .mode-strip {
+            display: grid; gap: 14px;
+            margin-bottom: 18px; padding: 14px 16px; border-radius: 16px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+        }
+        .mode-config-grid {
+            display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between;
+        }
+        .mode-group { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .mode-label { font-size: 0.82rem; color: #9fb0c2; font-weight: 700; }
+        .mode-summary-block { width:100%; display:grid; gap:6px; }
+        .mode-strip-meta { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+        .mode-strip-toggle {
+            display:none; align-items:center; justify-content:center; flex:0 0 auto;
+            border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:#dbe4ee;
+            border-radius:999px; padding:8px 12px; font-size:0.78rem; font-weight:800; cursor:pointer; transition:0.2s ease;
+        }
+        .mode-strip-toggle:hover { background:rgba(255,255,255,0.12); }
+        .seg-btn {
+            border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: #dbe4ee;
+            border-radius: 999px; padding: 8px 14px; font-size: 0.84rem; font-weight: 700; cursor: pointer; transition: 0.2s ease;
+        }
+        .seg-btn.active { background: #59f0c2; color: #07251d; border-color: #59f0c2; }
+        .mode-summary { color: #9ab0c2; font-size: 0.85rem; line-height: 1.45; }
+        .mode-summary strong { color: #f2f4f8; font-weight: 800; }
+        .mode-summary-emphasis { color:#7ef3cb; font-weight:800; }
+        .coach-note { color: #ffd37a; font-size: 0.78rem; }
         .breakdown-item {
             display: flex; justify-content: space-between; align-items: center; padding: 8px 10px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05); gap: 10px;
@@ -204,6 +403,13 @@
             .game-wrapper { display: block !important; max-width: 100% !important; margin: 0 !important; }
             .main-area, .scorecard-area { width: 100% !important; max-width: 100% !important; flex: none !important; }
             .title { font-size: 2rem !important; margin-bottom: 16px !important; text-align: center; }
+            .mode-strip { padding: 12px; }
+            .mode-config-grid { gap:10px; }
+            .mode-group { width: 100%; }
+            .mode-strip-meta { align-items:center; }
+            .mode-strip-toggle { display:inline-flex; }
+            .mode-strip:not(.expanded) .mode-config-grid { display:none; }
+            .seg-btn { flex: 1 1 calc(50% - 6px); text-align: center; }
             .dice-area { padding: 16px 10px !important; border-radius: 18px !important; margin-bottom: 16px !important; }
             .scorecard-area { padding: 16px 10px !important; border-radius: 18px !important; }
             .controls { flex-wrap: wrap; gap: 10px !important; margin-bottom: 18px !important; }
@@ -211,14 +417,45 @@
             .rolls-remaining { font-size: 1.2rem; }
             .score-item { padding: 11px 10px; font-size: 0.95em; }
             .ai-mode-guide { grid-template-columns: 1fr; }
+            .ai-breakdown-grid { grid-template-columns: 1fr; }
+            .ai-panel-head { flex-direction:column; }
+            .ai-panel-toggle { width:100%; justify-content:center; text-align:center; }
+            .compact-score-layout { grid-template-columns: 1fr; }
+            .compact-summary-grid { grid-template-columns: 1fr; }
+            .compare-board-head, .compare-row {
+                grid-template-columns:minmax(96px, 1fr) minmax(58px, 0.62fr) minmax(58px, 0.62fr);
+                gap:6px;
+            }
+            .compare-cat-head, .compare-side-head, .compare-cat-cell, .compare-value-cell { padding:9px 10px; }
         }
     </style>
 </head>
 <body>
     <div class="background-fx"></div>
-    <div class="game-wrapper" style="max-width:1400px; margin:0 auto; display:flex; gap:60px; flex-wrap:wrap; justify-content:center; align-items:flex-start;">
-        <div class="main-area" style="flex:1 1 480px; max-width:100%;">
-            <div class="title" style="font-size:3.5em; font-weight:800; text-align:center; margin-bottom:40px; text-shadow:0 0 40px rgba(0,255,200,0.4); color:#00ffcc; letter-spacing:-1px;">🎲 YACHT</div>
+    <div class="game-wrapper">
+        <div class="main-area">
+            <div class="title" style="font-size:3.5em; font-weight:800; text-align:center; margin-bottom:18px; text-shadow:0 0 40px rgba(0,255,200,0.4); color:#00ffcc; letter-spacing:-1px;">🎲 YACHT <span id="mode-badge" style="font-size:0.34em; color:#d9fff5; vertical-align:middle; margin-left:8px;"></span></div>
+            <div class="mode-strip" id="mode-strip">
+                <div class="mode-summary-block">
+                    <div class="mode-strip-meta">
+                        <div id="mode-summary" class="mode-summary"></div>
+                        <button type="button" class="mode-strip-toggle" id="mode-strip-toggle" onclick="toggleModeStrip()">설정 열기</button>
+                    </div>
+                    <div id="coach-note" class="coach-note"></div>
+                </div>
+                <div class="mode-config-grid">
+                    <div class="mode-group">
+                        <span class="mode-label">게임 타입</span>
+                        <button type="button" class="seg-btn" data-single-mode="solo">🎯 솔로</button>
+                        <button type="button" class="seg-btn" data-single-mode="vs-ai">🤖 VS AI</button>
+                    </div>
+                    <div class="mode-group">
+                        <span class="mode-label">AI 코치</span>
+                        <button type="button" class="seg-btn" data-coach-toggle="on">ON</button>
+                        <button type="button" class="seg-btn" data-coach-toggle="off">OFF</button>
+                    </div>
+                </div>
+            </div>
             <div class="dice-area" style="background:rgba(255,255,255,0.07); border-radius:28px; padding:48px 36px; box-shadow:0 8px 40px rgba(0,255,204,0.08); border:1.5px solid rgba(255,255,255,0.12); margin-bottom:36px;">
                 <div class="dice-grid" id="dice-grid"></div>
                 <div class="info-bar" style="background:rgba(0,255,204,0.12); border:2px solid #00ffcc; border-radius:18px; padding:18px; text-align:center; font-size:1.25em; color:#00ffcc; font-weight:700; margin-top:18px;">
@@ -226,11 +463,12 @@
                     <div id="timer-bar" style="font-size:1.1em; color:#ff6b6b; margin:2px 0 0 0; font-weight:bold; display:none; line-height:2;">⏳<span id="timer-count">30</span>초 남았습니다</div>
                     <div id="game-status" style="color:#00ffcc; font-size:0.95em; text-align:center; min-height:24px;"></div>
                     <div id="turn-progress" style="margin-top:6px; color:#b8fff0; font-size:0.88em; text-align:center;">턴 진행: 1/12</div>
-                    <div class="ai-mode-row">
+                    <div class="ai-mode-row" style="display:none;">
+                        <span class="ai-mode-row-label">추천 방식</span>
                         <button class="ai-mode-btn" data-ai-mode="focused">집중 공략</button>
                         <button class="ai-mode-btn" data-ai-mode="cover">커버 플레이</button>
                     </div>
-                    <div class="ai-mode-guide" aria-label="AI 모드 설명">
+                    <div class="ai-mode-guide" aria-label="AI 모드 설명" style="display:none;">
                         <div class="ai-mode-card" data-ai-mode-desc="focused">
                             <strong><span class="ai-mode-chip">집중</span> 한 족보를 깊게 밉니다</strong>
                             <p>지금 손패에서 가장 유망한 한 족보를 끝까지 노립니다. Small Straight가 이미 잡혀 있으면 Large Straight 업그레이드도 같이 봅니다.</p>
@@ -241,7 +479,7 @@
                         </div>
                     </div>
                     <div id="ai-info-tip" style="margin-top:0; padding:8px 12px; background:rgba(0,255,204,0.08); border-left:3px solid #00ffcc; border-radius:5px; font-size:0.85em; color:#aaa; line-height:1.4; display:none;">💡 모드 차이는 굴림 단계에서 가장 크게 드러납니다. 집중 공략은 한 족보의 성공과 업그레이드를, 커버 플레이는 여러 하단 족보 중 하나 이상 성공할 확률과 전부 실패 확률을 함께 봅니다.<br>이미 Yacht를 확보했다면 Yacht Bonus +100 가치도 추천에 반영됩니다.</div>
-                    <div id="ai-breakdown" class="ai-breakdown"></div>
+                    <div id="ai-breakdown" class="ai-breakdown" style="display:none;"></div>
                 </div>
             </div>
             <div class="controls" style="display:flex; gap:18px; justify-content:center; margin-top:10px; margin-bottom:36px;">
@@ -250,7 +488,7 @@
                 <button class="btn" style="padding:14px 36px; font-size:1.15em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#ff6b6b 0%,#c92a2a 100%); color:white; box-shadow:0 6px 25px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
             </div>
         </div>
-        <div class="scorecard-area" style="background:rgba(255,255,255,0.07); border-radius:28px; padding:38px 30px; box-shadow:0 8px 40px rgba(0,255,204,0.08); border:1.5px solid rgba(255,255,255,0.12); flex:1 1 350px; max-width:100%; margin:0 auto;">
+        <div class="scorecard-area" style="background:rgba(255,255,255,0.07); border-radius:28px; padding:28px 24px; box-shadow:0 8px 40px rgba(0,255,204,0.08); border:1.5px solid rgba(255,255,255,0.12);">
             <div id="scorecard"></div>
             <div id="score-desc-area" class="ai-breakdown" style="margin-top:18px;"></div>
             <div class="footer-credit" style="text-align:center; margin-top:38px; font-size:0.98em; color:rgba(180,220,255,0.6);">
@@ -272,20 +510,332 @@
                     <div id="modal-error" style="color:#ff6b6b; margin-top:12px; font-size:0.95em;"></div>
                 </div>
             </div>
-    <script src="{{ url_for('static', filename='js/dom_utils.js', v='20260406-5') }}"></script>
+    <script src="{{ url_for('static', filename='js/dom_utils.js', v='20260417-6') }}"></script>
     <script src="{{ url_for('static', filename='js/game_state.js', v='20260406-5') }}"></script>
-    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260407-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260417-4') }}"></script>
     <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260408-2') }}"></script>
     <script src="{{ url_for('static', filename='js/winprob.js', v='20260406-5') }}"></script>
     <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260406-5') }}"></script>
     <script>
-        // 타이머 관련 변수
+        const SINGLE_MODE_KEY = 'yacht_single_mode';
+        const COACH_ENABLED_KEY = 'yacht_coach_enabled';
+        const MODE_STRIP_EXPANDED_KEY = 'yacht_mode_strip_expanded';
+        const AI_OPPONENT_NAME = 'Yacht Bot';
+        const AI_OPPONENT_MODE = 'focused';
+        const AI_TURN_DELAY_MS = 650;
+
+        function normalizeSingleMode(mode) {
+            return mode === 'vs-ai' ? 'vs-ai' : 'solo';
+        }
+
+        function normalizeCoachValue(value) {
+            return value === 'off' ? 'off' : 'on';
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const username = localStorage.getItem('yacht_username') || 'Player';
+        let singleMode = normalizeSingleMode(params.get('mode') || localStorage.getItem(SINGLE_MODE_KEY));
+        let coachEnabled = normalizeCoachValue(params.get('coach') || localStorage.getItem(COACH_ENABLED_KEY)) === 'on';
+        localStorage.setItem(SINGLE_MODE_KEY, singleMode);
+        localStorage.setItem(COACH_ENABLED_KEY, coachEnabled ? 'on' : 'off');
+        localStorage.removeItem('yacht_room');
+
+        var isMultiplayer = singleMode === 'vs-ai';
+
         let timerInterval = null;
         let timerLeft = 30;
+        let isRolling = false;
+        let gameOverToastShown = false;
+        let aiTurnInProgress = false;
+        let aiTurnSequence = 0;
+        let turnOwner = username;
+
+        let dice, kept, rollsLeft, myCard, oppCard, gameOver, aiRec;
+
+        function updateLocalVars() {
+            const state = GameState.getState();
+            dice = [...state.dice];
+            kept = [...state.kept];
+            rollsLeft = state.rollsLeft;
+            myCard = [...state.myCard];
+            oppCard = [...state.oppCard];
+            gameOver = state.gameOver;
+            aiRec = state.aiRec;
+        }
+
+        function commitState() {
+            GameState.setState({
+                dice: [...dice],
+                kept: [...kept],
+                rollsLeft,
+                myCard: [...myCard],
+                oppCard: [...oppCard],
+                gameOver,
+                aiRec,
+            });
+            updateLocalVars();
+        }
+
+        function isVersusAI() {
+            return singleMode === 'vs-ai';
+        }
+
+        const isMyTurn = () => !isVersusAI() || turnOwner === username;
+
+        function getAiModeDisplayName() {
+            return getAiMode() === 'cover' ? '커버 플레이' : '집중 공략';
+        }
+
+        function isCompactModeViewport() {
+            return window.innerWidth <= 768;
+        }
+
+        function toggleModeStrip() {
+            if (!isCompactModeViewport()) return;
+            const strip = document.getElementById('mode-strip');
+            const expanded = strip?.classList.contains('expanded');
+            localStorage.setItem(MODE_STRIP_EXPANDED_KEY, expanded ? 'false' : 'true');
+            updateModeStripUI();
+        }
+
+        function updateModeStripUI() {
+            const strip = document.getElementById('mode-strip');
+            const toggleBtn = document.getElementById('mode-strip-toggle');
+            if (!strip || !toggleBtn) return;
+
+            if (!isCompactModeViewport()) {
+                strip.classList.add('expanded');
+                toggleBtn.style.display = 'none';
+                toggleBtn.setAttribute('aria-expanded', 'true');
+                return;
+            }
+
+            const expanded = localStorage.getItem(MODE_STRIP_EXPANDED_KEY) === 'true';
+            strip.classList.toggle('expanded', expanded);
+            toggleBtn.style.display = 'inline-flex';
+            toggleBtn.textContent = expanded ? '설정 접기' : '설정 열기';
+            toggleBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        }
+
+        function sleep(ms) {
+            return new Promise((resolve) => setTimeout(resolve, ms));
+        }
+
+        function syncModeQuery() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('mode', singleMode);
+            url.searchParams.set('coach', coachEnabled ? 'on' : 'off');
+            window.history.replaceState({}, '', url.toString());
+            localStorage.setItem(SINGLE_MODE_KEY, singleMode);
+            localStorage.setItem(COACH_ENABLED_KEY, coachEnabled ? 'on' : 'off');
+        }
+
+        function hasMeaningfulProgress() {
+            return countFilledCategories(myCard) > 0 || countFilledCategories(oppCard) > 0 || rollsLeft < 3;
+        }
+
+        function resetTurnState() {
+            dice = [1, 1, 1, 1, 1];
+            kept = [0, 0, 0, 0, 0];
+            rollsLeft = 3;
+            aiRec = null;
+        }
+
+        function getOpenCategoriesFor(card) {
+            return card.map((value, index) => (value === null ? index : null)).filter((value) => value !== null);
+        }
+
+        function chooseBestScoringCategory(card, currentDice) {
+            const openCategories = getOpenCategoriesFor(card);
+            if (openCategories.length === 0) return 0;
+            return openCategories.reduce((bestIndex, categoryIndex) => {
+                const bestScore = calcScore(currentDice, bestIndex);
+                const nextScore = calcScore(currentDice, categoryIndex);
+                return nextScore > bestScore ? categoryIndex : bestIndex;
+            }, openCategories[0]);
+        }
+
+        function extractCategoryName(rawValue) {
+            if (!rawValue) return null;
+            const text = String(rawValue).trim();
+            if (!text) return null;
+            if (text.includes('Yacht Bonus')) return 'Yacht';
+            for (const category of CATS) {
+                if (text === category || text.includes(`(${category})`) || text.endsWith(category)) {
+                    return category;
+                }
+            }
+            return null;
+        }
+
+        function chooseCategoryFromRecommendation(payload, card, currentDice) {
+            const candidates = [
+                payload?.primary_target,
+                payload?.message,
+                ...(Array.isArray(payload?.breakdown) ? payload.breakdown.map((row) => row.name) : []),
+            ];
+            const openCategories = new Set(getOpenCategoriesFor(card));
+            for (const candidate of candidates) {
+                const categoryName = extractCategoryName(candidate);
+                if (!categoryName) continue;
+                const categoryIndex = CATS.indexOf(categoryName);
+                if (openCategories.has(categoryIndex)) return categoryIndex;
+            }
+            return chooseBestScoringCategory(card, currentDice);
+        }
+
+        function keepIndicesToMask(keepIndices) {
+            const nextKept = [0, 0, 0, 0, 0];
+            if (!Array.isArray(keepIndices)) return nextKept;
+            keepIndices.forEach((index) => {
+                if (index >= 0 && index < 5) nextKept[index] = 1;
+            });
+            return nextKept;
+        }
+
+        function rollUnlockedDice() {
+            for (let i = 0; i < 5; i++) {
+                if (!kept[i]) dice[i] = Math.floor(Math.random() * 6) + 1;
+            }
+        }
+
+        function applyScoreToCard(card, categoryIndex, currentDice) {
+            const score = calcScore(currentDice, categoryIndex);
+            let bonus = 0;
+            if (calcScore(currentDice, 11) === 50 && card[11] >= 50 && categoryIndex !== 11 && score > 0) {
+                card[11] += 100;
+                bonus = 100;
+            }
+            card[categoryIndex] = score;
+            return {
+                score,
+                bonus,
+                totalGain: score + bonus,
+            };
+        }
+
+        function getGameResultLabel(myTotal, oppTotal) {
+            if (!isVersusAI()) return '🎉 게임 종료';
+            if (myTotal > oppTotal) return '🏆 VS AI 승리';
+            if (myTotal < oppTotal) return '🤖 VS AI 패배';
+            return '🤝 VS AI 무승부';
+        }
+
+        function showToast(category, score, note = '') {
+            const toast = document.getElementById('score-toast');
+            const noteLine = note
+                ? `<div class="toast-cat" style="margin-top:8px; color:#ffd36b;">${escapeHtml(note)}</div>`
+                : '';
+            toast.innerHTML = `<div class="toast-cat">${escapeHtml(category)}</div><div class="toast-score">+${score}</div>${noteLine}`;
+            toast.classList.add('show');
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioContext.currentTime;
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.frequency.value = 1000;
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } catch (e) {
+                console.warn('Toast audio failed:', e);
+            }
+            setTimeout(() => toast.classList.remove('show'), 1500);
+        }
+
+        function showGameOverToast(myTotal, oppTotal) {
+            if (gameOverToastShown) return;
+            const toast = document.getElementById('score-toast');
+            const scoreLine = isVersusAI() ? `${myTotal} : ${oppTotal}` : `최종 점수: ${myTotal}`;
+            toast.innerHTML = `<div class="toast-cat">${escapeHtml(getGameResultLabel(myTotal, oppTotal))}</div><div class="toast-score">${escapeHtml(scoreLine)}</div>`;
+            toast.classList.add('show');
+            playTurnToastSound();
+            gameOverToastShown = true;
+            setTimeout(() => toast.classList.remove('show'), 1800);
+            showSaveModal(myTotal);
+        }
+
+        function showSaveModal(score) {
+            if (isVersusAI()) {
+                setTimeout(() => {
+                    const toast = document.getElementById('score-toast');
+                    toast.innerHTML = '<div class="toast-cat" style="color:#59f0c2;">VS AI 기록 완료</div><div class="toast-score" style="font-size:1rem;">메인 싱글 랭킹에는 반영되지 않습니다</div>';
+                    toast.classList.add('show');
+                    setTimeout(() => toast.classList.remove('show'), 2600);
+                }, 1800);
+                return;
+            }
+            if (coachEnabled) {
+                setTimeout(() => {
+                    const toast = document.getElementById('score-toast');
+                    toast.innerHTML = '<div class="toast-cat" style="color:#ffd36b;">AI 코치 ON 연습 모드</div><div class="toast-score" style="font-size:1rem;">랭킹 저장은 코치 OFF에서만 반영됩니다</div>';
+                    toast.classList.add('show');
+                    setTimeout(() => toast.classList.remove('show'), 2600);
+                }, 1800);
+                return;
+            }
+
+            const name = localStorage.getItem('yacht_username') || '';
+            if (!name || name.length < 2) {
+                setTimeout(() => {
+                    const toast = document.getElementById('score-toast');
+                    toast.innerHTML = '<div class="toast-cat" style="color:#ff7b7b;">랭킹 저장 생략</div><div class="toast-score" style="font-size:1rem;">닉네임을 2자 이상 입력하면 기록됩니다</div>';
+                    toast.classList.add('show');
+                    setTimeout(() => toast.classList.remove('show'), 2600);
+                }, 1800);
+                return;
+            }
+
+            setTimeout(() => {
+                fetch('/api/leaderboard/single', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: name, score: parseInt(score, 10)})
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    const toast = document.getElementById('score-toast');
+                    const rankingMsg = data.success
+                        ? '<div class="toast-cat" style="color:#00ffcc;">싱글 랭킹 반영 완료</div><div class="toast-score" style="font-size:1rem;">코치 OFF 기록으로 저장됐습니다</div>'
+                        : `<div class="toast-cat" style="color:#ff6b6b;">랭킹 등록 실패</div><div class="toast-score" style="font-size:1rem;">${escapeHtml(data.error || '저장 실패')}</div>`;
+                    toast.innerHTML = rankingMsg;
+                    toast.classList.add('show');
+                    setTimeout(() => toast.classList.remove('show'), 2800);
+                })
+                .catch(() => {
+                    const toast = document.getElementById('score-toast');
+                    toast.innerHTML = '<div class="toast-cat" style="color:#ff6b6b;">랭킹 등록 실패</div><div class="toast-score" style="font-size:1rem;">저장 중 오류가 발생했습니다</div>';
+                    toast.classList.add('show');
+                    setTimeout(() => toast.classList.remove('show'), 2800);
+                });
+            }, 2000);
+        }
+
+        function closeSaveModal() {}
+        function saveSingleLeaderboard() {}
+
+        function finishVersusAiIfComplete() {
+            if (!isVersusAI()) return false;
+            const myDone = myCard.every((value) => value !== null);
+            const oppDone = oppCard.every((value) => value !== null);
+            if (!myDone || !oppDone) return false;
+            gameOver = true;
+            aiTurnInProgress = false;
+            const myTotal = calcTotals(myCard).total;
+            const oppTotal = calcTotals(oppCard).total;
+            commitState();
+            updateScorecard();
+            refreshTurnUI();
+            showGameOverToast(myTotal, oppTotal);
+            return true;
+        }
 
         function startTurnTimer() {
             clearTurnTimer();
-            if (rollsLeft !== 0 && rollsLeft !== 3 && !gameOver && !isRolling) {
+            if (rollsLeft !== 0 && rollsLeft !== 3 && !gameOver && !isRolling && isMyTurn()) {
                 timerLeft = 30;
                 document.getElementById('timer-bar').style.display = 'block';
                 document.getElementById('timer-count').innerText = timerLeft;
@@ -294,7 +844,7 @@
                     document.getElementById('timer-count').innerText = timerLeft;
                     if (timerLeft <= 0) {
                         clearTurnTimer();
-                        if (rollsLeft > 0 && !gameOver && !isRolling) {
+                        if (rollsLeft > 0 && !gameOver && !isRolling && isMyTurn()) {
                             rollDice();
                             timeOut();
                         }
@@ -313,100 +863,157 @@
             document.getElementById('timer-bar').style.display = 'none';
         }
 
-        // 싱글 플레이 모드 설정
-        const username = localStorage.getItem('yacht_username') || 'Player';
-        localStorage.removeItem('yacht_room'); // 방 정보 제거
-        let isRolling = false;
-        let gameOverToastShown = false;
-        let connectionLostHandled = false;
-        let syncFailures = 0;
-
-        // 편의성 변수 (읽기 전용)
-        let dice, kept, rollsLeft, myCard, oppCard, gameOver, aiRec;
-        function updateLocalVars() {
-            const state = GameState.getState();
-            dice = state.dice;
-            kept = state.kept;
-            rollsLeft = state.rollsLeft;
-            myCard = state.myCard;
-            oppCard = state.oppCard;
-            gameOver = state.gameOver;
-            aiRec = state.aiRec;
-        }
-        updateLocalVars();
-
-        function handleConnectionLost(msg = '상대방과의 연결이 끊어졌습니다. 로비로 이동합니다.') {
-            if (connectionLostHandled) return;
-            connectionLostHandled = true;
-            localStorage.removeItem('yacht_room');
-            alert(msg);
-            window.location.replace('/');
-        }
-
-        window.addEventListener('offline', () => {
-            handleConnectionLost('네트워크 연결이 끊어졌습니다. 로비로 이동합니다.');
-        });
-
-
-        // 싱글 랭킹 저장 모달 관련 함수 (전역)
-        function showSaveModal(score) {
-            const name = localStorage.getItem('yacht_username') || '';
-            if (!name || name.length < 2) {
-                alert('닉네임이 2자 이상이어야 랭킹에 자동 등록됩니다.\n로비에서 닉네임을 먼저 입력해 주세요.');
-                window.location.href = '/';
-                return;
-            }
-            // 토스트가 먼저 보이도록 2초 후 랭킹 저장
-            setTimeout(() => {
-                fetch('/api/leaderboard/single', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({username: name, score: parseInt(score)})
-                })
-                .then(r => r.json())
-                .then(data => {
-                    const toast = document.getElementById('score-toast');
-                    const rankingMsg = data.success
-                        ? '<div class="toast-cat" style="color:#00ffcc; margin-top:10px;">랭킹에 등록되었습니다!</div>'
-                        : `<div class="toast-cat" style="color:#ff6b6b; margin-top:10px;">랭킹 등록 실패: ${data.error || '저장 실패'}</div>`;
-                    toast.classList.add('show');
-                    toast.innerHTML += rankingMsg;
-                    setTimeout(() => toast.classList.remove('show'), 3200);
-                })
-                .catch(e => {
-                    const toast = document.getElementById('score-toast');
-                    toast.innerHTML = `<div class="toast-cat" style="color:#ff6b6b">랭킹 등록 실패</div><div class="toast-score" style="font-size:1.1rem">저장 중 오류 발생</div>`;
-                    toast.classList.add('show');
-                    setTimeout(() => toast.classList.remove('show'), 3200);
-                });
-            }, 2000);
-        }
-        function closeSaveModal() {}
-        function saveSingleLeaderboard() {}
-
-        function showGameOverToast(myTotal, oppTotal) {
-            if (gameOverToastShown) return;
-            const toast = document.getElementById('score-toast');
-            toast.innerHTML = `<div class="toast-cat">🎉 게임 종료</div><div class="toast-score">최종 점수: ${myTotal}</div>`;
-            toast.classList.add('show');
-            playTurnToastSound();
-            gameOverToastShown = true;
-            showSaveModal(myTotal);
-            setTimeout(() => { toast.classList.remove('show'); }, 1800);
-        }
-
-        const isMyTurn = () => true; // 싱글 모드는 항상 내 턴
-
-        function refreshTurnUI() {
-            updateTurnProgressUI();
-            updateDice();
-        }
-
         function updateTurnProgressUI() {
             const progressEl = document.getElementById('turn-progress');
             if (!progressEl) return;
-            const progress = getSingleTurnProgress(myCard, gameOver);
+            const progress = isVersusAI()
+                ? getMultiTurnProgress(myCard, oppCard, { started: true, gameOver })
+                : getSingleTurnProgress(myCard, gameOver);
             progressEl.innerText = `턴 진행: ${progress.label}`;
+        }
+
+        function updateModeUI() {
+            document.querySelectorAll('[data-single-mode]').forEach((button) => {
+                const active = button.dataset.singleMode === singleMode;
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+            document.querySelectorAll('[data-coach-toggle]').forEach((button) => {
+                const enabledValue = button.dataset.coachToggle === 'on';
+                const active = enabledValue === coachEnabled;
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+
+            const modeBadge = document.getElementById('mode-badge');
+            if (modeBadge) modeBadge.textContent = isVersusAI() ? 'VS AI' : 'SOLO';
+
+            const summaryEl = document.getElementById('mode-summary');
+            if (summaryEl) {
+                const coachState = coachEnabled ? 'AI 코치 ON' : 'AI 코치 OFF';
+                const coachMeaning = coachEnabled
+                    ? `추천 패널 표시 · 현재 <span class="mode-summary-emphasis">${escapeHtml(getAiModeDisplayName())}</span>`
+                    : '추천 패널 숨김';
+                summaryEl.innerHTML = isVersusAI()
+                    ? `<strong>VS AI</strong> ${AI_OPPONENT_NAME}와 번갈아 12턴을 둡니다. <span class="mode-summary-emphasis">${coachState}</span> · ${coachMeaning}`
+                    : `<strong>솔로</strong> 기록 모드입니다. <span class="mode-summary-emphasis">${coachState}</span> · ${coachMeaning}`;
+            }
+
+            const coachNoteEl = document.getElementById('coach-note');
+            if (coachNoteEl) {
+                if (isVersusAI()) {
+                    coachNoteEl.textContent = coachEnabled
+                        ? `AI 코치 ON이면 내 턴 추천과 ${getAiModeDisplayName()} 전략 설명이 함께 보입니다. VS AI 기록은 메인 싱글 랭킹에 저장하지 않습니다.`
+                        : 'AI 코치 OFF면 추천 패널과 추천 방식 선택이 숨겨집니다. VS AI 기록은 메인 싱글 랭킹에 저장하지 않습니다.';
+                } else if (coachEnabled) {
+                    coachNoteEl.textContent = `AI 코치 ON이면 추천 패널과 추천 방식 선택이 함께 열립니다. 현재는 ${getAiModeDisplayName()} 기준으로 조언하고, 싱글 랭킹은 코치 OFF 기록만 반영합니다.`;
+                } else {
+                    coachNoteEl.textContent = 'AI 코치 OFF면 추천 패널과 추천 방식 선택이 숨겨집니다. 현재 기록은 메인 싱글 랭킹 저장 대상입니다.';
+                }
+            }
+        }
+
+        function updateCoachUI() {
+            const aiModeRow = document.querySelector('.ai-mode-row');
+            const aiModeGuide = document.querySelector('.ai-mode-guide');
+            const aiBreakdownEl = document.getElementById('ai-breakdown');
+            const aiInfoTip = document.getElementById('ai-info-tip');
+            const showCoachPanel = coachEnabled;
+
+            if (aiModeRow) aiModeRow.style.display = showCoachPanel ? 'flex' : 'none';
+            if (aiModeGuide) aiModeGuide.style.display = showCoachPanel ? 'grid' : 'none';
+            if (aiBreakdownEl) aiBreakdownEl.style.display = showCoachPanel ? 'block' : 'none';
+            if (aiInfoTip) aiInfoTip.style.display = showCoachPanel ? 'block' : 'none';
+
+            updateAiModeButtons();
+
+            if (!showCoachPanel) return;
+
+            if (gameOver) {
+                renderAiStatus('ai-breakdown', '게임이 끝났습니다.', 'muted', '새 판을 시작하면 다시 추천 패널이 열립니다.');
+                return;
+            }
+
+            if (isVersusAI() && !isMyTurn()) {
+                if (aiTurnInProgress && (!aiRec || !Array.isArray(aiRec.breakdown) || aiRec.breakdown.length === 0)) {
+                    renderAiStatus(
+                        'ai-breakdown',
+                        `🤖 ${AI_OPPONENT_NAME}이 생각 중...`,
+                        'thinking',
+                        '현재 손패를 보고 keep / reroll과 기록 후보를 계산하고 있습니다.'
+                    );
+                    return;
+                }
+                if (aiRec && Array.isArray(aiRec.breakdown) && aiRec.breakdown.length > 0) {
+                    renderAiPanel('ai-breakdown', aiRec, { perspective: `${AI_OPPONENT_NAME} 턴 기준` });
+                    return;
+                }
+                renderAiStatus(
+                    'ai-breakdown',
+                    `🤖 ${AI_OPPONENT_NAME} 턴입니다`,
+                    'info',
+                    '첫 굴림이 시작되면 봇이 보고 있는 추천 상태가 여기에 표시됩니다.'
+                );
+                return;
+            }
+
+            if (aiRec && Array.isArray(aiRec.breakdown) && aiRec.breakdown.length > 0) {
+                renderAiPanel('ai-breakdown', aiRec, { perspective: '내 턴 기준' });
+                return;
+            }
+
+            if (rollsLeft === 3) {
+                renderAiStatus(
+                    'ai-breakdown',
+                    '🎲 주사위를 굴려주세요',
+                    'muted',
+                    '첫 굴림 뒤에 추천 패널과 keep 전략이 나타납니다.'
+                );
+                return;
+            }
+            renderAiStatus(
+                'ai-breakdown',
+                '🎲 추천 계산 중...',
+                'thinking',
+                `${getAiModeDisplayName()} 기준으로 지금 손패를 계산하고 있습니다.`
+            );
+        }
+
+        function updateGameStatus() {
+            const statusEl = document.getElementById('game-status');
+            if (!statusEl) return;
+
+            if (gameOver) {
+                const myTotal = calcTotals(myCard).total;
+                const oppTotal = calcTotals(oppCard).total;
+                statusEl.innerText = isVersusAI()
+                    ? `${getGameResultLabel(myTotal, oppTotal)} · ${myTotal} : ${oppTotal}`
+                    : `🎉 게임 종료! 최종 점수: ${myTotal}`;
+                return;
+            }
+
+            if (isVersusAI()) {
+                statusEl.innerText = isMyTurn()
+                    ? `🎲 ${username} 턴입니다`
+                    : `🤖 ${AI_OPPONENT_NAME} 턴입니다`;
+                return;
+            }
+
+            if (rollsLeft === 3) {
+                statusEl.innerText = '🎲 주사위를 굴려 주세요';
+            } else if (rollsLeft === 0) {
+                statusEl.innerText = '✍️ 점수를 기록할 칸을 선택하세요';
+            } else {
+                statusEl.innerText = `🎯 남은 굴림 ${rollsLeft}회`;
+            }
+        }
+
+        function refreshTurnUI() {
+            updateModeUI();
+            updateGameStatus();
+            updateTurnProgressUI();
+            updateCoachUI();
+            updateDice();
         }
 
         function updateDice() {
@@ -418,73 +1025,68 @@
                 3: 'rotateY(-90deg) rotateX(0deg)',
                 4: 'rotateY(90deg) rotateX(0deg)'
             };
-            
+
             for (let i = 0; i < 5; i++) {
-                const d = document.getElementById(`die-${i}`);
-                const c = document.getElementById(`die-container-${i}`);
-                if (!d) continue;
-                
-                if (rollsLeft === 3 && !gameOver) {
-                    d.classList.add('rolling');
+                const dieEl = document.getElementById(`die-${i}`);
+                const containerEl = document.getElementById(`die-container-${i}`);
+                if (!dieEl || !containerEl) continue;
+
+                if (rollsLeft === 3 && !gameOver && isMyTurn()) {
+                    dieEl.classList.add('rolling');
                 } else {
-                    d.classList.remove('rolling');
+                    dieEl.classList.remove('rolling');
                 }
 
-                if (GameState.getKept()[i]) {
-                    c.classList.add('locked');
-                    d.querySelectorAll('.die-face').forEach(f => f.style.borderColor = '#00ffcc');
+                if (kept[i]) {
+                    containerEl.classList.add('locked');
+                    dieEl.querySelectorAll('.die-face').forEach((face) => {
+                        face.style.borderColor = '#00ffcc';
+                    });
                 } else {
-                    c.classList.remove('locked');
-                    d.querySelectorAll('.die-face').forEach(f => f.style.borderColor = 'rgba(200,200,200,0.5)');
+                    containerEl.classList.remove('locked');
+                    dieEl.querySelectorAll('.die-face').forEach((face) => {
+                        face.style.borderColor = 'rgba(200,200,200,0.5)';
+                    });
                 }
-                
-                const val = GameState.getDice()[i] || 1; 
-                d.style.transform = transforms[val];
-                
+
+                dieEl.style.transform = transforms[dice[i] || 1];
+
                 const keepBtn = document.getElementById(`keep-${i}`);
                 const keepText = document.getElementById(`keep-text-${i}`);
                 if (keepBtn && keepText) {
                     keepBtn.className = 'keep-btn';
-                    
-                    if (rollsLeft === 3 || rollsLeft === 0 || gameOver || isRolling || !isMyTurn()) {
-                        keepBtn.disabled = true;
-                        keepBtn.style.opacity = '0.5';
-                        keepBtn.style.cursor = 'not-allowed';
-                    } else {
-                        keepBtn.disabled = false;
-                        keepBtn.style.opacity = '1';
-                        keepBtn.style.cursor = 'pointer';
-                    }
-                    
+                    const disabled = rollsLeft === 3 || rollsLeft === 0 || gameOver || isRolling || !isMyTurn();
+                    keepBtn.disabled = disabled;
+                    keepBtn.style.opacity = disabled ? '0.5' : '1';
+                    keepBtn.style.cursor = disabled ? 'not-allowed' : 'pointer';
+                    keepBtn.style.boxShadow = 'none';
+
                     if (kept[i]) {
-                        keepBtn.classList.add('active-keep'); 
+                        keepBtn.classList.add('active-keep');
                         keepBtn.style.borderColor = '#00ff00';
                     } else {
                         keepBtn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
                     }
 
-                    let aiInfo = '';
-                    keepBtn.style.boxShadow = 'none'; 
-
-                    if (aiRec?.dice_recommendations) {
-                        const r = aiRec.dice_recommendations[i];
-                        if (r) {
-                            if (r.action === 'keep' && !kept[i]) {
-                                keepBtn.style.borderColor = '#00ffcc';
-                                keepBtn.style.boxShadow = '0 0 10px rgba(0, 255, 204, 0.8)';
-                            }
+                    if (coachEnabled && aiRec?.dice_recommendations) {
+                        const recommendation = aiRec.dice_recommendations[i];
+                        if (recommendation?.action === 'keep' && !kept[i]) {
+                            keepBtn.style.borderColor = '#00ffcc';
+                            keepBtn.style.boxShadow = '0 0 10px rgba(0, 255, 204, 0.8)';
                         }
                     }
-                    keepText.innerHTML = (kept[i] ? '✓ KEEP' : 'KEEP') + aiInfo;
+
+                    keepText.innerHTML = kept[i] ? '✓ KEEP' : 'KEEP';
                 }
-                const lbl = document.getElementById(`lock-${i}`);
-                if (lbl) lbl.innerText = '';
+
+                const label = document.getElementById(`lock-${i}`);
+                if (label) label.innerText = '';
             }
-            document.getElementById('rolls-left').innerText = GameState.getRollsLeft();            
-            document.getElementById('roll-btn').disabled = GameState.getRollsLeft() <= 0 || GameState.isGameOver() || isRolling || !isMyTurn();
-            
-            // 타이머 표시/숨김 처리
-            if (rollsLeft !== 0 && rollsLeft !== 3  && !gameOver) {
+
+            document.getElementById('rolls-left').innerText = rollsLeft;
+            document.getElementById('roll-btn').disabled = rollsLeft <= 0 || gameOver || isRolling || !isMyTurn();
+
+            if (rollsLeft !== 0 && rollsLeft !== 3 && !gameOver && isMyTurn()) {
                 document.getElementById('timer-bar').style.display = 'block';
             } else {
                 document.getElementById('timer-bar').style.display = 'none';
@@ -492,24 +1094,234 @@
         }
 
         function toggleLock(i) {
-            // 타이머가 동작 중일 때만 반응 (rollsLeft > 0, gameOver=false, isRolling=false)
             if (rollsLeft === 3 || gameOver || !isMyTurn() || isRolling || !timerInterval) return;
             kept[i] = kept[i] ? 0 : 1;
-            GameState.setKept(kept);
+            commitState();
             updateDice();
             pushState();
             playKeepSound();
         }
 
-        // 싱글 모드에서는 서버 동기화 불필요 (빈 함수 처리)
-        async function pushState() {}
-        function applyRemoteState(state) {}
-        async function fetchRoomState() {}
-        function startSyncPolling() {}
+        async function requestRecommendation(scorecard, currentDice, currentRollsLeft, strategyMode) {
+            const response = await fetch('/api/recommend', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    dice: currentDice,
+                    rolls_left: currentRollsLeft,
+                    scorecard,
+                    open_categories: getOpenCategoriesFor(scorecard),
+                    strategy_mode: strategyMode
+                })
+            });
+            const payload = await response.json();
+            if (!response.ok || payload.error) {
+                throw new Error(payload.error || 'AI 추천 요청 실패');
+            }
+            return payload;
+        }
+
+        async function askAI() {
+            if (!coachEnabled || gameOver || rollsLeft === 3 || !isMyTurn()) return;
+            try {
+                renderAiStatus(
+                    'ai-breakdown',
+                    '🎲 추천 계산 중...',
+                    'thinking',
+                    `${getAiModeDisplayName()} 기준으로 keep / reroll과 기록 후보를 계산하고 있습니다.`
+                );
+                aiRec = await requestRecommendation(myCard, dice, rollsLeft, getAiMode());
+                commitState();
+                updateCoachUI();
+                updateDice();
+            } catch (e) {
+                console.error(e);
+                aiRec = null;
+                commitState();
+                renderAiStatus(
+                    'ai-breakdown',
+                    `추천 실패: ${e.message || '잠시 후 다시 시도해 주세요.'}`,
+                    'error',
+                    '한 번 더 굴리거나 잠시 후 다시 시도해 주세요.'
+                );
+            }
+        }
+
+        async function runAiTurn() {
+            if (!isVersusAI() || gameOver || turnOwner !== AI_OPPONENT_NAME) return;
+
+            const sequence = ++aiTurnSequence;
+            aiTurnInProgress = true;
+            clearTurnTimer();
+            resetTurnState();
+            commitState();
+            updateScorecard();
+            refreshTurnUI();
+
+            await sleep(450);
+
+            if (sequence !== aiTurnSequence || gameOver || turnOwner !== AI_OPPONENT_NAME) return;
+
+            rollUnlockedDice();
+            rollsLeft = Math.max(0, rollsLeft - 1);
+            commitState();
+            updateScorecard();
+            refreshTurnUI();
+            await sleep(AI_TURN_DELAY_MS);
+
+            while (sequence === aiTurnSequence && !gameOver && turnOwner === AI_OPPONENT_NAME) {
+                try {
+                    const payload = await requestRecommendation(oppCard, dice, rollsLeft, AI_OPPONENT_MODE);
+                    if (sequence !== aiTurnSequence || gameOver || turnOwner !== AI_OPPONENT_NAME) return;
+
+                    aiRec = coachEnabled ? payload : null;
+                    commitState();
+                    updateScorecard();
+                    refreshTurnUI();
+
+                    if (payload.stage === 'score' || rollsLeft <= 0) {
+                        const categoryIndex = chooseCategoryFromRecommendation(payload, oppCard, dice);
+                        const result = applyScoreToCard(oppCard, categoryIndex, dice);
+                        showToast(
+                            `🤖 ${AI_OPPONENT_NAME} · ${CATS[categoryIndex]}`,
+                            result.totalGain,
+                            result.bonus > 0 ? 'Yacht Bonus +100' : ''
+                        );
+                        resetTurnState();
+                        if (finishVersusAiIfComplete()) return;
+                        turnOwner = username;
+                        aiTurnInProgress = false;
+                        commitState();
+                        updateScorecard();
+                        refreshTurnUI();
+                        startTurnTimer();
+                        return;
+                    }
+
+                    kept = keepIndicesToMask(payload.keep_indices);
+                    commitState();
+                    updateScorecard();
+                    refreshTurnUI();
+                    await sleep(AI_TURN_DELAY_MS);
+
+                    if (sequence !== aiTurnSequence || gameOver || turnOwner !== AI_OPPONENT_NAME) return;
+
+                    rollUnlockedDice();
+                    rollsLeft = Math.max(0, rollsLeft - 1);
+                    commitState();
+                    updateScorecard();
+                    refreshTurnUI();
+                    await sleep(AI_TURN_DELAY_MS);
+                } catch (e) {
+                    console.error('AI turn failed:', e);
+                    const fallbackCategory = chooseBestScoringCategory(oppCard, dice);
+                    const result = applyScoreToCard(oppCard, fallbackCategory, dice);
+                    showToast(
+                        `🤖 ${AI_OPPONENT_NAME} · ${CATS[fallbackCategory]}`,
+                        result.totalGain,
+                        result.bonus > 0 ? 'Yacht Bonus +100' : '네트워크 오류로 즉시 기록'
+                    );
+                    resetTurnState();
+                    if (finishVersusAiIfComplete()) return;
+                    turnOwner = username;
+                    aiTurnInProgress = false;
+                    commitState();
+                    updateScorecard();
+                    refreshTurnUI();
+                    startTurnTimer();
+                    return;
+                }
+            }
+
+            aiTurnInProgress = false;
+            commitState();
+            refreshTurnUI();
+        }
+
+        function bindSingleModeControls() {
+            document.querySelectorAll('[data-single-mode]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const nextMode = normalizeSingleMode(button.dataset.singleMode);
+                    if (nextMode === singleMode) return;
+                    if (hasMeaningfulProgress() && !confirm('현재 진행 중인 판이 초기화됩니다. 모드를 바꾸시겠습니까?')) return;
+                    singleMode = nextMode;
+                    localStorage.setItem(SINGLE_MODE_KEY, singleMode);
+                    window.location.href = `/game/single?mode=${encodeURIComponent(singleMode)}&coach=${coachEnabled ? 'on' : 'off'}`;
+                });
+            });
+
+            document.querySelectorAll('[data-coach-toggle]').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const nextEnabled = button.dataset.coachToggle === 'on';
+                    if (nextEnabled === coachEnabled) return;
+                    coachEnabled = nextEnabled;
+                    if (!coachEnabled) aiRec = null;
+                    commitState();
+                    syncModeQuery();
+                    refreshTurnUI();
+                    if (coachEnabled && !gameOver && isMyTurn() && rollsLeft < 3) {
+                        await askAI();
+                    }
+                });
+            });
+        }
+
+        function timeOut() {
+            const toast = document.getElementById('score-toast');
+            toast.innerHTML = '<div class="toast-cat">⏰ 시간 초과!</div><div class="toast-score">자동 Roll이 실행됩니다...</div>';
+            toast.classList.add('show');
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioContext.currentTime;
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.frequency.value = 1000;
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } catch (e) {
+                console.warn('Toast audio failed:', e);
+            }
+            setTimeout(() => toast.classList.remove('show'), 1500);
+        }
+
+        function updateScorecard() {
+            const scorecardEl = document.getElementById('scorecard');
+            if (!scorecardEl) return;
+            document.body.classList.toggle('solo-play-mode', !isVersusAI());
+            scorecardEl.className = isVersusAI() ? 'scorecard-mode-compare' : 'scorecard-mode-solo';
+
+            if (isVersusAI()) {
+                scorecardEl.innerHTML = renderCompareBoard(myCard, oppCard, {
+                    leftTitle: `나 (${username})`,
+                    rightTitle: AI_OPPONENT_NAME,
+                    leftActive: isMyTurn(),
+                    rightActive: !isMyTurn(),
+                    leftInteractive: true,
+                    previewIds: true,
+                });
+            } else {
+                scorecardEl.innerHTML = renderCompactSingleCard(myCard, '점수표', {
+                    active: true,
+                    interactive: true,
+                    previewIds: true,
+                    showSectionHeads: false,
+                });
+            }
+
+            updateTurnProgressUI();
+            const descArea = document.getElementById('score-desc-area');
+            if (descArea) {
+                descArea.innerHTML = '<div style="color:#999; text-align:center; padding:8px; font-size:0.95em;">점수 항목에 마우스를 올리면 설명과 예시가 표시됩니다.</div>';
+            }
+        }
 
         async function rollDice() {
-            if (rollsLeft <= 0 || gameOver || isRolling) return;
-            clearTurnTimer(); // roll 시 타이머 정지
+            if (rollsLeft <= 0 || gameOver || isRolling || !isMyTurn()) return;
+            clearTurnTimer();
 
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -519,7 +1331,7 @@
                 const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
                 const output = noiseBuffer.getChannelData(0);
                 for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-                
+
                 const noiseSource = audioContext.createBufferSource();
                 noiseSource.buffer = noiseBuffer;
                 const noiseGain = audioContext.createGain();
@@ -527,14 +1339,13 @@
                 noiseGain.connect(audioContext.destination);
                 noiseGain.gain.setValueAtTime(0.2, now);
                 noiseGain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-                
+
                 const beatDuration = 0.08;
                 for (let beat = 0; beat < 5; beat++) {
                     const osc = audioContext.createOscillator();
                     const gain = audioContext.createGain();
                     osc.type = 'square';
-                    const freqRange = 1200 - (beat * 160);
-                    osc.frequency.value = Math.max(freqRange, 400);
+                    osc.frequency.value = Math.max(1200 - (beat * 160), 400);
                     osc.connect(gain);
                     gain.connect(audioContext.destination);
                     const startTime = now + (beat * 0.07);
@@ -543,19 +1354,30 @@
                     osc.start(startTime);
                     osc.stop(startTime + beatDuration);
                 }
+
                 noiseSource.start(now);
                 noiseSource.stop(now + duration);
-            } catch (e) { console.warn('Audio context failed:', e); }
+            } catch (e) {
+                console.warn('Audio context failed:', e);
+            }
 
             isRolling = true;
-            aiRec = null; 
-            renderAiStatus('ai-breakdown', '🎲 계산 중...');
-            updateDice(); 
+            aiRec = null;
+            commitState();
+            if (coachEnabled) {
+                renderAiStatus(
+                    'ai-breakdown',
+                    '🎲 추천 계산 중...',
+                    'thinking',
+                    `${getAiModeDisplayName()} 기준으로 다음 수를 준비하고 있습니다.`
+                );
+            }
+            updateDice();
 
             for (let i = 0; i < 5; i++) {
                 if (!kept[i]) document.getElementById(`die-${i}`).classList.add('rolling');
             }
-            
+
             setTimeout(async () => {
                 try {
                     if (rollsLeft <= 0) {
@@ -563,168 +1385,77 @@
                         isRolling = false;
                         return;
                     }
-                    for (let i = 0; i < 5; i++) {
-                        if (!kept[i]) dice[i] = Math.floor(Math.random() * 6) + 1;
-                    }
-                    rollsLeft--;
-                    GameState.setDice(dice);
-                    GameState.setKept(kept);
-                    GameState.setRollsLeft(rollsLeft);
-                    
+
+                    rollUnlockedDice();
+                    rollsLeft = Math.max(0, rollsLeft - 1);
                     isRolling = false;
+                    commitState();
                     updateDice();
                     updateScorecard();
-                    
+
                     if (calcScore(dice, 11) === 50) {
                         const toast = document.getElementById('score-toast');
                         if (myCard[11] >= 50) {
-                            toast.innerHTML = `<div class="toast-cat">🏆 YACHT BONUS 가능!</div><div class="toast-score" style="font-size:0.9em;">다른 칸에 점수 기록 시 +100점</div>`;
+                            toast.innerHTML = '<div class="toast-cat">🏆 YACHT BONUS 가능!</div><div class="toast-score" style="font-size:0.9em;">다른 칸에 점수 기록 시 +100점</div>';
                         } else if (myCard[11] === 0) {
-                            toast.innerHTML = `<div class="toast-cat" style="color:#ff6b6b;">😢 YACHT 성공이지만</div><div class="toast-score" style="color:#ff6b6b; font-size:0.85em;">Bonus 불가능 (0점 처리됨)</div>`;
+                            toast.innerHTML = '<div class="toast-cat" style="color:#ff6b6b;">😢 YACHT 성공이지만</div><div class="toast-score" style="color:#ff6b6b; font-size:0.85em;">Bonus 불가능 (0점 처리됨)</div>';
                         } else {
-                            toast.innerHTML = `<div class="toast-cat">🎲 YACHT 성공!</div><div class="toast-score">50점</div>`;
+                            toast.innerHTML = '<div class="toast-cat">🎲 YACHT 성공!</div><div class="toast-score">50점</div>';
                         }
                         toast.classList.add('show');
                         playTurnToastSound();
                         setTimeout(() => toast.classList.remove('show'), 2000);
                     }
-                    
+
                     await askAI();
-                    startTurnTimer(); // roll 후 타이머 재시작
+                    refreshTurnUI();
+                    startTurnTimer();
                 } catch (e) {
                     console.error('Roll failed:', e);
                     isRolling = false;
+                    refreshTurnUI();
                 }
             }, 600);
         }
 
-        async function askAI() {
-            if (gameOver || rollsLeft === 3) return;
-            try {
-                const open_categories = myCard.map((v, i) => v === null ? i : null).filter(v => v !== null);
-                const r = await fetch('/api/recommend', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({dice, rolls_left: rollsLeft, scorecard: myCard, open_categories, strategy_mode: getAiMode()})
-                });
-                const payload = await r.json();
-                if (!r.ok || payload.error) {
-                    throw new Error(payload.error || 'AI 추천 요청 실패');
-                }
-                aiRec = payload;
-                renderAiPanel('ai-breakdown', aiRec, { perspective: '내 턴 기준' });
-                updateDice();
-            } catch (e) {
-                console.error(e);
-                renderAiStatus('ai-breakdown', `추천 실패: ${e.message || '잠시 후 다시 시도해 주세요.'}`, 'error');
-            }
-        }
-        
-        function timeOut(){
-            const toast = document.getElementById('score-toast');
-            toast.innerHTML = `<div class="toast-cat">⏰ 시간 초과!</div><div class="toast-score">자동 Roll이 실행됩니다...</div>`;
-            toast.classList.add('show');
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const now = audioContext.currentTime;
-                const osc = audioContext.createOscillator();
-                const gain = audioContext.createGain();
-                osc.connect(gain);
-                gain.connect(audioContext.destination);
-                osc.frequency.value = 1000;
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            } catch (e) { console.warn('Toast audio failed:', e); }
-            setTimeout(() => toast.classList.remove('show'), 1500);
-        }
-
-        function updateScorecard() {
-            const el = document.getElementById('scorecard');
-            if (!el) return;
-            el.innerHTML = renderCard(myCard, true, '점수표');
-            updateTurnProgressUI();
-            // 점수 설명 영역 초기화
-            const descArea = document.getElementById('score-desc-area');
-            if (descArea) descArea.innerHTML = '<div style="color:#999; text-align:center; padding:8px; font-size:0.95em;">점수 항목에 마우스를 올리면 설명이 표시됩니다.</div>';
-        }
-
-        function showToast(category, score) {
-            const toast = document.getElementById('score-toast');
-            toast.innerHTML = `<div class="toast-cat">${category}</div><div class="toast-score">+${score}</div>`;
-            toast.classList.add('show');
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const now = audioContext.currentTime;
-                const osc = audioContext.createOscillator();
-                const gain = audioContext.createGain();
-                osc.connect(gain);
-                gain.connect(audioContext.destination);
-                osc.frequency.value = 1000;
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            } catch (e) { console.warn('Toast audio failed:', e); }
-            setTimeout(() => toast.classList.remove('show'), 1500);
-        }
-
         function pickCategory(i) {
-            if (rollsLeft === 3 || gameOver) return;
-            clearTurnTimer(); 
+            if (rollsLeft === 3 || gameOver || !isMyTurn()) return;
+            clearTurnTimer();
 
-            const aiBreakdown = document.getElementById('ai-breakdown');
-            if (aiBreakdown) aiBreakdown.innerHTML = '';
+            const result = applyScoreToCard(myCard, i, dice);
+            showToast(CATS[i], result.totalGain, result.bonus > 0 ? 'Yacht Bonus +100' : '');
 
-            let score = calcScore(dice, i);
+            resetTurnState();
 
-            if (calcScore(dice, 11) === 50 && myCard[11] >= 50 && i !== 11 && score > 0) {
-                myCard[11] += 100;
-                myCard[i] = score;
-                showToast(`🏆 Yacht Bonus: ${CATS[i]} +${score}점, Yacht +100점`, score);
-                dice = [1,1,1,1,1];
-                kept = [0,0,0,0,0];
-                rollsLeft = 3;
-                aiRec = null;
-                GameState.setState({dice, kept, rollsLeft, myCard: [...myCard], oppCard: [...oppCard], gameOver, aiRec});
-                updateDice();
+            if (isVersusAI()) {
+                if (finishVersusAiIfComplete()) return;
+                turnOwner = AI_OPPONENT_NAME;
+                commitState();
                 updateScorecard();
+                flashScoreSelection(i);
+                refreshTurnUI();
+                setTimeout(() => {
+                    runAiTurn().catch((error) => console.error('VS AI flow failed:', error));
+                }, AI_TURN_DELAY_MS);
                 return;
             }
 
-            myCard[i] = score;
-            showToast(CATS[i], score);
-
-            dice = [1,1,1,1,1];
-            kept = [0,0,0,0,0];
-            rollsLeft = 3;
-            aiRec = null;
-            startTurnTimer(); 
-
-            const myDone = myCard.every(v => v !== null);
+            const myDone = myCard.every((value) => value !== null);
             if (myDone) {
                 gameOver = true;
-                const myTotal = calcTotals(myCard).total;
-                const statusEl = document.getElementById('game-status');
-                if (statusEl) statusEl.innerText = `🎉 게임 종료! 최종 점수: ${myTotal}`;
-                showGameOverToast(myTotal, 0);
-                if (username) saveGameResult(username, myTotal, null, 0);
+                commitState();
+                updateScorecard();
+                flashScoreSelection(i);
+                refreshTurnUI();
+                showGameOverToast(calcTotals(myCard).total, 0);
+                return;
             }
 
-            GameState.setState({
-                dice: [...dice],
-                kept: [...kept],
-                rollsLeft,
-                myCard: [...myCard],
-                oppCard: [...oppCard],
-                gameOver,
-                aiRec,
-            });
-
-            updateDice();
+            commitState();
             updateScorecard();
+            flashScoreSelection(i);
             refreshTurnUI();
+            startTurnTimer();
         }
 
         function resetGame() {
@@ -743,9 +1474,9 @@
                     score2
                 })
             })
-            .then(r => r.json())
+            .then((response) => response.json())
             .then(() => {})
-            .catch(e => console.error('Failed to save game:', e));
+            .catch((e) => console.error('Failed to save game:', e));
         }
 
         async function leaveRoom() {
@@ -755,28 +1486,42 @@
 
         function passTurn() {}
 
+        async function pushState() {}
+        function applyRemoteState(state) {}
+        async function fetchRoomState() {}
+        function startSyncPolling() {}
+
         async function initializeGame() {
+            updateLocalVars();
+            syncModeQuery();
             renderDice();
-            updateScorecard();
-            renderAiStatus('ai-breakdown', '🎲 주사위를 굴려주세요');
             bindAiModeControls(() => {
-                if (!gameOver && rollsLeft < 3) askAI();
+                if (!coachEnabled) return;
+                if (!gameOver && isMyTurn() && rollsLeft < 3) askAI();
             });
-            
+            bindSingleModeControls();
+            updateScorecard();
+
             const roomLabel = document.getElementById('room-label');
             if (roomLabel) roomLabel.textContent = '';
-            
+
             const multiControls = document.getElementById('multiplayer-controls');
             if (multiControls) multiControls.style.display = 'none';
-            
+
             const newGameBtn = document.getElementById('new-game-btn');
             if (newGameBtn) newGameBtn.style.display = 'inline-block';
-            
+
+            window.addEventListener('offline', () => {
+                alert('네트워크 연결이 끊겼습니다. AI 추천과 VS AI 모드는 일시적으로 멈출 수 있습니다.');
+            });
+            window.addEventListener('resize', updateModeStripUI);
+
             refreshTurnUI();
+            updateModeStripUI();
             startTurnTimer();
         }
 
-        initializeGame().catch(e => console.error('Initialization error:', e));
+        initializeGame().catch((e) => console.error('Initialization error:', e));
     </script>
 </body>
 </html>

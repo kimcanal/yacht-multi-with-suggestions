@@ -58,6 +58,78 @@ def _ensure_user(data, username):
     return data['users'][username]
 
 
+def _clamp_limit(limit, default=10, maximum=50):
+    try:
+        value = int(limit)
+    except (TypeError, ValueError):
+        value = default
+    return max(1, min(value, maximum))
+
+
+def _sorted_games_desc(games):
+    return sorted(games, key=lambda game: game.get('timestamp') or '', reverse=True)
+
+
+def _serialize_game_entry(game, username=None):
+    entry = {
+        'player1': game.get('player1'),
+        'score1': game.get('score1'),
+        'player2': game.get('player2'),
+        'score2': game.get('score2'),
+        'winner': game.get('winner'),
+        'timestamp': game.get('timestamp'),
+        'is_multiplayer': bool(game.get('player2')),
+    }
+
+    score1 = game.get('score1', 0) or 0
+    score2 = game.get('score2', 0) or 0
+    entry['margin'] = abs(score1 - score2)
+
+    if not username:
+        return entry
+
+    if username == game.get('player1'):
+        opponent = game.get('player2')
+        score = game.get('score1')
+        opponent_score = game.get('score2')
+    elif username == game.get('player2'):
+        opponent = game.get('player1')
+        score = game.get('score2')
+        opponent_score = game.get('score1')
+    else:
+        return None
+
+    winner = game.get('winner')
+    if winner == 'DRAW':
+        result = 'draw'
+    elif winner == username:
+        result = 'win'
+    else:
+        result = 'loss'
+
+    entry.update({
+        'username': username,
+        'opponent': opponent,
+        'score': score,
+        'opponent_score': opponent_score,
+        'result': result,
+    })
+    return entry
+
+
+def _current_streak(recent_games):
+    if not recent_games:
+        return {'type': None, 'count': 0}
+
+    streak_type = recent_games[0].get('result')
+    count = 0
+    for game in recent_games:
+        if game.get('result') != streak_type:
+            break
+        count += 1
+    return {'type': streak_type, 'count': count}
+
+
 def load_data():
     """게임 데이터 로드"""
     with DATA_LOCK:
@@ -144,6 +216,24 @@ def get_leaderboard():
         return users
 
 
+def get_recent_games(limit=10, username=None):
+    with DATA_LOCK:
+        data = _load_data_unlocked()
+        trimmed_limit = _clamp_limit(limit, default=10, maximum=50)
+        recent_games = []
+
+        for game in _sorted_games_desc(data.get('games', [])):
+            if username and username not in {game.get('player1'), game.get('player2')}:
+                continue
+            entry = _serialize_game_entry(game, username=username)
+            if entry is not None:
+                recent_games.append(entry)
+            if len(recent_games) >= trimmed_limit:
+                break
+
+        return recent_games
+
+
 def save_single_leaderboard(username, score):
     """싱글 랭킹 저장"""
     with DATA_LOCK:
@@ -181,3 +271,58 @@ def get_user_stats(username):
     with DATA_LOCK:
         data = _load_data_unlocked()
         return data['users'].get(username, None)
+
+
+def get_user_profile(username, recent_limit=5):
+    with DATA_LOCK:
+        data = _load_data_unlocked()
+        user = data['users'].get(username)
+        if not user:
+            return None
+
+        users = list(data['users'].values())
+        for row in users:
+            row.setdefault('draws', 0)
+        users.sort(key=lambda row: (row['wins'], row['draws'], row['total_score']), reverse=True)
+
+        rank = next(
+            (index + 1 for index, row in enumerate(users) if row.get('username') == username),
+            None,
+        )
+
+        recent_games = []
+        for game in _sorted_games_desc(data.get('games', [])):
+            if username not in {game.get('player1'), game.get('player2')}:
+                continue
+            entry = _serialize_game_entry(game, username=username)
+            if entry is not None:
+                recent_games.append(entry)
+            if len(recent_games) >= _clamp_limit(recent_limit, default=5, maximum=10):
+                break
+
+        games_played = user.get('games_played', 0) or 0
+        wins = user.get('wins', 0) or 0
+        draws = user.get('draws', 0) or 0
+        losses = user.get('losses', 0) or 0
+        total_score = user.get('total_score', 0) or 0
+        recent_form = [
+            {'win': 'W', 'loss': 'L', 'draw': 'D'}.get(game.get('result'), '?')
+            for game in recent_games
+        ]
+
+        return {
+            'username': username,
+            'rank': rank,
+            'wins': wins,
+            'draws': draws,
+            'losses': losses,
+            'games_played': games_played,
+            'total_score': total_score,
+            'avg_score': round(total_score / games_played, 1) if games_played else 0.0,
+            'win_rate': round((wins / games_played) * 100, 1) if games_played else 0.0,
+            'created_at': user.get('created_at'),
+            'last_played_at': recent_games[0].get('timestamp') if recent_games else None,
+            'current_streak': _current_streak(recent_games),
+            'recent_form': recent_form,
+            'recent_games': recent_games,
+        }

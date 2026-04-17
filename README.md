@@ -25,7 +25,7 @@ Flask 기반 웹 요트 다이스 게임입니다. 싱글플레이, 실시간 1:
 
 <img src="./docs/screenshots/intro.png" width="900" alt="Yacht intro page screenshot" />
 
-### 싱글플레이 + AI 추천
+### 싱글플레이 + AI 추천 / VS AI
 
 <img src="./docs/screenshots/single-cover.png" width="900" alt="Yacht single player AI recommendation screenshot" />
 
@@ -37,20 +37,26 @@ Flask 기반 웹 요트 다이스 게임입니다. 싱글플레이, 실시간 1:
 
 기본 플레이 쪽은 이렇습니다.
 
-- 싱글: 브라우저에서 바로 플레이 가능
+- 싱글: 솔로 챌린지, VS AI, AI 코치 ON/OFF 전환
 - 멀티: 실시간 1:1 대전. 방 코드로 초대
 - 관전: 멀티 경기 링크 공유 가능
 - 리더보드: 싱글/멀티 기록 저장
+- 싱글 랭킹 정책: 코치 OFF 솔로 기록만 메인 랭킹에 반영
+- 최근 경기 히스토리: 로비에서 방금 끝난 대전 기록 확인 가능
+- 플레이어 전적 스포트라이트: 멀티 리더보드에서 유저별 승률, 평균 점수, 최근 폼 확인
+- 재대결: 게임 종료 후 두 플레이어가 모두 동의하면 같은 방에서 즉시 다음 판 시작
 - 서버 상태 패널: CPU, RAM, 접속자 수, 활성 방 수
 - 턴 타이머: 제한 시간 안에 행동 없으면 자동 roll
 
 AI 추천 쪽은 이렇습니다.
 
 - 현재 주사위, 남은 roll, 열린 점수칸을 보고 keep / reroll 추천
+- 추천 패널 표시를 게임 중에 바로 ON/OFF 가능
 - **집중 공략**: 가장 유망한 족보 하나를 끝까지 미는 추천. 지금 기록이 더 유리하면 그것도 같이 알려줌. Small Straight가 잡혀 있으면 Large Straight 업그레이드 가능성도 같이 봄
 - **커버 플레이**: 하단 족보 여러 개 중 하나 이상 터질 확률(exact union)과 전부 실패할 확률을 같이 보여주는 추천
 - Yacht Bonus 반영: 이미 Yacht 확보한 뒤 또 Yacht 나오면 +100 가치까지 추천에 반영
 - 점수 기록 추천: 굴림 끝나면 희생 칸 포함해서 기록 우선순위도 제안
+- VS AI: 같은 추천 엔진을 쓰는 `Yacht Bot`과 번갈아 12턴 대전
 
 ## AI 추천은 어떻게 동작하냐면
 
@@ -166,11 +172,14 @@ python3 scripts/estimate_closing_costs.py \
 - `POST /api/rooms/<code>/observe` — 관전 입장
 - `POST /api/rooms/<code>/heartbeat` — 방 참가자/관전자 heartbeat
 - `POST /api/rooms/<code>/roll` — 주사위 굴리기
+- `POST /api/rooms/<code>/rematch` — 게임 종료 후 재대결 동의 / 시작
 - `POST /api/rooms/<code>/sync` — 상태 동기화
 - `POST /api/rooms/<code>/leave` — 방 이탈 / 부전승
 - `GET /api/leaderboard` — 멀티 리더보드 별칭
 - `GET /api/leaderboard/multi` — 로비에서 쓰는 멀티 리더보드
+- `GET /api/leaderboard/recent` — 최근 멀티 경기 기록
 - `GET /api/leaderboard/single` — 싱글 리더보드
+- `GET /api/leaderboard/users/<username>` — 특정 유저 멀티 전적 요약
 - `POST /api/leaderboard/single` — 싱글 점수 저장
 
 요청/응답 예시는 [API.md](./API.md) 참고.
