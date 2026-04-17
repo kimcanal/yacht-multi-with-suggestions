@@ -24,6 +24,8 @@
 
 추가로 GitHub Actions `AI Validation` 워크플로도 현재 구조에 맞게 손봤다. branch push / PR에서 `verify_ai.py`와 `yacht-hosting.sh` 문법 체크가 같이 돌고, `py_compile` 대상에도 분리된 `routes/`, `utils/`, `config.py`, `app_state.py`가 들어간 상태다.
 
+이후 라우트 통합 테스트도 붙였다. Flask `test_client` 기반으로 로비 presence, AI 추천/health, 멀티 방 생성-입장-관전-heartbeat-sync-leave, 리더보드 저장/리셋까지 `unittest`로 검증하고, GitHub Actions에서도 같이 돌게 연결했다.
+
 ### 2026-04-12 — AI 패키지 분리 + ML prep
 
 `yacht_engine.py` 하나에 다 들어 있던 걸 `yacht_ai/` 패키지로 분리했다. scoring, solver, advice, constants로 역할을 나눴고, golden check / soak / benchmark 스크립트도 이때 추가됐다. VDI 실험용 teacher data generator도 같이 들어갔다.
