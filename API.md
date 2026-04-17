@@ -1,6 +1,6 @@
 # Yacht Game API
 
-간단한 운영 및 프론트 연동용 API 문서입니다.
+현재 작업 트리 기준 운영/프론트 연동용 API 문서입니다.
 
 ## Base
 
@@ -9,49 +9,30 @@
 
 모든 JSON API는 `Content-Type: application/json` 기준입니다.
 
-빠르게 테스트할 때는 아래처럼 `curl` 기준으로 확인할 수 있습니다.
-
 ```bash
 BASE_URL="http://127.0.0.1:8080"
 ```
 
-## Auth / Identity
+## Identity
 
-### `POST /api/login`
+현재 서버에는 `POST /api/login` 엔드포인트가 없습니다.
 
-브라우저 세션에 닉네임을 저장합니다.
-
-Request:
-
-```json
-{
-  "username": "Player01"
-}
-```
-
-Response:
-
-```json
-{
-  "status": "ok",
-  "username": "Player01"
-}
-```
+닉네임은 프론트에서 검증한 뒤 브라우저 `localStorage`에 저장하고, 각 API 요청에서 `username`을 함께 보냅니다.
 
 ## AI Recommendation
 
 ### `POST /api/recommend`
 
-현재 주사위와 점수판을 기준으로 추천을 반환합니다.
+현재 주사위와 점수판을 기준으로 keep / reroll / score 추천을 반환합니다.
 
 Request:
 
 ```json
 {
-  "dice": [3, 3, 3, 4, 1],
-  "rolls_left": 2,
-  "scorecard": [0, 0, null, null, null, null, 0, null, null, null, null, null],
-  "strategy_mode": "safe"
+  "dice": [1, 2, 3, 4, 6],
+  "rolls_left": 1,
+  "scorecard": [null, null, null, null, null, null, null, null, null, null, null, null],
+  "strategy_mode": "focused"
 }
 ```
 
@@ -59,23 +40,29 @@ Response:
 
 ```json
 {
-  "message": "[4, 3] Keep (Small Straight 노리기)",
-  "keep_indices": [0, 3],
-  "strategy_mode": "safe",
-  "primary_target": "Small Straight",
-  "summary": "안전형 추천: Small Straight 확률 36.11%",
+  "stage": "roll",
+  "message": "[1, 2, 3, 4] Keep (Large Straight 업그레이드)",
+  "keep_indices": [0, 1, 2, 3],
+  "expected_value": 19.95,
+  "strategy_mode": "focused",
+  "primary_target": "Large Straight",
+  "summary": "집중 공략 추천: Large Straight 16.67%, 실패해도 Small Straight 유지",
   "dice_recommendations": [
-    { "index": 0, "value": 3, "action": "keep", "confidence": 100 }
+    { "index": 0, "value": 1, "action": "keep", "confidence": 100 },
+    { "index": 1, "value": 2, "action": "keep", "confidence": 100 },
+    { "index": 2, "value": 3, "action": "keep", "confidence": 100 },
+    { "index": 3, "value": 4, "action": "keep", "confidence": 100 },
+    { "index": 4, "value": 6, "action": "reroll", "confidence": 100 }
   ],
   "breakdown": [
     {
-      "name": "Small Straight",
+      "name": "Large Straight 업그레이드",
       "type": "hand",
-      "prob": 0.3611,
-      "val_str": "36.11%",
-      "keep_str": "[4, 3] keep → 15점 (확정)",
-      "reason": "균형 선택: Small Straight 성공 확률 36.1%",
-      "keep_indices": [0, 3]
+      "prob": 0.1667,
+      "val_str": "16.67%",
+      "keep_str": "[1, 2, 3, 4] keep → 실패해도 Small Straight 유지",
+      "reason": "Large Straight 16.7%를 노리되, 실패해도 Small Straight는 유지됩니다.",
+      "keep_indices": [0, 1, 2, 3]
     }
   ]
 }
@@ -83,8 +70,10 @@ Response:
 
 Notes:
 
-- `strategy_mode`: `safe` 또는 `aggressive`
+- `strategy_mode`: `focused` 또는 `cover`
+- 레거시 별칭 `safe`, `aggressive`는 서버에서 `focused`로 정규화됩니다.
 - `scorecard`: 12칸 배열, 비어 있는 칸은 `null`
+- `rolls_left = 0`이면 `stage = "score"`로 기록 추천을 반환하고, `keep_indices`는 빈 배열입니다.
 
 Example:
 
@@ -92,10 +81,10 @@ Example:
 curl -s "$BASE_URL/api/recommend" \
   -H "Content-Type: application/json" \
   -d '{
-    "dice": [3, 3, 3, 4, 1],
-    "rolls_left": 2,
-    "scorecard": [0, 0, null, null, null, null, 0, null, null, null, null, null],
-    "strategy_mode": "safe"
+    "dice": [1, 2, 3, 4, 6],
+    "rolls_left": 1,
+    "scorecard": [null, null, null, null, null, null, null, null, null, null, null, null],
+    "strategy_mode": "focused"
   }'
 ```
 
@@ -103,23 +92,15 @@ curl -s "$BASE_URL/api/recommend" \
 
 ### `GET /api/leaderboard`
 
-멀티 전적 리더보드 조회
+멀티 전적 리더보드 조회. 현재는 `/api/leaderboard/multi`와 같은 데이터를 반환합니다.
 
-Example:
+### `GET /api/leaderboard/multi`
 
-```bash
-curl -s "$BASE_URL/api/leaderboard"
-```
+로비에서 사용하는 멀티 전적 리더보드 조회 엔드포인트입니다.
 
 ### `GET /api/leaderboard/single`
 
 싱글 점수 리더보드 조회
-
-Example:
-
-```bash
-curl -s "$BASE_URL/api/leaderboard/single"
-```
 
 ### `POST /api/leaderboard/single`
 
@@ -193,36 +174,50 @@ Response:
 }
 ```
 
-Example:
-
-```bash
-curl -s "$BASE_URL/api/save-game" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "player1": "Player01",
-    "score1": 211,
-    "player2": "Player02",
-    "score2": 183
-  }'
-```
-
 ## Lobby / Presence
 
 ### `POST /api/lobby-heartbeat`
 
 로비 접속 유지 heartbeat
 
+Request:
+
+```json
+{
+  "client_id": "browser-tab-id",
+  "username": "Player01"
+}
+```
+
+Response:
+
+```json
+{
+  "status": "ok",
+  "active_clients": 3
+}
+```
+
 ### `GET /api/online-users`
 
-대기중 / 게임중 유저 통합 목록
+대기중 / 게임중 유저 통합 목록 조회
+
+Example response:
+
+```json
+[
+  { "username": "Player01", "status": "대기중" },
+  { "username": "Player02", "status": "게임중", "room": "AB12CD" }
+]
+```
 
 ### `GET /api/lobby-users`
 
-대기실 heartbeat 기준 유저 목록
+구버전 호환성용 로비 heartbeat 목록
 
 ### `GET /api/system-status`
 
-CPU, 메모리, 로비 접속자 수 등 운영 상태 조회
+CPU, 메모리, 접속자 수, 활성 방 수, AI 캐시/지연 메트릭 조회
 
 ## Rooms
 
@@ -243,12 +238,6 @@ Response:
     "observer_count": 0
   }
 ]
-```
-
-Example:
-
-```bash
-curl -s "$BASE_URL/api/rooms"
 ```
 
 ### `POST /api/rooms`
@@ -273,14 +262,6 @@ Response:
 }
 ```
 
-Example:
-
-```bash
-curl -s "$BASE_URL/api/rooms" \
-  -H "Content-Type: application/json" \
-  -d '{"username":"Host01"}'
-```
-
 ### `POST /api/rooms/<code>/join`
 
 방 입장
@@ -299,16 +280,10 @@ Response:
 {
   "code": "AB12CD",
   "players": ["Host01", "Guest01"],
+  "state": {},
+  "observers": [],
   "player_token": "secret-token"
 }
-```
-
-Example:
-
-```bash
-curl -s "$BASE_URL/api/rooms/AB12CD/join" \
-  -H "Content-Type: application/json" \
-  -d '{"username":"Guest01"}'
 ```
 
 ### `POST /api/rooms/<code>/observe`
@@ -323,25 +298,6 @@ Request:
 }
 ```
 
-Response:
-
-```json
-{
-  "code": "AB12CD",
-  "observers": ["Watcher01"],
-  "players": ["Host01", "Guest01"],
-  "state": {}
-}
-```
-
-Example:
-
-```bash
-curl -s "$BASE_URL/api/rooms/AB12CD/observe" \
-  -H "Content-Type: application/json" \
-  -d '{"username":"Watcher01"}'
-```
-
 ### `GET /api/rooms/<code>`
 
 방 상태 조회
@@ -350,6 +306,7 @@ Query:
 
 - `u`: 유저명
 - `pt`: 플레이어 토큰
+- `sv`: 마지막으로 본 state version. 같으면 `unchanged: true`와 최소 상태만 반환
 
 Response:
 
@@ -377,27 +334,15 @@ Response:
 
 게임이 타임아웃 또는 퇴장으로 종료된 경우 `state`에 아래 필드가 추가될 수 있습니다.
 
-- `winner`: 승리 처리된 플레이어
-- `loser`: 탈락하거나 연결이 끊긴 플레이어
-- `end_reason`: `timeout`, `leave`, `score` 중 하나
-
-Example:
-
-```bash
-curl -s "$BASE_URL/api/rooms/AB12CD?u=Host01&pt=secret-token"
-```
-
-Observer Example:
-
-```bash
-curl -s "$BASE_URL/api/rooms/AB12CD?u=Watcher01"
-```
+- `winner`
+- `loser`
+- `end_reason`: `timeout`, `leave`, `system`
 
 ### `POST /api/rooms/<code>/heartbeat`
 
-가벼운 접속 유지용 heartbeat. 멀티 플레이어/관전자 상태를 안정적으로 유지할 때 사용합니다.
+가벼운 접속 유지용 heartbeat. 멀티 플레이어와 관전자 상태를 안정적으로 유지할 때 사용합니다.
 
-Request:
+Player Request:
 
 ```json
 {
@@ -424,14 +369,6 @@ Response:
 }
 ```
 
-Example:
-
-```bash
-curl -s "$BASE_URL/api/rooms/AB12CD/heartbeat" \
-  -H "Content-Type: application/json" \
-  -d '{"username":"Host01","player_token":"secret-token"}'
-```
-
 ### `POST /api/rooms/<code>/roll`
 
 현재 턴 플레이어가 주사위를 굴립니다.
@@ -442,7 +379,7 @@ Request:
 {
   "username": "Host01",
   "player_token": "secret-token",
-  "kept": [false, true, true, false, false]
+  "kept": [0, 1, 1, 0, 0]
 }
 ```
 
@@ -454,18 +391,6 @@ Response:
   "rolls_left": 2,
   "state": {}
 }
-```
-
-Example:
-
-```bash
-curl -s "$BASE_URL/api/rooms/AB12CD/roll" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "Host01",
-    "player_token": "secret-token",
-    "kept": [0, 1, 1, 0, 0]
-  }'
 ```
 
 ### `POST /api/rooms/<code>/sync`
@@ -485,10 +410,7 @@ Request:
     "Host01": [null, null, 9, null, null, null, null, null, null, null, null, null]
   },
   "turn": "Guest01",
-  "game_over": false,
-  "winner": null,
-  "loser": null,
-  "end_reason": null
+  "game_over": false
 }
 ```
 
@@ -498,25 +420,6 @@ Response:
 {
   "state": {}
 }
-```
-
-Example:
-
-```bash
-curl -s "$BASE_URL/api/rooms/AB12CD/sync" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "Host01",
-    "player_token": "secret-token",
-    "dice": [2, 3, 3, 5, 1],
-    "kept": [0, 1, 1, 0, 0],
-    "rolls_left": 2,
-    "scores": {
-      "Host01": [null, null, 9, null, null, null, null, null, null, null, null, null]
-    },
-    "turn": "Guest01",
-    "game_over": false
-  }'
 ```
 
 ### `POST /api/rooms/<code>/leave`
@@ -541,13 +444,7 @@ Response:
 }
 ```
 
-Example:
-
-```bash
-curl -s "$BASE_URL/api/rooms/AB12CD/leave" \
-  -H "Content-Type: application/json" \
-  -d '{"username":"Guest01","player_token":"secret-token"}'
-```
+참고로 서버 구현은 `GET /api/rooms/<code>/leave`도 호환성 차원에서 허용합니다.
 
 ## Common Errors
 
@@ -578,7 +475,6 @@ curl -s "$BASE_URL/api/rooms/AB12CD/leave" \
 ## 운영 메모
 
 - 플레이어 조작 API는 `player_token`이 필요합니다.
-- `GET /api/rooms/<code>`에서 플레이어 heartbeat 갱신 시 `pt` query 파라미터를 사용합니다.
-- 관전자는 `roll`/`sync`를 호출해도 `403`을 받습니다.
-- `observer_count`, `room_phase`는 로비/관전 UI에서 바로 쓸 수 있게 포함되어 있습니다.
-- 정적 파일은 버전 쿼리로 캐시를 갱신합니다.
+- `GET /api/rooms/<code>`에서 플레이어 presence 갱신 시 `pt` query 파라미터를 사용합니다.
+- 관전자는 `roll`/`sync`를 호출하면 `403`을 받습니다.
+- 정적 파일은 장기 캐시, API 응답은 `no-store` 헤더를 사용합니다.
