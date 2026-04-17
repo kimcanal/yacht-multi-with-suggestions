@@ -4,17 +4,62 @@ from .constants import (
     CATEGORY_CLOSING_COST,
     CATS,
     CATEGORY_NAMES,
+    CHOICE_HIGH_SCORE_THRESHOLD,
+    CHOICE_REBALANCE_BASE_PENALTY,
+    CHOICE_REBALANCE_PER_POINT,
+    CHOICE_REBALANCE_SCORE_GAP,
+    CHOICE_REBALANCE_UTILITY_GAP,
+    CHOICE_UTILITY_BONUS_HIGH_COVER,
+    CHOICE_UTILITY_BONUS_HIGH_FOCUSED,
+    CHOICE_UTILITY_BONUS_LOW,
+    DECISION_ROW_EV_SCALE,
+    DECISION_ROW_METER_FLOOR,
     EPS,
-    FUTURE_CATEGORY_WEIGHT,
+    FOUR_KIND_UTILITY_BONUS_COVER,
+    FOUR_KIND_UTILITY_BONUS_FOCUSED,
+    FOUR_KIND_UTILITY_PENALTY,
     FRESH_TURN_CATEGORY_EV,
     FRESH_TURN_CATEGORY_HIT_RATE,
     FOCUSED_HAND_PRIORITY,
+    FULL_HOUSE_UTILITY_BONUS_COVER,
+    FULL_HOUSE_UTILITY_BONUS_FOCUSED,
+    FULL_HOUSE_UTILITY_PENALTY,
+    FUTURE_CATEGORY_WEIGHT,
     HAND_FIXED_SCORES,
+    LARGE_STRAIGHT_UTILITY_BONUS,
+    LONG_TERM_PRESSURE_SAVED_THRESHOLD,
+    LONG_TERM_PRESSURE_THRESHOLD,
+    LONG_TERM_QUALITY_GAP_HIGH,
+    PRESSURE_INCREMENT_CHOICE,
+    PRESSURE_INCREMENT_FOUR_KIND,
+    PRESSURE_INCREMENT_FULL_HOUSE,
+    PRESSURE_INCREMENT_LARGE_STRAIGHT,
+    PRESSURE_INCREMENT_SMALL_STRAIGHT,
+    PRESSURE_INCREMENT_YACHT,
+    PRESSURE_UPPER_DONE_MULT,
+    PRESSURE_YACHT_BONUS_CHOICE_MULT,
+    PRESSURE_YACHT_BONUS_OTHER_MULT,
+    QUALITY_BONUS_MAX,
+    QUALITY_BONUS_MIN,
+    QUALITY_GAP_METER_SCALE,
+    SACRIFICE_BONUS_DROP_THRESHOLD,
     SACRIFICE_PRIORITY,
+    SCORE_ROW_UTILITY_SCALE,
     SCORE_STAGE_PRESSURE_RELIEF,
     SCORE_STAGE_QUALITY_WEIGHT,
-    UPPER_FRESH_COUNT_PROBS,
+    SMALL_STRAIGHT_UTILITY_BONUS,
+    STRAIGHT_UTILITY_PENALTY,
+    UPPER_BONUS_FACE2_MULT_COVER,
+    UPPER_BONUS_FACE2_MULT_FOCUSED,
+    UPPER_BONUS_FACE_MULT_COVER,
+    UPPER_BONUS_FACE_MULT_FOCUSED,
+    UPPER_BONUS_PROGRESS_WEIGHT,
+    UPPER_BONUS_VALUE,
     UPPER_CAT_NAMES,
+    UPPER_FRESH_COUNT_PROBS,
+    YACHT_BONUS_CASH_IN,
+    YACHT_UTILITY_BONUS,
+    YACHT_UTILITY_PENALTY,
 )
 from .scoring import calc_score, has_yacht_bonus
 
@@ -111,7 +156,7 @@ def build_recommendation_context_row(mode, chosen_ev, explaining_row, straight_u
     return {
         "name": "추천 근거",
         "prob": 0.0,
-        "meter": min(1.0, max(0.15, abs(chosen_ev) / 30.0)),
+        "meter": min(1.0, max(DECISION_ROW_METER_FLOOR, abs(chosen_ev) / DECISION_ROW_EV_SCALE)),
         "val_str": f"EV {chosen_ev:.2f}",
         "type": "decision",
         "keep_str": "현재 턴 점수 + 남은 칸 가치 함께 반영",
@@ -169,11 +214,11 @@ def score_stage_upper_bonus_push(face, count, current_upper, score, mode):
 
     if current_upper < 63:
         progress = max(0, min(score, 63 - current_upper))
-        bonus_push += progress * 0.35
+        bonus_push += progress * UPPER_BONUS_PROGRESS_WEIGHT
         if count >= 3:
-            bonus_push += face * (2.4 if mode == "focused" else 2.0)
+            bonus_push += face * (UPPER_BONUS_FACE_MULT_FOCUSED if mode == "focused" else UPPER_BONUS_FACE_MULT_COVER)
         elif count == 2 and face >= 5:
-            bonus_push += face * (1.2 if mode == "focused" else 0.8)
+            bonus_push += face * (UPPER_BONUS_FACE2_MULT_FOCUSED if mode == "focused" else UPPER_BONUS_FACE2_MULT_COVER)
 
     return bonus_push + bonus_delta, bonus_delta
 
@@ -241,7 +286,7 @@ def _remaining_state_value_cached(scorecard_tuple):
     phase_weight = _scorecard_phase_weight_cached(scorecard_tuple)
     open_names = [CATEGORY_NAMES[idx] for idx, value in enumerate(scorecard_tuple) if value is None]
     closing_value = sum(CATEGORY_CLOSING_COST.get(name, 0.0) for name in open_names) * phase_weight
-    upper_value = 35.0 * _upper_bonus_outlook_cached(scorecard_tuple)[2]
+    upper_value = UPPER_BONUS_VALUE * _upper_bonus_outlook_cached(scorecard_tuple)[2]
     return closing_value + upper_value
 
 
@@ -275,25 +320,25 @@ def _score_stage_future_pressure_cached(scorecard_tuple, category_idx):
     pressure = closing_cost * phase_weight * FUTURE_CATEGORY_WEIGHT
 
     if category_idx == CATS["Choice"]:
-        pressure += 0.25
+        pressure += PRESSURE_INCREMENT_CHOICE
     elif category_idx == CATS["Small Straight"]:
-        pressure += 0.2
+        pressure += PRESSURE_INCREMENT_SMALL_STRAIGHT
     elif category_idx == CATS["Large Straight"]:
-        pressure += 0.35
+        pressure += PRESSURE_INCREMENT_LARGE_STRAIGHT
     elif category_idx == CATS["Full House"]:
-        pressure += 0.15
+        pressure += PRESSURE_INCREMENT_FULL_HOUSE
     elif category_idx == CATS["4 of a Kind"]:
-        pressure += 0.1
+        pressure += PRESSURE_INCREMENT_FOUR_KIND
     elif category_idx == CATS["Yacht"]:
-        pressure += 0.1
+        pressure += PRESSURE_INCREMENT_YACHT
 
     if category_idx < 6:
         current_upper = sum((value or 0) for value in scorecard_tuple[:6])
         if current_upper >= 63:
-            pressure *= 0.55
+            pressure *= PRESSURE_UPPER_DONE_MULT
 
     if has_yacht_bonus(scorecard_tuple) and category_idx != CATS["Yacht"]:
-        pressure += hit_rate * (0.9 if category_idx == CATS["Choice"] else 0.45)
+        pressure += hit_rate * (PRESSURE_YACHT_BONUS_CHOICE_MULT if category_idx == CATS["Choice"] else PRESSURE_YACHT_BONUS_OTHER_MULT)
 
     return max(0.0, pressure)
 
@@ -335,7 +380,7 @@ def score_stage_long_term_profile(scorecard, category_idx, score, future_ev, bas
 
     quality_gap = score - future_ev
     quality_bonus = quality_gap * phase_weight * SCORE_STAGE_QUALITY_WEIGHT
-    quality_bonus = max(-3.0, min(4.0, quality_bonus))
+    quality_bonus = max(QUALITY_BONUS_MIN, min(QUALITY_BONUS_MAX, quality_bonus))
 
     future_pressure = max(0.0, base_future_pressure * (1.0 - (SCORE_STAGE_PRESSURE_RELIEF * realization_ratio)))
     future_pressure_saved = max(0.0, base_future_pressure - future_pressure)
@@ -359,15 +404,15 @@ def score_stage_long_term_note(row):
     future_pressure_saved = row.get("future_pressure_saved", 0.0)
 
     if score <= 0:
-        if future_pressure >= 2.5:
+        if future_pressure >= LONG_TERM_PRESSURE_THRESHOLD:
             return f"지금 비우면 남은 점수판 가치 손실이 {future_pressure:.1f}점 수준이라 부담이 큽니다"
         return ""
 
-    if quality_gap >= 6.0:
+    if quality_gap >= LONG_TERM_QUALITY_GAP_HIGH:
         return f"이 칸은 새 턴 기준 평균 {future_ev:.1f}점 안팎인데, 이번에 크게 잘 떠서 바로 확정하는 편이 좋습니다"
-    if quality_gap <= -6.0:
+    if quality_gap <= -LONG_TERM_QUALITY_GAP_HIGH:
         return f"평균적으로는 {future_ev:.1f}점 정도 기대되는 칸이라 낮은 기록이지만, 다른 열린 칸 손실이 더 큽니다"
-    if future_pressure_saved >= 0.8:
+    if future_pressure_saved >= LONG_TERM_PRESSURE_SAVED_THRESHOLD:
         return f"이번 기록이 좋아 이 칸을 닫는 장기 부담도 {future_pressure_saved:.1f}점 정도 줄었습니다"
     return ""
 
@@ -380,7 +425,7 @@ def score_stage_sacrifice_reason(row):
     after_bonus_prob = row.get("after_bonus_prob")
     bonus_drop = row.get("bonus_prob_drop", 0.0)
 
-    if category_idx is not None and category_idx < 6 and bonus_drop >= 0.03:
+    if category_idx is not None and category_idx < 6 and bonus_drop >= SACRIFICE_BONUS_DROP_THRESHOLD:
         return (
             f"{name}를 비우면 Upper Bonus 가능성이 "
             f"{before_bonus_prob * 100:.1f}% → {after_bonus_prob * 100:.1f}%로 내려갑니다"
@@ -441,56 +486,56 @@ def score_stage_category_advice(dice, scorecard, category_idx, mode):
         else:
             reason = f"{name}에 기록하면 0점 처리입니다"
     elif category_idx == CATS["Choice"]:
-        if score >= 20:
-            utility += 3.0 if mode == "cover" else 1.5
+        if score >= CHOICE_HIGH_SCORE_THRESHOLD:
+            utility += CHOICE_UTILITY_BONUS_HIGH_COVER if mode == "cover" else CHOICE_UTILITY_BONUS_HIGH_FOCUSED
             reason = f"즉시 {score}점으로 무난하게 착지할 수 있습니다"
         elif score > 0:
-            utility += 1.0
+            utility += CHOICE_UTILITY_BONUS_LOW
             reason = f"Choice {score}점으로 이번 턴 손실을 줄입니다"
         else:
             reason = "Choice도 이번 턴엔 점수가 나지 않습니다"
     elif category_idx == CATS["4 of a Kind"]:
         if score > 0:
-            utility += 6.0 if mode == "focused" else 4.0
+            utility += FOUR_KIND_UTILITY_BONUS_FOCUSED if mode == "focused" else FOUR_KIND_UTILITY_BONUS_COVER
             reason = f"4 of a Kind {score}점으로 하단 고점을 확보합니다"
         else:
-            utility -= 1.5
+            utility -= FOUR_KIND_UTILITY_PENALTY
             reason = "4 of a Kind에 적으면 0점입니다"
     elif category_idx == CATS["Full House"]:
         if score > 0:
-            utility += 4.5 if mode == "focused" else 3.0
+            utility += FULL_HOUSE_UTILITY_BONUS_FOCUSED if mode == "focused" else FULL_HOUSE_UTILITY_BONUS_COVER
             reason = f"Full House {score}점으로 점수 효율이 좋습니다"
         else:
-            utility -= 1.5
+            utility -= FULL_HOUSE_UTILITY_PENALTY
             reason = "Full House에 적으면 0점입니다"
     elif category_idx == CATS["Small Straight"]:
         if score > 0:
-            utility += 2.5
+            utility += SMALL_STRAIGHT_UTILITY_BONUS
             reason = "Small Straight 15점을 바로 확보합니다"
         else:
-            utility -= 1.0
+            utility -= STRAIGHT_UTILITY_PENALTY
             reason = "Small Straight에 적으면 0점입니다"
     elif category_idx == CATS["Large Straight"]:
         if score > 0:
-            utility += 6.0
+            utility += LARGE_STRAIGHT_UTILITY_BONUS
             reason = "Large Straight 30점은 바로 챙길 가치가 큽니다"
         else:
-            utility -= 1.0
+            utility -= STRAIGHT_UTILITY_PENALTY
             reason = "Large Straight에 적으면 0점입니다"
     elif category_idx == CATS["Yacht"]:
         if score > 0:
-            utility += 40.0
+            utility += YACHT_UTILITY_BONUS
             reason = "Yacht 50점은 바로 확정하는 편이 가장 좋습니다"
         else:
-            utility -= 4.0
+            utility -= YACHT_UTILITY_PENALTY
             reason = "Yacht는 이번 턴을 비우는 희생 칸 후보로만 보세요"
 
     if yacht_bonus_active:
-        utility += 100.0
+        utility += YACHT_BONUS_CASH_IN
         reason = f"Yacht Bonus +100과 함께 {name} {score}점을 기록할 수 있습니다"
 
     utility += long_term_profile["quality_bonus"]
-    utility += 35.0 * bonus_prob_delta
+    utility += UPPER_BONUS_VALUE * bonus_prob_delta
     utility -= future_pressure
     long_term_note = score_stage_long_term_note(
         {
@@ -561,10 +606,10 @@ def _rebalance_choice_score_stage(rows):
 
     best_specialty = max(specialty_rows, key=lambda row: (row["utility"], row["score"]))
     choice_gap = choice_row["score"] - best_specialty["score"]
-    if best_specialty["utility"] + 2.0 < choice_row["utility"] and choice_gap >= 5:
+    if best_specialty["utility"] + CHOICE_REBALANCE_UTILITY_GAP < choice_row["utility"] and choice_gap >= CHOICE_REBALANCE_SCORE_GAP:
         return
 
-    penalty = 2.6 + max(0.0, (20 - choice_row["score"]) * 0.35)
+    penalty = CHOICE_REBALANCE_BASE_PENALTY + max(0.0, (CHOICE_HIGH_SCORE_THRESHOLD - choice_row["score"]) * CHOICE_REBALANCE_PER_POINT)
     choice_row["utility"] -= penalty
     choice_row["reason"] = (
         f"Choice {choice_row['score']}점으로 손실은 줄이지만, "
@@ -594,7 +639,7 @@ def build_score_stage_advice(dice, scorecard, open_categories, mode):
             {
                 "name": row["name"],
                 "prob": 0.0,
-                "meter": min(1.0, max(0.15, row["utility"] / 50.0)),
+                "meter": min(1.0, max(DECISION_ROW_METER_FLOOR, row["utility"] / SCORE_ROW_UTILITY_SCALE)),
                 "val_str": f"{row['score']}점",
                 "type": "score",
                 "keep_str": "지금 기록 추천",
@@ -611,7 +656,7 @@ def build_score_stage_advice(dice, scorecard, open_categories, mode):
                 {
                     "name": "장기 가치",
                     "prob": 0.0,
-                    "meter": min(1.0, max(0.15, abs(best_row.get("quality_gap", 0.0)) / 12.0)),
+                    "meter": min(1.0, max(DECISION_ROW_METER_FLOOR, abs(best_row.get("quality_gap", 0.0)) / QUALITY_GAP_METER_SCALE)),
                     "val_str": f"평균대비 {best_row.get('quality_gap', 0.0):+.1f}",
                     "type": "decision",
                     "keep_str": "이번 점수 + 남은 칸 가치까지 반영",

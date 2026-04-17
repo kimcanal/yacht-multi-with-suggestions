@@ -1,18 +1,21 @@
 # Yacht Game
 
-Flask 기반 웹 요트 다이스 게임입니다. 싱글플레이, 실시간 1 vs 1 멀티플레이, 관전 모드, 리더보드, 그리고 확률 기반 AI 추천 기능을 제공합니다.
+Flask 기반 웹 요트 다이스 게임입니다. 싱글플레이, 실시간 1:1 멀티플레이, 관전 모드, 리더보드, AI 추천 기능을 제공합니다.
 
-라이브 서비스: https://app.yatch-game.cloud/
+라이브: https://app.yatch-game.cloud/
 
-추가 문서:
+---
 
-- API 문서: [API.md](./API.md)
+추가 문서들:
+- API 상세: [API.md](./API.md)
+- 변경 이력: [CHANGELOG.md](./CHANGELOG.md)
 - 게임 소개 페이지: [`/intro`](https://app.yatch-game.cloud/intro)
+- AI 수식 설명: [docs/ai-math.md](./docs/ai-math.md)
 - 성능 계획: [docs/performance-roadmap.md](./docs/performance-roadmap.md)
 
 ## 실제 화면
 
-현재 빌드 기준 실제 화면 캡처입니다. README에는 빠르게 훑어볼 수 있는 장면만 넣고, 규칙과 AI 추천 기준의 자세한 설명은 웹 소개 페이지 [`/intro`](https://app.yatch-game.cloud/intro) 에서 보는 구성을 권장합니다.
+현재 빌드 기준입니다. 규칙이랑 AI 추천 방식 설명은 [`/intro`](https://app.yatch-game.cloud/intro)에 있어요.
 
 ### 로비
 
@@ -30,40 +33,36 @@ Flask 기반 웹 요트 다이스 게임입니다. 싱글플레이, 실시간 1 
 
 <img src="./docs/screenshots/multi-live.png" width="900" alt="Yacht multiplayer lobby and waiting room screenshot" />
 
-위 화면처럼 README는 실제 플레이 장면을 미리 보여주고, 상세 게임 설명은 HTML 소개 페이지에서 이어서 확인하는 흐름으로 보는 것이 가장 자연스럽습니다.
+## 기능 목록
 
-## 주요 기능
+기본 플레이 쪽은 이렇습니다.
 
-- 싱글플레이: 브라우저에서 바로 플레이 가능
-- 멀티플레이: 실시간 1 vs 1 대전
-- 관전 모드: 멀티 경기 관전 링크 공유 가능
-- 게임 소개 페이지: 규칙, 점수 방식, AI 추천 기준을 한 페이지에서 확인
-- AI 추천: 현재 주사위, 남은 roll, 열린 점수칸 기준으로 keep / reroll 추천
-- 추천 모드
-  - `집중 공략`: 가장 유망한 한 족보를 끝까지 밀고, 가능한 업그레이드 경로도 함께 보는 추천
-  - `커버 플레이`: 여러 하단 족보 중 하나 이상 성공할 exact union 확률과 전부 실패 확률을 같이 보여주는 추천
-- Yacht Bonus 반영: 이미 Yacht를 확보한 뒤 다시 Yacht가 나오면 `+100` 가치까지 추천에 반영
-- 점수 기록 추천: 굴림이 끝난 뒤 희생 칸까지 포함한 기록 우선순위 제안
-- 리더보드: 싱글 / 멀티 결과 저장
-- 서버 상태 패널: CPU, RAM, 접속자 수, 활성 방 수 표시
-- 턴 타이머: 제한 시간 내 행동이 없으면 자동 roll 진행
+- 싱글: 브라우저에서 바로 플레이 가능
+- 멀티: 실시간 1:1 대전. 방 코드로 초대
+- 관전: 멀티 경기 링크 공유 가능
+- 리더보드: 싱글/멀티 기록 저장
+- 서버 상태 패널: CPU, RAM, 접속자 수, 활성 방 수
+- 턴 타이머: 제한 시간 안에 행동 없으면 자동 roll
 
-## AI 추천 설명
+AI 추천 쪽은 이렇습니다.
 
-굴림 단계에서는 남은 roll 수와 현재 점수판을 함께 고려합니다. 웹 UI에서는 버튼 아래 설명 카드와 동일한 기준으로 두 모드를 구분하고, 소개 페이지 `/intro` 에서도 같은 설명을 확인할 수 있습니다.
+- 현재 주사위, 남은 roll, 열린 점수칸을 보고 keep / reroll 추천
+- **집중 공략**: 가장 유망한 족보 하나를 끝까지 미는 추천. 지금 기록이 더 유리하면 그것도 같이 알려줌. Small Straight가 잡혀 있으면 Large Straight 업그레이드 가능성도 같이 봄
+- **커버 플레이**: 하단 족보 여러 개 중 하나 이상 터질 확률(exact union)과 전부 실패할 확률을 같이 보여주는 추천
+- Yacht Bonus 반영: 이미 Yacht 확보한 뒤 또 Yacht 나오면 +100 가치까지 추천에 반영
+- 점수 기록 추천: 굴림 끝나면 희생 칸 포함해서 기록 우선순위도 제안
 
-- `집중 공략`
-  - 매번 `지금 바로 기록`과 `한 번 더 굴리기`를 같이 비교합니다. 이미 지금 점수가 더 좋으면 `지금 기록 추천`으로 멈추는 쪽을 먼저 보여줍니다.
-  - 지금 손패에서 가장 유망한 한 족보를 목표로 두고 성공 확률이 가장 좋은 keep을 찾습니다.
-  - 이미 `Small Straight`가 잡혀 있다면, 같은 keep으로 `Large Straight` 업그레이드를 노릴 수 있는지도 함께 봅니다.
-  - 설명 패널에는 추천 족보 외에도 `추천 근거`, `지금 멈추기 비교`, `차선책 비교`를 같이 보여줘서 왜 이 keep을 택했는지 바로 읽을 수 있게 합니다.
-- `커버 플레이`
-  - `4 of a Kind`, `Full House`, `Small Straight`, `Large Straight`, `Yacht` 중 열린 하단 족보를 묶어서
-    `하나 이상 성공할 확률`을 최대화합니다.
-  - 함께 `전부 실패할 확률`도 exact 계산으로 보여줍니다.
-  - 애매한 턴에서 "한 족보를 깊게 갈지, 여러 족보를 동시에 열어둘지" 판단할 때 특히 유용합니다.
+## AI 추천은 어떻게 동작하냐면
 
-점수 기록 단계에서는 이번 턴 즉시 점수, Upper Bonus 흐름과 `도달 확률 변화`, Yacht Bonus 가치, `새 턴 기준 기대치`, 그리고 "이 점수를 지금 적으면 그 칸을 닫는 장기 부담이 얼마나 줄어드는지"를 같이 고려합니다. UI에는 이 맥락을 `장기 가치` 줄로 함께 보여줍니다.
+굴림 단계에서는 남은 roll 수랑 현재 점수판 상태를 같이 봅니다. 수식 정리는 [docs/ai-math.md](./docs/ai-math.md)에 있고, `/intro` 소개 페이지에서도 볼 수 있어요.
+
+엔진은 한 턴 안의 reroll을 exact DP로 계산하고, 점수 기록 단계는 즉시 점수 + 장기 압력을 같이 반영한 utility로 처리합니다. 운영 환경에서는 이 exact 결과를 teacher로 써서 경량 MLP로 distillation하는 실험도 들어가 있어요. 학생 모델이 자신 없거나 exact 해와 차이가 크면 바로 fallback합니다.
+
+**집중 공략**은 매번 "지금 기록"과 "한 번 더 굴리기"를 비교합니다. 지금 점수가 더 좋으면 기록 추천을 먼저 보여줘요. 가장 유망한 족보를 목표로 keep을 고르고, Small Straight가 잡혀 있으면 Large Straight 업그레이드 경로도 같이 확인합니다. 패널에는 추천 근거, 지금 멈추기 비교, 차선책 비교도 나옵니다.
+
+**커버 플레이**는 4 of a Kind, Full House, Small Straight, Large Straight, Yacht 중 열린 하단 족보를 묶어서 하나 이상 성공할 확률을 최대화합니다. 전부 실패할 확률도 exact로 같이 보여줘요. 한 족보를 깊게 갈지 여러 족보를 열어둘지 판단할 때 유용합니다.
+
+점수 기록 단계에서는 즉시 점수, Upper Bonus 흐름과 도달 확률 변화, Yacht Bonus 가치, 새 턴 기준 기대치, 이 칸 닫을 때 줄어드는 장기 부담을 같이 고려합니다. UI의 "장기 가치" 줄이 이걸 보여줍니다.
 
 ## 설치 및 실행
 
@@ -72,21 +71,21 @@ pip3 install -r requirements.txt
 python3 server.py
 ```
 
-기본 실행 주소는 `http://localhost:8080` 입니다.
+기본은 `http://localhost:8080`에서 뜹니다.
 
-운영 환경에서는 아래처럼 `gunicorn` 실행을 권장합니다.
+운영 환경이라면 gunicorn 쓰세요.
 
 ```bash
 gunicorn -c gunicorn.conf.py wsgi:application
 ```
 
-AI 계산 기준치는 아래 스크립트로 빠르게 측정할 수 있습니다.
+AI 계산 기준치 측정:
 
 ```bash
 python3 scripts/benchmark_ai.py --repeats 3
 ```
 
-AI 회귀 검증과 soak 검증은 아래 스크립트로 실행할 수 있습니다.
+회귀/soak 검증:
 
 ```bash
 python3 scripts/check_ai_golden.py
@@ -94,13 +93,13 @@ python3 scripts/soak_ai.py --cases 250
 python3 scripts/verify_ai.py --benchmark-repeats 1 --warm-cases 120 --cold-cases 40
 ```
 
-VDI에서 ML 실험용 teacher data를 만들려면 아래처럼 JSONL을 뽑으면 됩니다.
+VDI에서 ML 실험용 teacher data 뽑을 때:
 
 ```bash
 python3 scripts/generate_teacher_data.py --all-dice --contexts-per-dice 4 --output artifacts/teacher_data.jsonl --overwrite
 ```
 
-roll stage를 distill한 학습 정책을 만들려면 teacher data에서 roll 샘플만 읽어 아래처럼 학습할 수 있습니다.
+roll stage MLP 학습:
 
 ```bash
 python3 scripts/train_roll_policy.py \
@@ -108,7 +107,7 @@ python3 scripts/train_roll_policy.py \
   --output artifacts/roll_policy_model.json
 ```
 
-서버에서 학습 정책을 켜려면 모델 경로를 환경 변수로 넘기면 됩니다. score stage는 기존 exact 추천을 그대로 쓰고, roll stage만 confidence 기준으로 학습 정책을 우선 사용합니다. 학습 정책이 자신 있게 내놓은 답이라도 exact 기준과 차이가 크면 자동으로 exact 추천으로 fallback 합니다.
+학습 정책을 서버에서 켜려면 모델 경로를 환경 변수로 넘기면 됩니다. score stage는 exact 추천 그대로 쓰고, roll stage만 confidence 기준으로 학습 정책 우선 사용. confidence 낮거나 exact랑 차이 크면 자동 fallback합니다.
 
 ```bash
 export YACHT_AI_POLICY_MODEL=artifacts/roll_policy_model.json
@@ -116,7 +115,7 @@ export YACHT_AI_POLICY_MIN_CONFIDENCE=0.95
 python3 server.py
 ```
 
-학습 품질과 fallback threshold를 다시 점검하고 싶으면 아래 평가 스크립트를 쓰면 됩니다.
+학습 품질 재점검할 때:
 
 ```bash
 python3 scripts/eval_roll_policy.py \
@@ -124,7 +123,7 @@ python3 scripts/eval_roll_policy.py \
   --model artifacts/roll_policy_model.json
 ```
 
-희생 칸 우선순위나 장기 손실 추정을 다시 보정하고 싶으면 rollout 기반 calibration 스크립트를 돌릴 수 있습니다.
+희생 칸 장기 손실 재보정:
 
 ```bash
 python3 scripts/estimate_closing_costs.py \
@@ -135,55 +134,58 @@ python3 scripts/estimate_closing_costs.py \
 
 ## 게임 규칙 요약
 
-주사위 5개를 굴려 12개 카테고리에 한 번씩 기록하고, 최종 합계를 경쟁합니다.
+주사위 5개 굴려서 12개 카테고리에 한 번씩 기록하고 합계로 경쟁하는 게임입니다.
 
-### Upper Section
+**Upper Section** — Ones~Sixes는 해당 숫자 합계. 63점 이상이면 Upper Bonus +35.
 
-- `Ones ~ Sixes`: 해당 숫자의 합
-- Upper 합계가 `63점 이상`이면 `Upper Bonus +35`
-
-### Lower Section
-
-- `Choice`: 주사위 5개의 총합
-- `4 of a Kind`: 같은 숫자 4개 이상일 때, 주사위 5개의 총합
-- `Full House`: 같은 숫자 3개 + 2개일 때, 주사위 5개의 총합
-- `Small Straight`: 연속된 숫자 4개 이상, 고정 `15점`
-- `Large Straight`: 연속된 숫자 5개, 고정 `30점`
-- `Yacht`: 같은 숫자 5개, 고정 `50점`
-- `Yacht Bonus`: 이미 Yacht를 기록한 뒤 다시 Yacht가 나오면, 다른 칸에 0이 아닌 점수를 적을 때 추가 `+100점`
+**Lower Section**
+- Choice: 주사위 5개 총합
+- 4 of a Kind: 같은 숫자 4개 이상일 때 총합
+- Full House: 3개+2개 조합일 때 총합
+- Small Straight: 연속 4개, 고정 15점
+- Large Straight: 연속 5개, 고정 30점
+- Yacht: 5개 동일, 고정 50점
+- Yacht Bonus: Yacht 기록한 뒤 또 Yacht 나오면 다른 칸에 기록할 때 +100
 
 ## 기술 스택
 
 - Backend: Python 3, Flask
-- Frontend: HTML, CSS, JavaScript
-- Game Engine: Python exact turn-DP + early-stop comparison + future-pressure heuristic
+- Frontend: HTML, CSS, JavaScript (프레임워크 없음)
+- Game Engine: exact turn-DP + early-stop comparison + future-pressure heuristic
 - Monitoring: psutil
 
-## 주요 API
+## 주요 API 목록
 
-- `POST /api/recommend`: 현재 주사위 기준 AI 추천
-- `GET /health`: 간단한 서버 상태 확인
-- `GET /api/rooms`: 활성 방 목록
-- `POST /api/rooms`: 방 생성
-- `POST /api/rooms/<code>/join`: 방 입장
-- `POST /api/rooms/<code>/observe`: 관전 입장
-- `POST /api/rooms/<code>/roll`: 주사위 굴리기
-- `POST /api/rooms/<code>/sync`: 상태 동기화
-- `POST /api/rooms/<code>/leave`: 방 이탈 / 부전승 처리
-- `GET /api/leaderboard`: 멀티 리더보드
-- `GET /api/leaderboard/single`: 싱글 리더보드 조회
-- `POST /api/leaderboard/single`: 싱글 리더보드 저장
+- `POST /api/recommend` — AI 추천
+- `GET /health` — 서버 상태
+- `GET /api/online-users` — 로비/게임중 유저 목록
+- `GET /api/system-status` — 운영 상태와 AI 메트릭
+- `GET /api/rooms` — 방 목록
+- `POST /api/rooms` — 방 생성
+- `POST /api/rooms/<code>/join` — 방 입장
+- `POST /api/rooms/<code>/observe` — 관전 입장
+- `POST /api/rooms/<code>/heartbeat` — 방 참가자/관전자 heartbeat
+- `POST /api/rooms/<code>/roll` — 주사위 굴리기
+- `POST /api/rooms/<code>/sync` — 상태 동기화
+- `POST /api/rooms/<code>/leave` — 방 이탈 / 부전승
+- `GET /api/leaderboard` — 멀티 리더보드 별칭
+- `GET /api/leaderboard/multi` — 로비에서 쓰는 멀티 리더보드
+- `GET /api/leaderboard/single` — 싱글 리더보드
+- `POST /api/leaderboard/single` — 싱글 점수 저장
 
-자세한 요청 / 응답 예시는 [API.md](./API.md) 참고
+요청/응답 예시는 [API.md](./API.md) 참고.
 
 ## 프로젝트 구조
 
-```text
+```
 yacht_game/
 ├── API.md
 ├── README.md
+├── app_state.py
+├── config.py
 ├── database.py
 ├── docs/
+│   ├── ai-math.md
 │   ├── performance-roadmap.md
 │   └── screenshots/
 │       ├── intro.png
@@ -193,6 +195,11 @@ yacht_game/
 ├── game_data.json
 ├── gunicorn.conf.py
 ├── requirements.txt
+├── routes/
+│   ├── ai.py
+│   ├── leaderboard.py
+│   ├── lobby.py
+│   └── rooms.py
 ├── scripts/
 │   ├── benchmark_ai.py
 │   ├── check_ai_golden.py
@@ -213,6 +220,11 @@ yacht_game/
 │   ├── lobby.html
 │   ├── multi-game.html
 │   └── single-game.html
+├── utils/
+│   ├── ai_utils.py
+│   ├── room_utils.py
+│   └── validation.py
+├── yacht-hosting.sh
 ├── yacht_ai/
 │   ├── __init__.py
 │   ├── advice.py
@@ -225,4 +237,4 @@ yacht_game/
 
 ## 라이선스
 
-MIT License
+MIT
