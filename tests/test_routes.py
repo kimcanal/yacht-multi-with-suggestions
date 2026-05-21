@@ -68,6 +68,65 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(len(payload["dice_recommendations"]), 5)
         self.assertEqual(response.headers["Cache-Control"], "no-store, private")
         self.assertIn("X-AI-Elapsed-Ms", response.headers)
+        self.assertEqual(response.headers["X-AI-Request-Cache"], "miss")
+
+        response_cached = self.client.post(
+            "/api/recommend",
+            json={
+                "dice": [1, 2, 3, 4, 6],
+                "rolls_left": 1,
+                "scorecard": [None] * 12,
+                "strategy_mode": "focused",
+            },
+        )
+        self.assertEqual(response_cached.status_code, 200)
+        self.assertEqual(response_cached.headers["X-AI-Request-Cache"], "hit")
+
+
+    def test_recommend_validation_errors(self):
+        bad_dice = self.client.post(
+            "/api/recommend",
+            json={
+                "dice": [1, 2, 3],
+                "rolls_left": 1,
+                "scorecard": [None] * 12,
+                "strategy_mode": "focused",
+            },
+        )
+        self.assertEqual(bad_dice.status_code, 400)
+
+        bad_scorecard = self.client.post(
+            "/api/recommend",
+            json={
+                "dice": [1, 2, 3, 4, 5],
+                "rolls_left": 1,
+                "scorecard": [None] * 11,
+                "strategy_mode": "focused",
+            },
+        )
+        self.assertEqual(bad_scorecard.status_code, 400)
+
+        bad_mode = self.client.post(
+            "/api/recommend",
+            json={
+                "dice": [1, 2, 3, 4, 5],
+                "rolls_left": 1,
+                "scorecard": [None] * 12,
+                "strategy_mode": "aggressive",
+            },
+        )
+        self.assertEqual(bad_mode.status_code, 400)
+
+        bad_rolls = self.client.post(
+            "/api/recommend",
+            json={
+                "dice": [1, 2, 3, 4, 5],
+                "rolls_left": 3,
+                "scorecard": [None] * 12,
+                "strategy_mode": "focused",
+            },
+        )
+        self.assertEqual(bad_rolls.status_code, 400)
 
     def test_lobby_presence_endpoints(self):
         heartbeat = self.client.post(
@@ -147,6 +206,15 @@ class RouteIntegrationTests(unittest.TestCase):
         rolled_payload = rolled.get_json()
         self.assertEqual(rolled_payload["rolls_left"], 2)
         self.assertEqual(rolled_payload["state"]["version"], 2)
+        self.assertIn("fairness", rolled_payload)
+        self.assertIn("revealed", rolled_payload["fairness"])
+        self.assertIn("next_hash", rolled_payload["fairness"])
+
+        fairness = self.client.get(f"/api/rooms/{code}/fairness")
+        self.assertEqual(fairness.status_code, 200)
+        fairness_payload = fairness.get_json()
+        self.assertIn("current_hash", fairness_payload)
+        self.assertIn("last_reveal", fairness_payload)
 
         wrong_turn_sync = self.client.post(
             f"/api/rooms/{code}/sync",
@@ -197,6 +265,44 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(leaderboard.status_code, 200)
         self.assertEqual(leaderboard_payload[0]["username"], "host1")
         self.assertEqual(leaderboard_payload[0]["wins"], 1)
+
+
+    def test_sync_validation_errors(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        code = created.get_json()["code"]
+        host_token = created.get_json()["player_token"]
+        joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
+        self.assertEqual(joined.status_code, 200)
+
+        bad_rolls = self.client.post(
+            f"/api/rooms/{code}/sync",
+            json={
+                "username": "host1",
+                "player_token": host_token,
+                "dice": [1, 1, 1, 1, 1],
+                "kept": [1, 1, 1, 1, 1],
+                "rolls_left": 4,
+                "scores": {"host1": [None] * 12, "guest1": [None] * 12},
+                "turn": "guest1",
+                "game_over": False,
+            },
+        )
+        self.assertEqual(bad_rolls.status_code, 400)
+
+        bad_scores = self.client.post(
+            f"/api/rooms/{code}/sync",
+            json={
+                "username": "host1",
+                "player_token": host_token,
+                "dice": [1, 1, 1, 1, 1],
+                "kept": [1, 1, 1, 1, 1],
+                "rolls_left": 0,
+                "scores": {"host1": [None] * 11, "guest1": [None] * 12},
+                "turn": "guest1",
+                "game_over": False,
+            },
+        )
+        self.assertEqual(bad_scores.status_code, 400)
 
     def test_rematch_requires_both_players_and_resets_room(self):
         created = self.client.post("/api/rooms", json={"username": "host1"})

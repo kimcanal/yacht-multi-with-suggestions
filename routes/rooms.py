@@ -1,4 +1,3 @@
-import secrets
 import time
 
 from flask import Blueprint, jsonify, request
@@ -6,13 +5,14 @@ from flask import Blueprint, jsonify, request
 from app_state import rooms
 from config import TURN_TIME_LIMIT
 from utils.room_utils import (
-    default_room_state, finalize_room_forfeit, generate_room_code,
-    prune_room_activity, remove_observer, remove_player, room_phase,
+    build_fair_state, default_room_state, finalize_room_forfeit, generate_room_code,
+    prune_room_activity, remove_observer, remove_player, roll_with_fairness, room_phase,
     start_room_rematch, touch_observer, touch_player,
 )
 from utils.validation import (
     is_valid_player, issue_player_token,
-    normalize_dice, normalize_kept, normalize_username, safe_int,
+    normalize_dice, normalize_kept, normalize_rolls_left, normalize_scores_by_players,
+    normalize_username, safe_int,
 )
 
 rooms_bp = Blueprint("rooms", __name__)
@@ -82,6 +82,7 @@ def create_room():
         "player_last_seen": {username: now},
         "observer_last_seen": {},
         "rematch_requests": {},
+        "fair": build_fair_state(),
     }
     return jsonify({"code": code, "players": rooms[code]["players"], "player_token": player_token})
 
@@ -123,6 +124,7 @@ def join_room(code):
     room["last_update"] = now
     room["started_full"] = True
     room["rematch_requests"] = {}
+    room["fair"] = build_fair_state()
     touch_player(room, username, now)
 
     return jsonify({
@@ -274,7 +276,15 @@ def sync_room(code):
     if dice is None or kept is None:
         return jsonify({"error": "잘못된 주사위 데이터"}), 400
 
-    rolls_left = data.get("rolls_left", state["rolls_left"])
+    rolls_left = normalize_rolls_left(data.get("rolls_left", state["rolls_left"]), 0, 3)
+    if rolls_left is None:
+        return jsonify({"error": "rolls_left는 0~3 정수여야 합니다"}), 400
+
+    scores_payload = data.get("scores", state["scores"])
+    normalized_scores = normalize_scores_by_players(scores_payload, room["players"])
+    if normalized_scores is None:
+        return jsonify({"error": "scores는 플레이어별 길이 12 점수/None 배열이어야 합니다"}), 400
+
     state.setdefault("player_dice", {})[username] = dice
     state.setdefault("player_kept", {})[username] = kept
     state.setdefault("player_rolls_left", {})[username] = rolls_left
@@ -290,7 +300,7 @@ def sync_room(code):
         "dice": dice,
         "kept": kept,
         "rolls_left": rolls_left,
-        "scores": data.get("scores", state["scores"]),
+        "scores": normalized_scores,
         "player_dice": state.get("player_dice", {}),
         "player_kept": state.get("player_kept", {}),
         "player_rolls_left": state.get("player_rolls_left", {}),
@@ -347,10 +357,13 @@ def roll_dice(code):
     if kept is None:
         return jsonify({"error": "잘못된 고정 주사위 데이터"}), 400
 
+    fair = room.get("fair") or build_fair_state()
+    rolled_values, next_fair = roll_with_fairness(code, kept, fair)
+
     new_dice = state["dice"][:]
     for i in range(5):
         if not kept[i]:
-            new_dice[i] = secrets.randbelow(6) + 1
+            new_dice[i] = rolled_values[i]
 
     state.setdefault("player_dice", {})[username] = new_dice
     state.setdefault("player_kept", {})[username] = kept
@@ -361,8 +374,31 @@ def roll_dice(code):
     state["turn_start_time"] = now
 
     room["state"] = state
+    room["fair"] = next_fair
     room["last_update"] = now
-    return jsonify({"dice": new_dice, "rolls_left": state["rolls_left"], "state": state})
+    return jsonify({
+        "dice": new_dice,
+        "rolls_left": state["rolls_left"],
+        "state": state,
+        "fairness": {
+            "revealed": next_fair.get("last_reveal"),
+            "next_hash": next_fair.get("hash"),
+            "next_nonce": next_fair.get("nonce", 0),
+        },
+    })
+
+
+@rooms_bp.route("/api/rooms/<code>/fairness", methods=["GET"])
+def room_fairness(code):
+    room = rooms.get(code)
+    if not room:
+        return jsonify({"error": "방 없음"}), 404
+    fair = room.get("fair") or build_fair_state()
+    room["fair"] = fair
+    payload = {"current_hash": fair.get("hash"), "current_nonce": fair.get("nonce", 0)}
+    if fair.get("last_reveal"):
+        payload["last_reveal"] = fair.get("last_reveal")
+    return jsonify(payload)
 
 
 @rooms_bp.route("/api/rooms/<code>/rematch", methods=["POST"])

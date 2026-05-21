@@ -192,3 +192,45 @@ def prune_room_activity(code, room, now=None):
 def generate_room_code(length=6):
     chars = string.ascii_uppercase + string.digits
     return "".join(secrets.choice(chars) for _ in range(length))
+
+
+def _new_fair_round():
+    secret = secrets.token_hex(16)
+    return {
+        "secret": secret,
+        "hash": secrets.token_hex(0),
+        "nonce": 0,
+        "last_reveal": None,
+    }
+
+
+def build_fair_state():
+    fair = _new_fair_round()
+    import hashlib
+    fair["hash"] = hashlib.sha256(fair["secret"].encode("utf-8")).hexdigest()
+    return fair
+
+
+def roll_with_fairness(code, kept, fair):
+    import hashlib
+    nonce = fair.get("nonce", 0)
+    secret = fair["secret"]
+    generated = []
+    for i in range(5):
+        payload = f"{code}:{nonce}:{i}:{secret}".encode("utf-8")
+        raw = hashlib.sha256(payload).digest()
+        generated.append((raw[0] % 6) + 1)
+
+    next_fair = build_fair_state()
+    next_fair["last_reveal"] = {
+        "secret": secret,
+        "hash": fair.get("hash"),
+        "nonce": nonce,
+        "generated_dice": generated,
+    }
+    next_fair["nonce"] = nonce + 1
+
+    out = []
+    for i in range(5):
+        out.append(generated[i] if not kept[i] else None)
+    return out, next_fair
