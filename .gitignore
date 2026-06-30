@@ -14,3 +14,9 @@ artifacts/models/*
 artifacts/reports/*
 !artifacts/models/model-20260630-roll-policy-v1.json
 !artifacts/reports/model-20260630-roll-policy-v1.eval.json
+!artifacts/reports/model-20260630-roll-policy-v1.ev-gap.json
+!artifacts/reports/model-20260630-roll-policy-v1.runtime.json
+!artifacts/models/model-20260630-roll-policy-v2.json
+!artifacts/reports/model-20260630-roll-policy-v2.eval.json
+!artifacts/reports/model-20260630-roll-policy-v2.ev-gap.json
+!artifacts/reports/model-20260630-roll-policy-v2.runtime.json

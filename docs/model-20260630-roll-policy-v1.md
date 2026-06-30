@@ -41,6 +41,16 @@ Confidence threshold별 운영 후보:
 
 현재 서버 기본 실험값으로는 `YACHT_AI_POLICY_MIN_CONFIDENCE=0.95`가 적당하다. 이 값이면 대부분의 roll-stage 요청에서 모델을 쓸 수 있고, covered 구간에서는 teacher 선택과 거의 일치한다. confidence가 낮거나 exact solver와 의미 있게 갈라지면 fallback하도록 둔다.
 
+추가 EV/runtime 검증 기준:
+
+- Raw mean excess EV gap: 0.097877
+- Raw mismatch count: 104 / 6,554
+- Runtime acceptance at confidence 0.95 + gap guard 0.25: 48.7031%
+- Runtime accepted accuracy: 99.7807%
+- Effective excess EV gap with fallback: mean 0, max 0
+
+이 수치는 teacher 일치율과 실전 안전성이 서로 다른 문제라는 점을 보여준다. 모델 단독으로는 rare worst-case가 있지만, runtime fallback을 적용하면 검증 split에서는 추가 EV 손실이 0으로 막혔다.
+
 ## 재현 명령
 
 ```bash
@@ -83,4 +93,5 @@ python3 scripts/eval_roll_policy.py \
 - 전체 12턴 승률을 직접 예측하는 모델은 아니다.
 - score stage의 장기 가치 판단은 아직 full-game DP/value table로 완전히 대체하지 않았다.
 - teacher data가 exact solver의 편향을 그대로 배운다.
-- v2는 value table `V(mask, upper_total, yacht_bonus)`를 score-stage feature로 연결하거나, self-play 결과를 value target으로 추가하는 방향이 좋다.
+- 후속 모델인 [model-20260630-roll-policy-v2.md](./model-20260630-roll-policy-v2.md)는 같은 구조에서 seed를 바꿔 top-1 정확도를 소폭 개선했다.
+- 다음 큰 개선은 value table `V(mask, upper_total, yacht_bonus)`를 score-stage feature로 연결하거나, self-play 결과를 value target으로 추가하는 방향이 좋다.

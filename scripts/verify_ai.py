@@ -54,6 +54,8 @@ def main() -> None:
             "scripts/build_value_table.py",
             "scripts/check_ai_golden.py",
             "scripts/eval_roll_policy.py",
+            "scripts/eval_roll_policy_ev_gap.py",
+            "scripts/eval_roll_policy_runtime.py",
             "scripts/generate_teacher_data.py",
             "scripts/soak_ai.py",
             "scripts/train_roll_policy.py",

@@ -132,19 +132,23 @@ python3 scripts/build_value_table.py \
 
 ### Roll policy 모델 버전
 
-roll-stage MLP는 exact solver가 만든 keep 선택을 빠르게 흉내 내는 distillation 모델입니다. 모델 파일은 날짜와 역할을 이름에 넣어서 `model-YYYYMMDD-roll-policy-vN.json` 형태로 구분합니다. 현재 작업 트리의 첫 기준 모델은 아래 산출물입니다.
+roll-stage MLP는 exact solver가 만든 keep 선택을 빠르게 흉내 내는 distillation 모델입니다. 모델 파일은 날짜와 역할을 이름에 넣어서 `model-YYYYMMDD-roll-policy-vN.json` 형태로 구분합니다. 현재 최신 모델은 `v2`이고, `v1`은 비교용 baseline으로 남겨둡니다.
 
-- 모델: `artifacts/models/model-20260630-roll-policy-v1.json`
-- 평가 리포트: `artifacts/reports/model-20260630-roll-policy-v1.eval.json`
+- 최신 모델: `artifacts/models/model-20260630-roll-policy-v2.json`
+- 최신 평가 리포트: `artifacts/reports/model-20260630-roll-policy-v2.eval.json`
+- baseline 모델: `artifacts/models/model-20260630-roll-policy-v1.json`
 - teacher data: `artifacts/teacher_roll_32768.jsonl`
 - 구조: input 41개 feature, hidden 96, keep-count class 462개
-- 학습: 120 epochs, seed `20260630`, best epoch 118
-- held-out 평가: top-1 98.4132%, top-3 99.7864%
-- confidence 0.95 기준: coverage 96.7043%, covered accuracy 99.4636%
+- v2 학습: 120 epochs, seed `20260701`, best epoch 107
+- v2 held-out 평가: top-1 98.5200%, top-3 99.7559%
+- v2 confidence 0.95 기준: coverage 96.2618%, covered accuracy 99.4294%
+- v2 raw EV gap: teacher 대비 평균 추가 손실 0.080825점, p95 0점, max 69.344027점
+- v2 runtime guard: confidence 0.95 + gap guard 0.25 적용 시 채택률 46.7043%, 채택 구간 정확도 99.8040%, fallback 포함 추가 EV 손실 0점
+- v1 대비: top-1과 평균 추가 EV 손실은 v2가 좋고, top-3/0.95 confidence covered accuracy/runtime 채택률은 v1이 아주 살짝 높음
 
-자세한 학습 설정과 해석은 [docs/model-20260630-roll-policy-v1.md](./docs/model-20260630-roll-policy-v1.md)에 정리했습니다.
+자세한 학습 설정과 해석은 [docs/model-20260630-roll-policy-v2.md](./docs/model-20260630-roll-policy-v2.md)와 [docs/model-20260630-roll-policy-v1.md](./docs/model-20260630-roll-policy-v1.md)에 정리했습니다.
 
-이 모델은 score stage를 대신 판단하지 않습니다. 서버에서 켜면 roll stage에서만 먼저 제안하고, confidence가 낮거나 exact solver와 차이가 크면 exact 추천으로 fallback합니다. 그래서 운영 안전성은 exact solver가 계속 잡고, 모델은 빠른 근사와 실험용 비교 대상으로 둡니다.
+이 모델은 score stage를 대신 판단하지 않습니다. 서버에서 켜면 roll stage에서만 먼저 제안하고, confidence가 낮거나 exact solver의 순수 objective guard와 차이가 크면 exact 추천으로 fallback합니다. 그래서 raw 모델 단독 worst-case는 존재하지만, 운영 안전성은 exact fallback이 계속 잡고, 모델은 빠른 근사와 실험용 비교 대상으로 둡니다.
 
 ## 설치 및 실행
 
@@ -226,16 +230,16 @@ roll stage MLP 학습:
 ```bash
 python3 scripts/train_roll_policy.py \
   --data artifacts/teacher_roll_32768.jsonl \
-  --output artifacts/models/model-20260630-roll-policy-v1.json \
-  --seed 20260630 \
-  --model-id model-20260630-roll-policy-v1 \
+  --output artifacts/models/model-20260630-roll-policy-v2.json \
+  --seed 20260701 \
+  --model-id model-20260630-roll-policy-v2 \
   --created-date 2026-06-30
 ```
 
 학습 정책을 서버에서 켜려면 모델 경로를 환경 변수로 넘기면 됩니다. score stage는 exact 추천 그대로 쓰고, roll stage만 confidence 기준으로 학습 정책 우선 사용. confidence 낮거나 exact랑 차이 크면 자동 fallback합니다.
 
 ```bash
-export YACHT_AI_POLICY_MODEL=artifacts/models/model-20260630-roll-policy-v1.json
+export YACHT_AI_POLICY_MODEL=artifacts/models/model-20260630-roll-policy-v2.json
 export YACHT_AI_POLICY_MIN_CONFIDENCE=0.95
 python3 server.py
 ```
@@ -245,9 +249,31 @@ python3 server.py
 ```bash
 python3 scripts/eval_roll_policy.py \
   --data artifacts/teacher_roll_32768.jsonl \
-  --model artifacts/models/model-20260630-roll-policy-v1.json \
-  --seed 20260630 \
-  --output artifacts/reports/model-20260630-roll-policy-v1.eval.json
+  --model artifacts/models/model-20260630-roll-policy-v2.json \
+  --seed 20260701 \
+  --output artifacts/reports/model-20260630-roll-policy-v2.eval.json
+```
+
+teacher 일치율이 아니라 실제 추가 EV 손실을 볼 때:
+
+```bash
+python3 scripts/eval_roll_policy_ev_gap.py \
+  --data artifacts/teacher_roll_32768.jsonl \
+  --model artifacts/models/model-20260630-roll-policy-v2.json \
+  --seed 20260701 \
+  --output artifacts/reports/model-20260630-roll-policy-v2.ev-gap.json
+```
+
+서버 운영 방식처럼 confidence gate와 exact fallback guard까지 포함해 볼 때:
+
+```bash
+python3 scripts/eval_roll_policy_runtime.py \
+  --data artifacts/teacher_roll_32768.jsonl \
+  --model artifacts/models/model-20260630-roll-policy-v2.json \
+  --seed 20260701 \
+  --min-confidence 0.95 \
+  --guard-gap 0.25 \
+  --output artifacts/reports/model-20260630-roll-policy-v2.runtime.json
 ```
 
 희생 칸 장기 손실 재보정:
