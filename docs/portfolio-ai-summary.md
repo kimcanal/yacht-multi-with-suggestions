@@ -37,19 +37,19 @@ Held-out teacher split 기준:
 
 | Model | Top-1 | Top-3 | Raw mean excess EV gap |
 | --- | ---: | ---: | ---: |
-| v1 | 98.4132% | 99.7864% | 0.097877 |
-| v2 | 98.5200% | 99.7559% | 0.080825 |
+| v1 | 98.5505% | 99.7864% | 0.036379 |
+| v2 | 98.5200% | 99.7559% | 0.023701 |
 
-v2는 top-1 accuracy와 teacher 대비 평균 추가 EV 손실에서 v1보다 낫다. 하지만 이 수치만으로 "게임을 더 잘한다"고 말할 수는 없다. teacher imitation은 독립적인 실력 검증이 아니기 때문이다.
+made-hand safety override 이후 v1은 top-1 accuracy에서 아주 근소하게 앞서고, v2는 teacher 대비 평균 추가 EV 손실이 더 낮다. 하지만 이 수치만으로 "게임을 더 잘한다"고 말할 수는 없다. teacher imitation은 독립적인 실력 검증이 아니기 때문이다.
 
 ## Safety Finding
 
 EV gap 검증에서 가장 중요한 발견은 모델 단독 사용의 위험이다.
 
 - v2 raw model-only mismatch: 97 / 6,554
-- mean excess EV gap: 0.080825
+- mean excess EV gap: 0.023701
 - p95 excess EV gap: 0
-- max excess EV gap: 69.344027
+- max excess EV gap: 10.145227
 
 대부분의 케이스는 안전하지만, 드물게 이미 강한 패를 일부만 keep하는 hard case가 나온다. 예를 들어 5개가 이미 완성된 상황에서 모델이 4개만 keep하면 큰 손실이 생긴다.
 
@@ -59,9 +59,9 @@ Runtime guard 기준:
 
 - confidence threshold: 0.95
 - exact objective gap guard: 0.25
-- accepted examples: 3,061 / 6,554
-- acceptance rate: 46.7043%
-- accepted accuracy: 99.8040%
+- accepted examples: 3,078 / 6,554
+- acceptance rate: 46.9637%
+- accepted accuracy: 99.3827%
 - fallback 포함 effective excess EV gap: mean 0, max 0
 
 결론은 명확하다. 모델은 exact solver를 대체하지 않는다. 모델은 빠른 후보를 만들고, exact guard가 위험한 후보를 걸러낸다.
@@ -70,23 +70,23 @@ Runtime guard 기준:
 
 single-turn accuracy만으로는 실제 게임 점수 영향을 알 수 없어서, 같은 seed 묶음으로 complete game simulation을 돌렸다. 점수 기록은 동일한 exact score-stage를 쓰고, roll-stage 정책만 바꿨다.
 
-Focused mode, 24 games, seed `20260630`:
+Focused mode, 100 games, seed `20260630`:
 
 | Policy | Avg total | Delta vs exact | Upper bonus rate | Avg zero categories |
 | --- | ---: | ---: | ---: | ---: |
-| exact | 151.71 | +0.00 | 8.33% | 1.46 |
-| v1 runtime | 151.71 | +0.00 | 8.33% | 1.46 |
-| v2 runtime | 151.96 | +0.25 | 8.33% | 1.50 |
-| v1 model-only | 147.58 | -4.12 | 8.33% | 1.71 |
-| v2 model-only | 137.38 | -14.33 | 0.00% | 2.04 |
+| exact | 152.21 | +0.00 | 12.00% | 1.34 |
+| v1 runtime | 154.19 | +1.98 | 12.00% | 1.38 |
+| v2 runtime | 155.70 | +3.49 | 13.00% | 1.36 |
+| v1 model-only | 151.63 | -0.58 | 6.00% | 1.54 |
+| v2 model-only | 148.88 | -3.33 | 5.00% | 1.69 |
 
-Runtime fallback을 넣으면 exact와 거의 같은 점수대를 유지한다. 반대로 model-only는 평균 점수와 안정성이 떨어진다. v2 model-only는 paired game에서 최악 -165점까지 벌어졌다.
+Runtime fallback을 넣으면 exact와 같은 점수대를 유지한다. 반대로 model-only는 safety override 이후에도 평균 점수와 upper bonus rate가 떨어진다.
 
 ## Evidence
 
 - Model v2 report: [model-20260630-roll-policy-v2.md](./model-20260630-roll-policy-v2.md)
 - Hard cases: [model-20260630-roll-policy-v2-hard-cases.md](./model-20260630-roll-policy-v2-hard-cases.md)
-- Full-game simulation JSON: `artifacts/reports/roll-policy-full-game-focused-24.json`
+- Full-game simulation JSON: `artifacts/reports/roll-policy-full-game-focused-100.json`
 - Runtime validation JSON: `artifacts/reports/model-20260630-roll-policy-v2.runtime.json`
 
 ## Takeaway

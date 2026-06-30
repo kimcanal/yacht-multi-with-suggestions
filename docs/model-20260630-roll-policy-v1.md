@@ -25,7 +25,7 @@
 
 Held-out split 기준:
 
-- Top-1 accuracy: 98.4132%
+- Top-1 accuracy: 98.5505%
 - Top-3 accuracy: 99.7864%
 - Validation accuracy recorded by trainer: 98.2148%
 
@@ -33,20 +33,20 @@ Confidence threshold별 운영 후보:
 
 | Threshold | Coverage | Accuracy on covered examples |
 | --- | ---: | ---: |
-| 0.80 | 98.5810% | 99.0249% |
-| 0.90 | 97.5740% | 99.3432% |
-| 0.95 | 96.7043% | 99.4636% |
-| 0.98 | 94.4614% | 99.5962% |
-| 0.99 | 92.2338% | 99.6691% |
+| 0.80 | 98.7489% | 99.0111% |
+| 0.90 | 97.8334% | 99.2358% |
+| 0.95 | 97.0095% | 99.3080% |
+| 0.98 | 94.7818% | 99.4205% |
+| 0.99 | 92.6152% | 99.4234% |
 
 현재 서버 기본 실험값으로는 `YACHT_AI_POLICY_MIN_CONFIDENCE=0.95`가 적당하다. 이 값이면 대부분의 roll-stage 요청에서 모델을 쓸 수 있고, covered 구간에서는 teacher 선택과 거의 일치한다. confidence가 낮거나 exact solver와 의미 있게 갈라지면 fallback하도록 둔다.
 
 추가 EV/runtime 검증 기준:
 
-- Raw mean excess EV gap: 0.097877
-- Raw mismatch count: 104 / 6,554
-- Runtime acceptance at confidence 0.95 + gap guard 0.25: 48.7031%
-- Runtime accepted accuracy: 99.7807%
+- Raw mean excess EV gap: 0.036379
+- Raw mismatch count: 95 / 6,554
+- Runtime acceptance at confidence 0.95 + gap guard 0.25: 48.9930%
+- Runtime accepted accuracy: 99.5017%
 - Effective excess EV gap with fallback: mean 0, max 0
 
 이 수치는 teacher 일치율과 실전 안전성이 서로 다른 문제라는 점을 보여준다. 모델 단독으로는 rare worst-case가 있지만, runtime fallback을 적용하면 검증 split에서는 추가 EV 손실이 0으로 막혔다.

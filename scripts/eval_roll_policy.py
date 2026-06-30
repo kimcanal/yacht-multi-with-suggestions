@@ -4,14 +4,13 @@ import json
 import sys
 from pathlib import Path
 
-import numpy as np
-
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.eval_roll_policy_ev_gap import load_roll_rows
 from scripts.train_roll_policy import load_roll_examples, split_indices
-from yacht_ai.ml_policy import RollPolicyModel, _softmax, valid_keep_class_indices
+from yacht_ai.ml_policy import KEEP_COUNT_TO_INDEX, RollPolicyModel
 
 
 def parse_args():
@@ -32,12 +31,20 @@ def parse_args():
     return parser.parse_args()
 
 
+def model_keep_to_label_idx(keep_counts):
+    try:
+        keep_counts = tuple(int(value) for value in keep_counts)
+    except (TypeError, ValueError):
+        return None
+    return KEEP_COUNT_TO_INDEX.get(keep_counts)
+
+
 def main():
     args = parse_args()
     x, y, _ = load_roll_examples(args.data)
     _, val_idx = split_indices(x.shape[0], args.val_ratio, __import__("random").Random(args.seed))
-    x_val = x[val_idx]
     y_val = y[val_idx]
+    rows = load_roll_rows(args.data)
     thresholds = [float(part.strip()) for part in args.thresholds.split(",") if part.strip()]
 
     model = RollPolicyModel.load(args.model)
@@ -47,17 +54,28 @@ def main():
     top3 = 0
     threshold_hits = {threshold: {"covered": 0, "correct": 0} for threshold in thresholds}
 
-    for features, label_idx in zip(x_val, y_val):
-        logits = model.predict_logits(features)
-        probs = _softmax(logits)
-        dice_counts = tuple(int(round(value * 5)) for value in features[:6])
-        valid_indices = valid_keep_class_indices(dice_counts)
-        valid_probs = probs[list(valid_indices)]
-        valid_probs = valid_probs / float(np.sum(valid_probs))
-        ranked_positions = np.argsort(valid_probs)[::-1]
-        ranked_indices = [valid_indices[int(position)] for position in ranked_positions]
+    for row_idx, label_idx in zip(val_idx, y_val):
+        row = rows[row_idx]
+        actions = model.predict_valid_actions(
+            row.get("dice", []),
+            row.get("rolls_left", 0),
+            row.get("strategy_mode", "focused"),
+            row.get("scorecard", []),
+            top_k=3,
+        )
+        if not actions:
+            continue
+
+        ranked_indices = [
+            model_keep_to_label_idx(action.get("keep_counts", ()))
+            for action in actions
+        ]
+        ranked_indices = [idx for idx in ranked_indices if idx is not None]
+        if not ranked_indices:
+            continue
+
         best_index = ranked_indices[0]
-        best_confidence = float(valid_probs[int(ranked_positions[0])])
+        best_confidence = float(actions[0].get("confidence", 0.0))
 
         is_correct = int(best_index == label_idx)
         correct += is_correct

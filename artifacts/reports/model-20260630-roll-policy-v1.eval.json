@@ -4,38 +4,38 @@
   "val_ratio": 0.2,
   "seed": 20260630,
   "val_examples": 6554,
-  "top1_accuracy": 0.984132,
+  "top1_accuracy": 0.985505,
   "top3_accuracy": 0.997864,
   "thresholds": [
     {
       "threshold": 0.8,
-      "coverage": 0.98581,
-      "accuracy": 0.990249,
-      "covered_examples": 6461
+      "coverage": 0.987489,
+      "accuracy": 0.990111,
+      "covered_examples": 6472
     },
     {
       "threshold": 0.9,
-      "coverage": 0.97574,
-      "accuracy": 0.993432,
-      "covered_examples": 6395
+      "coverage": 0.978334,
+      "accuracy": 0.992358,
+      "covered_examples": 6412
     },
     {
       "threshold": 0.95,
-      "coverage": 0.967043,
-      "accuracy": 0.994636,
-      "covered_examples": 6338
+      "coverage": 0.970095,
+      "accuracy": 0.99308,
+      "covered_examples": 6358
     },
     {
       "threshold": 0.98,
-      "coverage": 0.944614,
-      "accuracy": 0.995962,
-      "covered_examples": 6191
+      "coverage": 0.947818,
+      "accuracy": 0.994205,
+      "covered_examples": 6212
     },
     {
       "threshold": 0.99,
-      "coverage": 0.922338,
-      "accuracy": 0.996691,
-      "covered_examples": 6045
+      "coverage": 0.926152,
+      "accuracy": 0.994234,
+      "covered_examples": 6070
     }
   ],
   "model_metadata": {

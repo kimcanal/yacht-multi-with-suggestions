@@ -7,128 +7,128 @@
 
 - Evaluated examples: 6554
 - Top-1 accuracy: 0.9852
-- Mean excess EV gap: 0.080825
-- p99 excess EV gap: 0.038058
-- Max excess EV gap: 69.344027
+- Mean excess EV gap: 0.023701
+- p99 excess EV gap: 0.0
+- Max excess EV gap: 10.145227
 
 ## Worst Cases
 
-### 1. sample 2913 - excess EV gap 69.344027
+### 1. sample 2583 - excess EV gap 10.145227
 
-- Dice: `1, 1, 1, 1, 1`
-- Rolls left: `1`
-- Mode: `cover`
-- Open categories: Ones, Twos, Threes, Sixes, 4 of a Kind, Full House, Small Straight, Large Straight, Yacht
-- Teacher keep: `1, 1, 1, 1, 1` -> 핸드 하나 이상 성공
-- Model keep: `1, 1, 1, 1` -> 핸드 하나 이상 성공
-- Model confidence: `0.508639`
-- Teacher objective gap: `0.0`
-- Model objective gap: `69.344027`
-
-### 2. sample 1793 - excess EV gap 45.714258
-
-- Dice: `5, 5, 5, 5, 5`
+- Dice: `1, 1, 4, 5, 6`
 - Rolls left: `2`
 - Mode: `cover`
-- Open categories: Ones, Twos, Threes, Fours, Sixes, 4 of a Kind, Full House, Yacht
-- Teacher keep: `5, 5, 5, 5, 5` -> 핸드 하나 이상 성공
-- Model keep: `5, 5, 5, 5` -> 핸드 하나 이상 성공
-- Model confidence: `0.988609`
+- Open categories: Sixes
+- Teacher keep: `6` -> Sixes
+- Model keep: `4` -> None
+- Model confidence: `0.78765`
 - Teacher objective gap: `0.0`
-- Model objective gap: `45.714258`
+- Model objective gap: `10.145227`
 
-### 3. sample 2787 - excess EV gap 25.41955
+### 2. sample 3550 - excess EV gap 8.795276
 
-- Dice: `2, 3, 3, 3, 3`
+- Dice: `2, 2, 2, 4, 4`
 - Rolls left: `1`
 - Mode: `cover`
-- Open categories: 4 of a Kind, Large Straight, Yacht
-- Teacher keep: `3, 3, 3, 3` -> 핸드 하나 이상 성공
-- Model keep: `3, 3, 3` -> 핸드 하나 이상 성공
-- Model confidence: `0.858842`
+- Open categories: Ones, Threes, 4 of a Kind, Small Straight, Large Straight, Yacht
+- Teacher keep: `2, 2, 2` -> 핸드 하나 이상 성공
+- Model keep: `2, 2, 2, 4, 4` -> None
+- Model confidence: `0.891294`
 - Teacher objective gap: `0.0`
-- Model objective gap: `25.41955`
+- Model objective gap: `8.795276`
 
-### 4. sample 65 - excess EV gap 24.529142
+### 3. sample 3950 - excess EV gap 8.454355
 
-- Dice: `5, 5, 5, 5, 6`
-- Rolls left: `1`
-- Mode: `focused`
-- Open categories: 4 of a Kind
-- Teacher keep: `5, 5, 5, 5, 6` -> 4 of a Kind
-- Model keep: `5, 5, 5` -> 4 of a Kind
-- Model confidence: `0.976432`
-- Teacher objective gap: `0.0`
-- Model objective gap: `24.529142`
-
-### 5. sample 2968 - excess EV gap 21.679436
-
-- Dice: `4, 4, 4, 4, 6`
-- Rolls left: `1`
-- Mode: `focused`
-- Open categories: 4 of a Kind
-- Teacher keep: `4, 4, 4, 4, 6` -> 4 of a Kind
-- Model keep: `4, 4, 4` -> 4 of a Kind
-- Model confidence: `0.998938`
-- Teacher objective gap: `0.0`
-- Model objective gap: `21.679436`
-
-### 6. sample 2806 - excess EV gap 18.343359
-
-- Dice: `1, 2, 2, 2, 2`
-- Rolls left: `2`
-- Mode: `focused`
-- Open categories: Ones, Twos, Fours, 4 of a Kind, Small Straight, Large Straight, Yacht
-- Teacher keep: `2, 2, 2, 2` -> Twos
-- Model keep: `2, 2, 2` -> 4 of a Kind
-- Model confidence: `0.996037`
-- Teacher objective gap: `0.0`
-- Model objective gap: `18.343359`
-
-### 7. sample 4009 - excess EV gap 18.087039
-
-- Dice: `4, 4, 4, 5, 5`
-- Rolls left: `1`
-- Mode: `cover`
-- Open categories: Full House, Small Straight, Large Straight
-- Teacher keep: `4, 4, 4, 5, 5` -> 핸드 하나 이상 성공
-- Model keep: `4, 4, 5, 5` -> 핸드 하나 이상 성공
-- Model confidence: `0.987291`
-- Teacher objective gap: `0.0`
-- Model objective gap: `18.087039`
-
-### 8. sample 3288 - excess EV gap 16.61026
-
-- Dice: `4, 6, 6, 6, 6`
+- Dice: `1, 3, 4, 5, 6`
 - Rolls left: `2`
 - Mode: `cover`
-- Open categories: 4 of a Kind
-- Teacher keep: `4, 6, 6, 6, 6` -> 핸드 하나 이상 성공
-- Model keep: `6, 6, 6` -> 핸드 하나 이상 성공
-- Model confidence: `0.717907`
-- Teacher objective gap: `0.254234`
-- Model objective gap: `16.864494`
+- Open categories: Sixes
+- Teacher keep: `6` -> Sixes
+- Model keep: `-` -> None
+- Model confidence: `0.988233`
+- Teacher objective gap: `0.0`
+- Model objective gap: `8.454355`
 
-### 9. sample 3328 - excess EV gap 16.564459
+### 4. sample 3667 - excess EV gap 7.886291
 
-- Dice: `1, 4, 4, 4, 4`
-- Rolls left: `1`
-- Mode: `focused`
-- Open categories: 4 of a Kind
-- Teacher keep: `1, 4, 4, 4, 4` -> 4 of a Kind
-- Model keep: `4, 4, 4` -> 4 of a Kind
-- Model confidence: `0.999997`
-- Teacher objective gap: `2.562538`
-- Model objective gap: `19.126997`
-
-### 10. sample 1252 - excess EV gap 15.669418
-
-- Dice: `1, 6, 6, 6, 6`
+- Dice: `4, 5, 5, 6, 6`
 - Rolls left: `2`
 - Mode: `focused`
-- Open categories: Ones, Twos, Threes, Fours, 4 of a Kind, Full House, Small Straight, Yacht
-- Teacher keep: `1, 6, 6, 6, 6` -> 4 of a Kind
-- Model keep: `6, 6, 6` -> 4 of a Kind
-- Model confidence: `0.908614`
-- Teacher objective gap: `8.284948`
-- Model objective gap: `23.954366`
+- Open categories: Fours
+- Teacher keep: `4` -> Fours
+- Model keep: `6, 6` -> None
+- Model confidence: `0.765442`
+- Teacher objective gap: `0.0`
+- Model objective gap: `7.886291`
+
+### 5. sample 50 - excess EV gap 7.75637
+
+- Dice: `3, 4, 5, 5, 5`
+- Rolls left: `2`
+- Mode: `cover`
+- Open categories: Large Straight
+- Teacher keep: `3, 4, 5` -> 핸드 하나 이상 성공
+- Model keep: `3, 5, 5, 5` -> 핸드 하나 이상 성공
+- Model confidence: `0.657452`
+- Teacher objective gap: `0.0`
+- Model objective gap: `7.75637`
+
+### 6. sample 3827 - excess EV gap 6.37303
+
+- Dice: `1, 4, 4, 4, 5`
+- Rolls left: `1`
+- Mode: `focused`
+- Open categories: Ones, Twos, Threes, Fives, Full House, Small Straight, Yacht
+- Teacher keep: `4, 5` -> Small Straight
+- Model keep: `4, 4, 4` -> Full House
+- Model confidence: `0.853051`
+- Teacher objective gap: `1.447898`
+- Model objective gap: `7.820928`
+
+### 7. sample 3204 - excess EV gap 5.426667
+
+- Dice: `1, 3, 3, 5, 6`
+- Rolls left: `1`
+- Mode: `focused`
+- Open categories: Ones, Threes, Fours, Full House, Yacht
+- Teacher keep: `3, 3` -> Full House
+- Model keep: `3` -> Full House
+- Model confidence: `0.999361`
+- Teacher objective gap: `0.0`
+- Model objective gap: `5.426667`
+
+### 8. sample 1310 - excess EV gap 5.424389
+
+- Dice: `1, 1, 1, 4, 5`
+- Rolls left: `1`
+- Mode: `cover`
+- Open categories: 4 of a Kind
+- Teacher keep: `1, 1, 1` -> 핸드 하나 이상 성공
+- Model keep: `1, 1` -> 핸드 하나 이상 성공
+- Model confidence: `0.897592`
+- Teacher objective gap: `0.0`
+- Model objective gap: `5.424389`
+
+### 9. sample 2689 - excess EV gap 5.320692
+
+- Dice: `1, 1, 1, 3, 3`
+- Rolls left: `2`
+- Mode: `cover`
+- Open categories: Ones, Twos, Threes, Fours, Fives, Choice, 4 of a Kind, Small Straight, Large Straight, Yacht
+- Teacher keep: `1, 1, 1` -> 핸드 하나 이상 성공
+- Model keep: `1, 1, 1, 3, 3` -> Threes
+- Model confidence: `0.99827`
+- Teacher objective gap: `0.915873`
+- Model objective gap: `6.236565`
+
+### 10. sample 2936 - excess EV gap 4.896698
+
+- Dice: `2, 2, 2, 2, 5`
+- Rolls left: `2`
+- Mode: `cover`
+- Open categories: Large Straight
+- Teacher keep: `2, 5` -> 핸드 하나 이상 성공
+- Model keep: `2, 2, 2, 2, 5` -> None
+- Model confidence: `0.975655`
+- Teacher objective gap: `0.0`
+- Model objective gap: `4.896698`

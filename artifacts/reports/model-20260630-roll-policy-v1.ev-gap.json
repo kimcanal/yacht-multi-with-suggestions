@@ -5,33 +5,33 @@
   "seed": 20260630,
   "evaluated_examples": 6554,
   "missing_predictions": 0,
-  "top1_accuracy": 0.984132,
+  "top1_accuracy": 0.985505,
   "top3_accuracy": 0.997864,
   "overall_excess_ev_gap": {
     "count": 6554,
-    "mean_ev_gap": 0.097877,
+    "mean_ev_gap": 0.036379,
     "median_ev_gap": 0.0,
     "p95_ev_gap": 0.0,
-    "p99_ev_gap": 1.579233,
-    "max_ev_gap": 64.642358,
-    "gap_gt_0_25": 76,
-    "gap_gt_1": 71,
-    "gap_gt_2": 62
+    "p99_ev_gap": 0.0,
+    "max_ev_gap": 19.526281,
+    "gap_gt_0_25": 58,
+    "gap_gt_1": 53,
+    "gap_gt_2": 40
   },
   "mismatch_excess_ev_gap": {
-    "count": 104,
-    "mean_ev_gap": 6.168132,
-    "median_ev_gap": 3.146766,
-    "p95_ev_gap": 21.561373,
-    "p99_ev_gap": 53.546522,
-    "max_ev_gap": 64.642358,
-    "gap_gt_0_25": 76,
-    "gap_gt_1": 71,
-    "gap_gt_2": 62
+    "count": 95,
+    "mean_ev_gap": 2.509766,
+    "median_ev_gap": 1.559704,
+    "p95_ev_gap": 9.483379,
+    "p99_ev_gap": 13.32179,
+    "max_ev_gap": 19.526281,
+    "gap_gt_0_25": 58,
+    "gap_gt_1": 53,
+    "gap_gt_2": 40
   },
   "teacher_objective_gap": {
     "count": 6554,
-    "mean_ev_gap": 0.037701,
+    "mean_ev_gap": 0.038046,
     "median_ev_gap": 0.0,
     "p95_ev_gap": 0.0,
     "p99_ev_gap": 0.0,
@@ -42,340 +42,93 @@
   },
   "model_objective_gap": {
     "count": 6554,
-    "mean_ev_gap": 0.115212,
+    "mean_ev_gap": 0.047273,
     "median_ev_gap": 0.0,
     "p95_ev_gap": 0.0,
-    "p99_ev_gap": 2.133213,
-    "max_ev_gap": 64.642358,
-    "gap_gt_0_25": 85,
-    "gap_gt_1": 78,
-    "gap_gt_2": 69
+    "p99_ev_gap": 0.391618,
+    "max_ev_gap": 19.526281,
+    "gap_gt_0_25": 67,
+    "gap_gt_1": 60,
+    "gap_gt_2": 50
   },
   "thresholds": [
     {
       "threshold": 0.8,
-      "coverage": 0.98581,
-      "accuracy": 0.990249,
-      "covered_examples": 6461,
-      "count": 6461,
-      "mean_ev_gap": 0.058319,
-      "median_ev_gap": 0.0,
-      "p95_ev_gap": 0.0,
-      "p99_ev_gap": 0.0,
-      "max_ev_gap": 54.399782,
-      "gap_gt_0_25": 44,
-      "gap_gt_1": 41,
-      "gap_gt_2": 38
-    },
-    {
-      "threshold": 0.9,
-      "coverage": 0.97574,
-      "accuracy": 0.993432,
-      "covered_examples": 6395,
-      "count": 6395,
-      "mean_ev_gap": 0.043145,
-      "median_ev_gap": 0.0,
-      "p95_ev_gap": 0.0,
-      "p99_ev_gap": 0.0,
-      "max_ev_gap": 54.399782,
-      "gap_gt_0_25": 33,
-      "gap_gt_1": 31,
-      "gap_gt_2": 28
-    },
-    {
-      "threshold": 0.95,
-      "coverage": 0.967043,
-      "accuracy": 0.994636,
-      "covered_examples": 6338,
-      "count": 6338,
-      "mean_ev_gap": 0.030773,
-      "median_ev_gap": 0.0,
-      "p95_ev_gap": 0.0,
-      "p99_ev_gap": 0.0,
-      "max_ev_gap": 24.529142,
-      "gap_gt_0_25": 26,
-      "gap_gt_1": 25,
-      "gap_gt_2": 23
-    },
-    {
-      "threshold": 0.98,
-      "coverage": 0.944614,
-      "accuracy": 0.995962,
-      "covered_examples": 6191,
-      "count": 6191,
-      "mean_ev_gap": 0.027252,
-      "median_ev_gap": 0.0,
-      "p95_ev_gap": 0.0,
-      "p99_ev_gap": 0.0,
-      "max_ev_gap": 24.529142,
-      "gap_gt_0_25": 20,
-      "gap_gt_1": 19,
-      "gap_gt_2": 18
-    },
-    {
-      "threshold": 0.99,
-      "coverage": 0.922338,
-      "accuracy": 0.996691,
-      "covered_examples": 6045,
-      "count": 6045,
-      "mean_ev_gap": 0.019079,
+      "coverage": 0.987489,
+      "accuracy": 0.990111,
+      "covered_examples": 6472,
+      "count": 6472,
+      "mean_ev_gap": 0.023957,
       "median_ev_gap": 0.0,
       "p95_ev_gap": 0.0,
       "p99_ev_gap": 0.0,
       "max_ev_gap": 19.526281,
-      "gap_gt_0_25": 16,
-      "gap_gt_1": 15,
-      "gap_gt_2": 14
+      "gap_gt_0_25": 36,
+      "gap_gt_1": 33,
+      "gap_gt_2": 26
+    },
+    {
+      "threshold": 0.9,
+      "coverage": 0.978334,
+      "accuracy": 0.992358,
+      "covered_examples": 6412,
+      "count": 6412,
+      "mean_ev_gap": 0.021198,
+      "median_ev_gap": 0.0,
+      "p95_ev_gap": 0.0,
+      "p99_ev_gap": 0.0,
+      "max_ev_gap": 19.526281,
+      "gap_gt_0_25": 31,
+      "gap_gt_1": 29,
+      "gap_gt_2": 22
+    },
+    {
+      "threshold": 0.95,
+      "coverage": 0.970095,
+      "accuracy": 0.99308,
+      "covered_examples": 6358,
+      "count": 6358,
+      "mean_ev_gap": 0.019263,
+      "median_ev_gap": 0.0,
+      "p95_ev_gap": 0.0,
+      "p99_ev_gap": 0.0,
+      "max_ev_gap": 19.526281,
+      "gap_gt_0_25": 27,
+      "gap_gt_1": 26,
+      "gap_gt_2": 20
+    },
+    {
+      "threshold": 0.98,
+      "coverage": 0.947818,
+      "accuracy": 0.994205,
+      "covered_examples": 6212,
+      "count": 6212,
+      "mean_ev_gap": 0.016675,
+      "median_ev_gap": 0.0,
+      "p95_ev_gap": 0.0,
+      "p99_ev_gap": 0.0,
+      "max_ev_gap": 19.526281,
+      "gap_gt_0_25": 22,
+      "gap_gt_1": 21,
+      "gap_gt_2": 16
+    },
+    {
+      "threshold": 0.99,
+      "coverage": 0.926152,
+      "accuracy": 0.994234,
+      "covered_examples": 6070,
+      "count": 6070,
+      "mean_ev_gap": 0.016005,
+      "median_ev_gap": 0.0,
+      "p95_ev_gap": 0.0,
+      "p99_ev_gap": 0.0,
+      "max_ev_gap": 19.526281,
+      "gap_gt_0_25": 21,
+      "gap_gt_1": 20,
+      "gap_gt_2": 15
     }
   ],
   "worst_cases": [
-    {
-      "sample_id": 1866,
-      "dice": [
-        2,
-        2,
-        2,
-        2,
-        2
-      ],
-      "rolls_left": 1,
-      "strategy_mode": "cover",
-      "turns_completed": 0,
-      "open_category_names": [
-        "Ones",
-        "Twos",
-        "Threes",
-        "Fours",
-        "Fives",
-        "Sixes",
-        "Choice",
-        "4 of a Kind",
-        "Full House",
-        "Small Straight",
-        "Large Straight",
-        "Yacht"
-      ],
-      "teacher_keep_values": [
-        2,
-        2,
-        2,
-        2,
-        2
-      ],
-      "teacher_target": "핸드 하나 이상 성공",
-      "model_keep_values": [
-        2,
-        2,
-        2,
-        2
-      ],
-      "model_confidence": 0.717323,
-      "model_message": "[2, 2, 2, 2] Keep (커버 플레이)",
-      "model_target": "핸드 하나 이상 성공",
-      "model_expected_value": 29.14,
-      "teacher_objective_gap": 0.0,
-      "model_objective_gap": 64.642358,
-      "excess_ev_gap": 64.642358
-    },
-    {
-      "sample_id": 87,
-      "dice": [
-        2,
-        2,
-        2,
-        2,
-        2
-      ],
-      "rolls_left": 2,
-      "strategy_mode": "cover",
-      "turns_completed": 6,
-      "open_category_names": [
-        "Ones",
-        "4 of a Kind",
-        "Full House",
-        "Small Straight",
-        "Large Straight",
-        "Yacht"
-      ],
-      "teacher_keep_values": [
-        2,
-        2,
-        2,
-        2,
-        2
-      ],
-      "teacher_target": "핸드 하나 이상 성공",
-      "model_keep_values": [
-        2,
-        2,
-        2,
-        2
-      ],
-      "model_confidence": 0.912184,
-      "model_message": "[2, 2, 2, 2] Keep (커버 플레이)",
-      "model_target": "핸드 하나 이상 성공",
-      "model_expected_value": 39.16,
-      "teacher_objective_gap": 0.0,
-      "model_objective_gap": 54.399782,
-      "excess_ev_gap": 54.399782
-    },
-    {
-      "sample_id": 3275,
-      "dice": [
-        6,
-        6,
-        6,
-        6,
-        6
-      ],
-      "rolls_left": 2,
-      "strategy_mode": "focused",
-      "turns_completed": 4,
-      "open_category_names": [
-        "Ones",
-        "Twos",
-        "Threes",
-        "Fours",
-        "Sixes",
-        "4 of a Kind",
-        "Small Straight",
-        "Yacht"
-      ],
-      "teacher_keep_values": [
-        6,
-        6,
-        6,
-        6,
-        6
-      ],
-      "teacher_target": "Yacht",
-      "model_keep_values": [
-        6,
-        6,
-        6,
-        6
-      ],
-      "model_confidence": 0.816967,
-      "model_message": "[6, 6, 6, 6] Keep (4 of a Kind 노리기)",
-      "model_target": "4 of a Kind",
-      "model_expected_value": 67.88,
-      "teacher_objective_gap": 0.0,
-      "model_objective_gap": 25.957786,
-      "excess_ev_gap": 25.957786
-    },
-    {
-      "sample_id": 1795,
-      "dice": [
-        5,
-        5,
-        5,
-        5,
-        6
-      ],
-      "rolls_left": 1,
-      "strategy_mode": "focused",
-      "turns_completed": 11,
-      "open_category_names": [
-        "4 of a Kind"
-      ],
-      "teacher_keep_values": [
-        5,
-        5,
-        5,
-        5,
-        6
-      ],
-      "teacher_target": "4 of a Kind",
-      "model_keep_values": [
-        5,
-        5,
-        5
-      ],
-      "model_confidence": 0.988503,
-      "model_message": "[5, 5, 5] Keep (4 of a Kind 노리기)",
-      "model_target": "4 of a Kind",
-      "model_expected_value": 7.61,
-      "teacher_objective_gap": 0.0,
-      "model_objective_gap": 24.529142,
-      "excess_ev_gap": 24.529142
-    },
-    {
-      "sample_id": 730,
-      "dice": [
-        1,
-        1,
-        1,
-        1,
-        2
-      ],
-      "rolls_left": 2,
-      "strategy_mode": "cover",
-      "turns_completed": 8,
-      "open_category_names": [
-        "Twos",
-        "4 of a Kind",
-        "Large Straight",
-        "Yacht"
-      ],
-      "teacher_keep_values": [
-        1,
-        1,
-        1,
-        1
-      ],
-      "teacher_target": "핸드 하나 이상 성공",
-      "model_keep_values": [
-        1,
-        1,
-        1
-      ],
-      "model_confidence": 0.798632,
-      "model_message": "[1, 1, 1] Keep (커버 플레이)",
-      "model_target": "핸드 하나 이상 성공",
-      "model_expected_value": 13.62,
-      "teacher_objective_gap": 0.0,
-      "model_objective_gap": 22.47172,
-      "excess_ev_gap": 22.47172
-    },
-    {
-      "sample_id": 1533,
-      "dice": [
-        1,
-        3,
-        3,
-        3,
-        3
-      ],
-      "rolls_left": 2,
-      "strategy_mode": "cover",
-      "turns_completed": 7,
-      "open_category_names": [
-        "Ones",
-        "Twos",
-        "4 of a Kind",
-        "Full House",
-        "Yacht"
-      ],
-      "teacher_keep_values": [
-        3,
-        3,
-        3,
-        3
-      ],
-      "teacher_target": "핸드 하나 이상 성공",
-      "model_keep_values": [
-        3,
-        3,
-        3
-      ],
-      "model_confidence": 0.831875,
-      "model_message": "[3, 3, 3] Keep (커버 플레이)",
-      "model_target": "핸드 하나 이상 성공",
-      "model_expected_value": 20.03,
-      "teacher_objective_gap": 0.0,
-      "model_objective_gap": 21.920507,
-      "excess_ev_gap": 21.920507
-    },
     {
       "sample_id": 2563,
       "dice": [
@@ -409,164 +162,130 @@
       "excess_ev_gap": 19.526281
     },
     {
-      "sample_id": 2953,
+      "sample_id": 3697,
       "dice": [
-        3,
-        3,
-        3,
-        3,
-        4
-      ],
-      "rolls_left": 2,
-      "strategy_mode": "cover",
-      "turns_completed": 6,
-      "open_category_names": [
-        "Twos",
-        "Threes",
-        "4 of a Kind",
-        "Full House",
-        "Small Straight",
-        "Yacht"
-      ],
-      "teacher_keep_values": [
+        1,
         3,
         3,
         3,
         3
-      ],
-      "teacher_target": "핸드 하나 이상 성공",
-      "model_keep_values": [
-        3,
-        3,
-        3
-      ],
-      "model_confidence": 0.701178,
-      "model_message": "[3, 3, 3] Keep (커버 플레이)",
-      "model_target": "핸드 하나 이상 성공",
-      "model_expected_value": 27.15,
-      "teacher_objective_gap": 0.0,
-      "model_objective_gap": 16.915982,
-      "excess_ev_gap": 16.915982
-    },
-    {
-      "sample_id": 2494,
-      "dice": [
-        2,
-        2,
-        2,
-        2,
-        6
-      ],
-      "rolls_left": 1,
-      "strategy_mode": "focused",
-      "turns_completed": 11,
-      "open_category_names": [
-        "4 of a Kind"
-      ],
-      "teacher_keep_values": [
-        2,
-        2,
-        2,
-        2,
-        6
-      ],
-      "teacher_target": "4 of a Kind",
-      "model_keep_values": [
-        2,
-        2,
-        2
-      ],
-      "model_confidence": 0.66516,
-      "model_message": "[2, 2, 2] Keep (4 of a Kind 노리기)",
-      "model_target": "4 of a Kind",
-      "model_expected_value": 3.94,
-      "teacher_objective_gap": 0.0,
-      "model_objective_gap": 15.935143,
-      "excess_ev_gap": 15.935143
-    },
-    {
-      "sample_id": 1512,
-      "dice": [
-        4,
-        5,
-        5,
-        5,
-        5
-      ],
-      "rolls_left": 2,
-      "strategy_mode": "focused",
-      "turns_completed": 11,
-      "open_category_names": [
-        "4 of a Kind"
-      ],
-      "teacher_keep_values": [
-        4,
-        5,
-        5,
-        5,
-        5
-      ],
-      "teacher_target": "4 of a Kind",
-      "model_keep_values": [
-        5,
-        5,
-        5
-      ],
-      "model_confidence": 0.987697,
-      "model_message": "[5, 5, 5] Keep (4 of a Kind 노리기)",
-      "model_target": "4 of a Kind",
-      "model_expected_value": 14.54,
-      "teacher_objective_gap": 0.254234,
-      "model_objective_gap": 15.819452,
-      "excess_ev_gap": 15.565218
-    },
-    {
-      "sample_id": 1058,
-      "dice": [
-        5,
-        5,
-        6,
-        6,
-        6
       ],
       "rolls_left": 2,
       "strategy_mode": "focused",
       "turns_completed": 8,
       "open_category_names": [
-        "Twos",
+        "Ones",
         "Full House",
         "Large Straight",
         "Yacht"
       ],
       "teacher_keep_values": [
-        5,
-        5,
-        6,
-        6,
-        6
+        3,
+        3,
+        3,
+        3
       ],
       "teacher_target": "Full House",
       "model_keep_values": [
-        5,
-        5,
-        6,
-        6
+        1,
+        3,
+        3,
+        3,
+        3
       ],
-      "model_confidence": 0.707441,
-      "model_message": "[5, 5, 6, 6] Keep (Full House 노리기)",
-      "model_target": "Full House",
-      "model_expected_value": 17.81,
+      "model_confidence": 0.996374,
+      "model_message": "지금 기록 추천 (Full House)",
+      "model_target": "Ones",
+      "model_expected_value": 14.96,
       "teacher_objective_gap": 0.0,
-      "model_objective_gap": 14.949062,
-      "excess_ev_gap": 14.949062
+      "model_objective_gap": 12.925759,
+      "excess_ev_gap": 12.925759
     },
     {
-      "sample_id": 908,
+      "sample_id": 168,
       "dice": [
-        5,
-        5,
-        6,
-        6,
+        2,
+        2,
+        2,
+        2,
+        3
+      ],
+      "rolls_left": 2,
+      "strategy_mode": "cover",
+      "turns_completed": 6,
+      "open_category_names": [
+        "Ones",
+        "Threes",
+        "4 of a Kind",
+        "Small Straight",
+        "Large Straight",
+        "Yacht"
+      ],
+      "teacher_keep_values": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "teacher_target": "핸드 하나 이상 성공",
+      "model_keep_values": [
+        2,
+        2,
+        2,
+        2,
+        3
+      ],
+      "model_confidence": 0.589711,
+      "model_message": "지금 기록 추천 (커버 플레이)",
+      "model_target": "4 of a Kind",
+      "model_expected_value": 28.28,
+      "teacher_objective_gap": 0.0,
+      "model_objective_gap": 10.879956,
+      "excess_ev_gap": 10.879956
+    },
+    {
+      "sample_id": 1989,
+      "dice": [
+        2,
+        3,
+        3,
+        3,
+        4
+      ],
+      "rolls_left": 1,
+      "strategy_mode": "focused",
+      "turns_completed": 9,
+      "open_category_names": [
+        "Threes",
+        "4 of a Kind",
+        "Small Straight"
+      ],
+      "teacher_keep_values": [
+        3,
+        3,
+        3
+      ],
+      "teacher_target": "Threes",
+      "model_keep_values": [
+        2,
+        3,
+        4
+      ],
+      "model_confidence": 0.997241,
+      "model_message": "[2, 3, 4] Keep (Small Straight 노리기)",
+      "model_target": "Small Straight",
+      "model_expected_value": 12.11,
+      "teacher_objective_gap": 0.0,
+      "model_objective_gap": 10.083706,
+      "excess_ev_gap": 10.083706
+    },
+    {
+      "sample_id": 738,
+      "dice": [
+        3,
+        3,
+        3,
+        3,
         6
       ],
       "rolls_left": 2,
@@ -577,32 +296,261 @@
         "Twos",
         "Threes",
         "Fours",
-        "Full House",
+        "4 of a Kind",
         "Small Straight",
         "Large Straight",
         "Yacht"
       ],
       "teacher_keep_values": [
-        5,
-        5,
-        6,
-        6,
-        6
+        3,
+        3,
+        3,
+        3
       ],
       "teacher_target": "핸드 하나 이상 성공",
       "model_keep_values": [
-        5,
-        5,
-        6,
+        3,
+        3,
+        3,
+        3,
         6
       ],
-      "model_confidence": 0.990371,
-      "model_message": "[5, 5, 6, 6] Keep (커버 플레이)",
-      "model_target": "핸드 하나 이상 성공",
-      "model_expected_value": 17.34,
+      "model_confidence": 0.476156,
+      "model_message": "지금 기록 추천 (커버 플레이)",
+      "model_target": "Threes",
+      "model_expected_value": 34.23,
       "teacher_objective_gap": 0.0,
-      "model_objective_gap": 14.187534,
-      "excess_ev_gap": 14.187534
+      "model_objective_gap": 9.93303,
+      "excess_ev_gap": 9.93303
+    },
+    {
+      "sample_id": 3755,
+      "dice": [
+        1,
+        1,
+        1,
+        2,
+        3
+      ],
+      "rolls_left": 2,
+      "strategy_mode": "focused",
+      "turns_completed": 10,
+      "open_category_names": [
+        "4 of a Kind",
+        "Yacht"
+      ],
+      "teacher_keep_values": [
+        1,
+        1,
+        1
+      ],
+      "teacher_target": "4 of a Kind",
+      "model_keep_values": [
+        1,
+        1
+      ],
+      "model_confidence": 0.535024,
+      "model_message": "[1, 1] Keep (4 of a Kind 노리기)",
+      "model_target": "4 of a Kind",
+      "model_expected_value": 3.87,
+      "teacher_objective_gap": 0.0,
+      "model_objective_gap": 9.290672,
+      "excess_ev_gap": 9.290672
+    },
+    {
+      "sample_id": 2106,
+      "dice": [
+        1,
+        3,
+        4,
+        4,
+        4
+      ],
+      "rolls_left": 1,
+      "strategy_mode": "focused",
+      "turns_completed": 10,
+      "open_category_names": [
+        "4 of a Kind",
+        "Large Straight"
+      ],
+      "teacher_keep_values": [
+        4,
+        4,
+        4
+      ],
+      "teacher_target": "4 of a Kind",
+      "model_keep_values": [
+        4,
+        4
+      ],
+      "model_confidence": 0.964956,
+      "model_message": "[4, 4] Keep (4 of a Kind 노리기)",
+      "model_target": "4 of a Kind",
+      "model_expected_value": 0.08,
+      "teacher_objective_gap": 0.0,
+      "model_objective_gap": 8.778335,
+      "excess_ev_gap": 8.778335
+    },
+    {
+      "sample_id": 3813,
+      "dice": [
+        2,
+        2,
+        4,
+        5,
+        6
+      ],
+      "rolls_left": 1,
+      "strategy_mode": "focused",
+      "turns_completed": 11,
+      "open_category_names": [
+        "Fives"
+      ],
+      "teacher_keep_values": [
+        5
+      ],
+      "teacher_target": "Fives",
+      "model_keep_values": [],
+      "model_confidence": 0.869843,
+      "model_message": "모두 굴리기",
+      "model_target": null,
+      "model_expected_value": 6.71,
+      "teacher_objective_gap": 0.0,
+      "model_objective_gap": 8.245785,
+      "excess_ev_gap": 8.245785
+    },
+    {
+      "sample_id": 2211,
+      "dice": [
+        1,
+        2,
+        2,
+        4,
+        6
+      ],
+      "rolls_left": 1,
+      "strategy_mode": "focused",
+      "turns_completed": 10,
+      "open_category_names": [
+        "Fours",
+        "4 of a Kind"
+      ],
+      "teacher_keep_values": [
+        4
+      ],
+      "teacher_target": "Fours",
+      "model_keep_values": [
+        2,
+        2
+      ],
+      "model_confidence": 0.993322,
+      "model_message": "[2, 2] Keep (4 of a Kind 노리기)",
+      "model_target": "4 of a Kind",
+      "model_expected_value": 2.46,
+      "teacher_objective_gap": 0.0,
+      "model_objective_gap": 6.718693,
+      "excess_ev_gap": 6.718693
+    },
+    {
+      "sample_id": 1458,
+      "dice": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "rolls_left": 2,
+      "strategy_mode": "cover",
+      "turns_completed": 11,
+      "open_category_names": [
+        "Fours"
+      ],
+      "teacher_keep_values": [
+        4
+      ],
+      "teacher_target": "Fours",
+      "model_keep_values": [
+        6
+      ],
+      "model_confidence": 0.989156,
+      "model_message": "[6] Keep",
+      "model_target": null,
+      "model_expected_value": 8.09,
+      "teacher_objective_gap": 0.0,
+      "model_objective_gap": 6.437783,
+      "excess_ev_gap": 6.437783
+    },
+    {
+      "sample_id": 2911,
+      "dice": [
+        2,
+        2,
+        4,
+        4,
+        4
+      ],
+      "rolls_left": 2,
+      "strategy_mode": "cover",
+      "turns_completed": 9,
+      "open_category_names": [
+        "4 of a Kind",
+        "Small Straight",
+        "Large Straight"
+      ],
+      "teacher_keep_values": [
+        4,
+        4,
+        4
+      ],
+      "teacher_target": "핸드 하나 이상 성공",
+      "model_keep_values": [
+        2,
+        2,
+        4,
+        4,
+        4
+      ],
+      "model_confidence": 0.901347,
+      "model_message": "지금 기록 추천 (커버 플레이)",
+      "model_target": null,
+      "model_expected_value": 5.5,
+      "teacher_objective_gap": 0.0,
+      "model_objective_gap": 6.413537,
+      "excess_ev_gap": 6.413537
+    },
+    {
+      "sample_id": 717,
+      "dice": [
+        2,
+        2,
+        2,
+        5,
+        5
+      ],
+      "rolls_left": 2,
+      "strategy_mode": "focused",
+      "turns_completed": 8,
+      "open_category_names": [
+        "4 of a Kind",
+        "Small Straight",
+        "Large Straight",
+        "Yacht"
+      ],
+      "teacher_keep_values": [
+        2,
+        2,
+        2
+      ],
+      "teacher_target": "4 of a Kind",
+      "model_keep_values": [],
+      "model_confidence": 0.993665,
+      "model_message": "모두 굴리기 (Small Straight 노리기)",
+      "model_target": "Small Straight",
+      "model_expected_value": 9.09,
+      "teacher_objective_gap": 0.0,
+      "model_objective_gap": 5.838189,
+      "excess_ev_gap": 5.838189
     }
   ],
   "model_metadata": {

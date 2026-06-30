@@ -9,10 +9,10 @@ Flask 기반 웹 요트 다이스 게임입니다. 싱글플레이, 실시간 1:
 ## AI/검증 하이라이트
 
 - 한 턴 안의 keep/reroll은 exact tree/DP로 계산하고, 전체 12턴 장기 가치는 score-stage utility와 별도 simulation으로 검증합니다.
-- Roll-policy v2는 teacher split 기준 top-1 98.5200%, teacher 대비 raw 평균 추가 EV 손실 0.080825점입니다.
-- 모델 단독 사용은 rare worst-case가 있어 위험합니다. v2 model-only full-game 평균은 exact 대비 -14.33점이었습니다.
+- Roll-policy v2는 teacher split 기준 top-1 98.5200%, teacher 대비 raw 평균 추가 EV 손실 0.023701점입니다.
+- 모델 단독 사용은 safety override 뒤에도 exact보다 낮습니다. 100게임 기준 v2 model-only 평균은 exact 대비 -3.33점이었습니다.
 - 서버 운영 방식은 confidence 0.95 + exact gap guard 0.25를 통과한 경우만 모델을 쓰고, 나머지는 exact solver로 fallback합니다.
-- Runtime guard 포함 검증에서는 모델 채택률 46.7043%, 채택 구간 정확도 99.8040%, fallback 포함 추가 EV 손실 mean/max 0점을 확인했습니다.
+- Runtime guard 포함 검증에서는 모델 채택률 46.9637%, 채택 구간 정확도 99.3827%, fallback 포함 추가 EV 손실 mean/max 0점을 확인했습니다.
 
 추가 문서들:
 - API 상세: [API.md](./API.md)
@@ -150,11 +150,11 @@ roll-stage MLP는 exact solver가 만든 keep 선택을 빠르게 흉내 내는 
 - 구조: input 41개 feature, hidden 96, keep-count class 462개
 - v2 학습: 120 epochs, seed `20260701`, best epoch 107
 - v2 held-out 평가: top-1 98.5200%, top-3 99.7559%
-- v2 confidence 0.95 기준: coverage 96.2618%, covered accuracy 99.4294%
-- v2 raw EV gap: teacher 대비 평균 추가 손실 0.080825점, p95 0점, max 69.344027점
-- v2 runtime guard: confidence 0.95 + gap guard 0.25 적용 시 채택률 46.7043%, 채택 구간 정확도 99.8040%, fallback 포함 추가 EV 손실 0점
-- full-game simulation(24 games, focused): exact 평균 151.71점, v2 runtime 평균 151.96점, v2 model-only 평균 137.38점
-- v1 대비: top-1과 평균 추가 EV 손실은 v2가 좋고, top-3/0.95 confidence covered accuracy/runtime 채택률은 v1이 아주 살짝 높음
+- v2 confidence 0.95 기준: coverage 96.4297%, covered accuracy 99.2880%
+- v2 raw EV gap: teacher 대비 평균 추가 손실 0.023701점, p95 0점, max 10.145227점
+- v2 runtime guard: confidence 0.95 + gap guard 0.25 적용 시 채택률 46.9637%, 채택 구간 정확도 99.3827%, fallback 포함 추가 EV 손실 0점
+- full-game simulation(100 games, focused): exact 평균 152.21점, v2 runtime 평균 155.70점, v2 model-only 평균 148.88점
+- v1 대비: top-1/coverage는 v1이 근소하게 높고, raw 평균 추가 EV 손실과 100게임 runtime 평균은 v2가 더 좋음
 
 자세한 학습 설정과 해석은 [docs/model-20260630-roll-policy-v2.md](./docs/model-20260630-roll-policy-v2.md)와 [docs/model-20260630-roll-policy-v1.md](./docs/model-20260630-roll-policy-v1.md)에 정리했습니다.
 
@@ -290,10 +290,10 @@ python3 scripts/eval_roll_policy_runtime.py \
 
 ```bash
 python3 scripts/simulate_roll_policy_games.py \
-  --games 24 \
+  --games 100 \
   --seed 20260630 \
   --mode focused \
-  --output artifacts/reports/roll-policy-full-game-focused-24.json
+  --output artifacts/reports/roll-policy-full-game-focused-100.json
 ```
 
 희생 칸 장기 손실 재보정:

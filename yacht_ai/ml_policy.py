@@ -128,6 +128,75 @@ def keep_counts_to_indices(dice, keep_counts):
     return indices
 
 
+def _run_indices(dice, values):
+    required = set(values)
+    indices = []
+    for idx, value in enumerate(dice):
+        if value in required:
+            indices.append(idx)
+            required.remove(value)
+        if not required:
+            return indices
+    return []
+
+
+def _made_hand_safety_action(dice, rolls_left, scorecard):
+    if int(rolls_left) <= 0:
+        return None
+
+    scorecard = normalize_scorecard(scorecard)
+    open_categories = {idx for idx, value in enumerate(scorecard) if value is None}
+    dice_counts = dice_to_counts(dice)
+    max_count = max(dice_counts)
+    dominant_face = dice_counts.index(max_count) + 1
+
+    keep_indices = None
+    reason = None
+
+    if max_count == 5 and (CATS["Yacht"] in open_categories or has_yacht_bonus(scorecard)):
+        keep_indices = list(range(5))
+        reason = "made_yacht"
+    elif CATS["Full House"] in open_categories and sorted(dice_counts)[-2:] == [2, 3]:
+        keep_indices = list(range(5))
+        reason = "made_full_house"
+    elif CATS["Large Straight"] in open_categories and sorted(dice) in ([1, 2, 3, 4, 5], [2, 3, 4, 5, 6]):
+        keep_indices = list(range(5))
+        reason = "made_large_straight"
+    elif CATS["4 of a Kind"] in open_categories and max_count >= 4:
+        keep_indices = [idx for idx, value in enumerate(dice) if value == dominant_face]
+        reason = "made_four_kind"
+    elif CATS["Small Straight"] in open_categories:
+        for run in ([1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6]):
+            run_indices = _run_indices(dice, run)
+            if run_indices:
+                keep_indices = run_indices
+                reason = "made_small_straight"
+                break
+
+    if not keep_indices:
+        return None
+
+    keep_counts = [0] * 6
+    for idx in keep_indices:
+        keep_counts[int(dice[idx]) - 1] += 1
+    keep_counts = tuple(keep_counts)
+    return {
+        "keep_counts": keep_counts,
+        "keep_indices": keep_indices,
+        "keep_values": [dice[idx] for idx in keep_indices],
+        "confidence": 1.0,
+        "safety_override": reason,
+    }
+
+
+def _should_apply_safety_action(model_action, safety_action):
+    if not model_action or not safety_action:
+        return False
+    model_counts = model_action.get("keep_counts", ())
+    safety_counts = safety_action.get("keep_counts", ())
+    return any(model_counts[idx] < safety_counts[idx] for idx in range(6))
+
+
 def encode_roll_state(dice, rolls_left, strategy_mode, scorecard):
     scorecard = normalize_scorecard(scorecard)
     dice_counts = dice_to_counts(dice)
@@ -747,6 +816,12 @@ class RollPolicyModel:
                     "confidence": float(valid_probs[int(position)]),
                 }
             )
+        safety_action = _made_hand_safety_action(dice, rolls_left, scorecard)
+        if _should_apply_safety_action(actions[0], safety_action):
+            actions = [safety_action] + [
+                action for action in actions if action.get("keep_counts") != safety_action["keep_counts"]
+            ]
+            actions = actions[: max(1, int(top_k))]
         return actions
 
     def recommend_roll(self, dice, rolls_left, strategy_mode, scorecard, min_confidence=0.0):
