@@ -25,6 +25,8 @@ def parse_args():
     parser.add_argument("--weight-decay", type=float, default=1e-5, help="L2 penalty")
     parser.add_argument("--val-ratio", type=float, default=0.2, help="validation split ratio")
     parser.add_argument("--seed", type=int, default=20260412, help="random seed")
+    parser.add_argument("--model-id", help="optional model identifier stored in metadata")
+    parser.add_argument("--created-date", help="optional creation date stored in metadata")
     return parser.parse_args()
 
 
@@ -219,7 +221,10 @@ def main():
         "w2": w2.astype(np.float32).tolist(),
         "b2": b2.astype(np.float32).tolist(),
         "metadata": {
+            "model_id": args.model_id or output_path.stem,
             "model_type": "roll_mlp_v1",
+            "created_date": args.created_date,
+            "data_path": args.data,
             "input_dim": input_dim,
             "hidden_dim": hidden_dim,
             "num_classes": num_classes,

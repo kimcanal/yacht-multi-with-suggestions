@@ -1,0 +1,66 @@
+{
+  "model_path": "artifacts/models/model-20260630-roll-policy-v1.json",
+  "data_path": "artifacts/teacher_roll_32768.jsonl",
+  "val_ratio": 0.2,
+  "seed": 20260630,
+  "val_examples": 6554,
+  "top1_accuracy": 0.984132,
+  "top3_accuracy": 0.997864,
+  "thresholds": [
+    {
+      "threshold": 0.8,
+      "coverage": 0.98581,
+      "accuracy": 0.990249,
+      "covered_examples": 6461
+    },
+    {
+      "threshold": 0.9,
+      "coverage": 0.97574,
+      "accuracy": 0.993432,
+      "covered_examples": 6395
+    },
+    {
+      "threshold": 0.95,
+      "coverage": 0.967043,
+      "accuracy": 0.994636,
+      "covered_examples": 6338
+    },
+    {
+      "threshold": 0.98,
+      "coverage": 0.944614,
+      "accuracy": 0.995962,
+      "covered_examples": 6191
+    },
+    {
+      "threshold": 0.99,
+      "coverage": 0.922338,
+      "accuracy": 0.996691,
+      "covered_examples": 6045
+    }
+  ],
+  "model_metadata": {
+    "model_id": "model-20260630-roll-policy-v1",
+    "model_type": "roll_mlp_v1",
+    "created_date": "2026-06-30",
+    "data_path": "artifacts/teacher_roll_32768.jsonl",
+    "input_dim": 41,
+    "hidden_dim": 96,
+    "num_classes": 462,
+    "epochs": 120,
+    "batch_size": 256,
+    "learning_rate": 0.003,
+    "weight_decay": 1e-05,
+    "seed": 20260630,
+    "best_epoch": 118,
+    "train_examples": 26214,
+    "val_examples": 6554,
+    "train_loss": 0.001947,
+    "train_accuracy": 1.0,
+    "val_loss": 0.097508,
+    "val_accuracy": 0.982148,
+    "strategy_counts": {
+      "focused": 16275,
+      "cover": 16493
+    }
+  }
+}

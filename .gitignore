@@ -7,4 +7,10 @@ backup/
 game_data.json
 nohup.out
 .venv/
-artifacts/
+artifacts/*
+!artifacts/models/
+!artifacts/reports/
+artifacts/models/*
+artifacts/reports/*
+!artifacts/models/model-20260630-roll-policy-v1.json
+!artifacts/reports/model-20260630-roll-policy-v1.eval.json

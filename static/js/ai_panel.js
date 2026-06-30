@@ -83,6 +83,7 @@ function getAiRowMeter(item) {
 }
 
 function getAiStageLabel(aiRec) {
+    if (aiRec?.stage === 'done') return '완료';
     return aiRec?.stage === 'score' ? '기록 단계' : '굴림 단계';
 }
 
@@ -121,6 +122,62 @@ function renderAiRowCard(item, isScoreStage, showReason) {
     `;
 }
 
+function renderAiReportList(items, className = 'ai-report-list') {
+    if (!Array.isArray(items) || items.length === 0) return '';
+    return `
+        <ul class="${className}">
+            ${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
+        </ul>
+    `;
+}
+
+function renderDecisionReport(report, expanded) {
+    if (!report || typeof report !== 'object') return '';
+    const method = report.method || {};
+    const state = report.state || {};
+    const methodChip = method.label
+        ? `<span class="ai-report-chip">${escapeHtml(method.label)}</span>`
+        : '';
+    const confidenceLabel = method.source === 'exact'
+        ? method.confidence_text
+        : `확신 ${method.confidence_text}`;
+    const confidenceChip = method.confidence_text
+        ? `<span class="ai-report-chip">${escapeHtml(confidenceLabel)}</span>`
+        : '';
+    const stateChip = expanded && Number.isFinite(Number(state.open_slots))
+        ? `<span class="ai-report-chip">열린 칸 ${escapeHtml(state.open_slots)}</span>`
+        : '';
+    const whyItems = Array.isArray(report.why)
+        ? report.why.slice(0, expanded ? 3 : 2)
+        : [];
+    const tradeoffs = expanded && Array.isArray(report.tradeoffs)
+        ? report.tradeoffs.slice(0, 2)
+        : [];
+    const note = expanded && report.learning_note
+        ? `<div class="ai-report-note">${escapeHtml(report.learning_note)}</div>`
+        : '';
+    const methodNote = expanded && method.note
+        ? `<div class="ai-report-method">${escapeHtml(method.note)}</div>`
+        : '';
+    const tradeoffBlock = tradeoffs.length > 0
+        ? `<div class="ai-report-subtitle">비교 포인트</div>${renderAiReportList(tradeoffs, 'ai-report-list compact')}`
+        : '';
+
+    return `
+        <div class="ai-report-card">
+            <div class="ai-report-head">
+                <div class="ai-report-title">${escapeHtml(report.title || 'AI 결론 리포트')}</div>
+                <div class="ai-report-chips">${methodChip}${confidenceChip}${stateChip}</div>
+            </div>
+            <div class="ai-report-conclusion">${escapeHtml(report.conclusion || '추천을 계산했습니다.')}</div>
+            ${renderAiReportList(whyItems)}
+            ${tradeoffBlock}
+            ${methodNote}
+            ${note}
+        </div>
+    `;
+}
+
 function renderAiPanel(targetId, aiRec, options = {}) {
     const root = document.getElementById(targetId);
     if (!root) return;
@@ -128,7 +185,9 @@ function renderAiPanel(targetId, aiRec, options = {}) {
         aiRec,
         options: { ...options },
     };
-    if (!aiRec || !aiRec.breakdown || aiRec.breakdown.length === 0) {
+    const breakdownRows = Array.isArray(aiRec?.breakdown) ? aiRec.breakdown : [];
+    const hasReport = Boolean(aiRec?.decision_report);
+    if (!aiRec || (breakdownRows.length === 0 && !hasReport)) {
         root.innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">대기 중...</div>';
         return;
     }
@@ -136,13 +195,18 @@ function renderAiPanel(targetId, aiRec, options = {}) {
     const isScoreStage = aiRec?.stage === 'score';
     const expanded = isAiPanelExpanded();
     const visibleCount = expanded ? 5 : 2;
-    const rowsToShow = aiRec.breakdown.slice(0, visibleCount);
-    const hiddenCount = Math.max(0, Math.min(aiRec.breakdown.length, 5) - rowsToShow.length);
+    const rowsToShow = breakdownRows.slice(0, visibleCount);
+    const hiddenCount = Math.max(0, Math.min(breakdownRows.length, 5) - rowsToShow.length);
     const summary = aiRec.summary ? `<div class="ai-summary-line">${escapeHtml(aiRec.summary)}</div>` : '';
     const perspective = options.perspective ? `<div class="ai-perspective">${escapeHtml(options.perspective)}</div>` : '';
     const safeTargetId = String(targetId).replace(/'/g, "\\'");
-    const shouldShowToggle = aiRec.breakdown.length > 2;
-    const toggleLabel = expanded ? '간단히 보기' : `상세 ${hiddenCount > 0 ? `+${hiddenCount}` : ''}`;
+    const reportHasDetails = hasReport && (
+        aiRec.decision_report?.learning_note
+        || aiRec.decision_report?.method?.note
+        || (Array.isArray(aiRec.decision_report?.tradeoffs) && aiRec.decision_report.tradeoffs.length > 0)
+    );
+    const shouldShowToggle = breakdownRows.length > 2 || reportHasDetails;
+    const toggleLabel = expanded ? '간단히 보기' : (hiddenCount > 0 ? `상세 +${hiddenCount}` : '자세히');
     const toggleButton = shouldShowToggle ? `
         <button type="button" class="ai-panel-toggle" onclick="toggleAiPanelExpanded('${safeTargetId}')" aria-expanded="${expanded ? 'true' : 'false'}">
             ${toggleLabel}
@@ -172,6 +236,7 @@ function renderAiPanel(targetId, aiRec, options = {}) {
                     <span class="ai-meta-chip">${escapeHtml(getAiModeLabel(aiRec))}</span>
                 </div>
             </div>
+            ${renderDecisionReport(aiRec.decision_report, expanded)}
             <div class="ai-breakdown-grid">
                 ${rows}
             </div>

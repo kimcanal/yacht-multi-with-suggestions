@@ -4,7 +4,8 @@ import database
 from flask import Blueprint, jsonify, request
 
 from config import RESET_ADMIN_TOKEN
-from utils.validation import normalize_username
+from routes.single import verify_ranked_single_session
+from utils.validation import normalize_username, safe_int
 
 leaderboard_bp = Blueprint("leaderboard", __name__)
 
@@ -23,12 +24,24 @@ def leaderboard_single_get():
 def leaderboard_single_post():
     data = request.json or {}
     username = normalize_username(data.get("username"))
-    try:
-        score = int(data.get("score"))
-    except (TypeError, ValueError):
-        score = None
+    score = safe_int(data.get("score"))
+    mode = data.get("mode")
+    coach_enabled = data.get("coach_enabled")
     if not username or score is None or score < 0 or score > 1000:
         return jsonify({"success": False, "error": "Invalid data"}), 400
+    if mode != "solo" or coach_enabled is not False:
+        return jsonify({
+            "success": False,
+            "error": "싱글 랭킹은 솔로/AI 코치 OFF 기록만 저장됩니다",
+        }), 403
+    verified, error = verify_ranked_single_session(
+        username,
+        score,
+        data.get("session_id"),
+        data.get("session_token"),
+    )
+    if not verified:
+        return jsonify({"success": False, "error": error}), 403
     database.save_single_leaderboard(username, score)
     return jsonify({"success": True})
 
@@ -77,15 +90,7 @@ def reset_leaderboard():
 
 @leaderboard_bp.route("/api/save-game", methods=["POST"])
 def save_game():
-    try:
-        data = request.json or {}
-        player1 = normalize_username(data.get("player1"))
-        player2 = normalize_username(data.get("player2")) if data.get("player2") else None
-        score1 = int(data.get("score1", 0))
-        score2 = int(data.get("score2", 0))
-        if not player1:
-            return jsonify({"error": "player1 required"}), 400
-        database.save_game_result(player1, score1, player2, score2)
-        return jsonify({"status": "success"})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify({
+        "error": "deprecated",
+        "message": "멀티 결과는 방 상태 검증 후 서버에서 자동 저장됩니다.",
+    }), 410

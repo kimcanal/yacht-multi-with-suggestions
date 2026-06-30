@@ -3,6 +3,22 @@ import secrets
 from config import USERNAME_RE
 
 
+_SCORECARD_SCORE_BOUNDS = (
+    (0, 5),
+    (0, 10),
+    (0, 15),
+    (0, 20),
+    (0, 25),
+    (0, 30),
+    (0, 30),
+    (0, 30),
+    (0, 30),
+    (0, 15),
+    (0, 30),
+    (0, 1150),
+)
+
+
 def normalize_username(raw):
     username = (raw or "").strip()
     if not USERNAME_RE.fullmatch(username):
@@ -10,11 +26,22 @@ def normalize_username(raw):
     return username
 
 
-def safe_int(value, default=None):
+def _coerce_int(value):
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, float) and not value.is_integer():
+        return None
     try:
         return int(value)
     except (TypeError, ValueError):
+        return None
+
+
+def safe_int(value, default=None):
+    parsed = _coerce_int(value)
+    if parsed is None:
         return default
+    return parsed
 
 
 def issue_player_token():
@@ -33,9 +60,8 @@ def normalize_dice(dice):
         return None
     out = []
     for v in dice:
-        try:
-            iv = int(v)
-        except (TypeError, ValueError):
+        iv = _coerce_int(v)
+        if iv is None:
             return None
         if iv < 1 or iv > 6:
             return None
@@ -48,9 +74,8 @@ def normalize_kept(kept):
         return None
     out = []
     for v in kept:
-        try:
-            iv = int(v)
-        except (TypeError, ValueError):
+        iv = _coerce_int(v)
+        if iv is None:
             return None
         if iv not in (0, 1):
             return None
@@ -63,15 +88,21 @@ def normalize_scorecard(scorecard):
     if not isinstance(scorecard, list) or len(scorecard) != 12:
         return None
     out = []
-    for v in scorecard:
+    for idx, v in enumerate(scorecard):
         if v is None:
             out.append(None)
             continue
-        try:
-            iv = int(v)
-        except (TypeError, ValueError):
+        iv = _coerce_int(v)
+        if iv is None:
             return None
-        if iv < 0:
+        min_score, max_score = _SCORECARD_SCORE_BOUNDS[idx]
+        if iv < min_score or iv > max_score:
+            return None
+        if idx == 9 and iv not in (0, 15):
+            return None
+        if idx == 10 and iv not in (0, 30):
+            return None
+        if idx == 11 and iv not in (0, 50) and (iv < 150 or (iv - 50) % 100 != 0):
             return None
         out.append(iv)
     return out

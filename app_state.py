@@ -1,9 +1,17 @@
 from collections import deque
-from config import AI_METRIC_WINDOW, AI_SLOW_SAMPLE_WINDOW
+import threading
 
-# 방 목록과 로비 클라이언트 — dict이므로 임포트한 참조로 in-place 수정 가능
-rooms = {}
-lobby_clients = {}
+from config import AI_METRIC_WINDOW, AI_SLOW_SAMPLE_WINDOW
+from utils.presence_store import create_presence_store
+from utils.room_store import create_room_store
+
+# 방 상태 저장소. 기본은 in-memory, 환경변수로 Redis backend를 선택할 수 있음.
+room_store = create_room_store()
+rooms = room_store
+presence_store = create_presence_store()
+lobby_clients = presence_store
+single_sessions = {}
+single_sessions_lock = threading.RLock()
 
 
 class AIMetrics:

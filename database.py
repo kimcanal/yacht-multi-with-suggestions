@@ -1,14 +1,119 @@
 import json
 import os
+import tempfile
 import threading
 from datetime import datetime
 
-DATA_FILE = 'game_data.json'
+DATA_FILE = os.getenv('YACHT_DATA_FILE', 'game_data.json')
 DATA_LOCK = threading.RLock()
+MAX_SCORE = 1000
 
 
 def _default_data():
     return {'users': {}, 'games': [], 'single_leaderboard': []}
+
+
+def _now_iso():
+    return datetime.now().isoformat()
+
+
+def _coerce_int(value, default=0, minimum=0, maximum=MAX_SCORE):
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, float) and not value.is_integer():
+        return default
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(parsed, maximum))
+
+
+def _normalize_user(username, raw_user):
+    raw_user = raw_user if isinstance(raw_user, dict) else {}
+    wins = _coerce_int(raw_user.get('wins', 0))
+    draws = _coerce_int(raw_user.get('draws', 0))
+    losses = _coerce_int(raw_user.get('losses', 0))
+    games_played = _coerce_int(raw_user.get('games_played', wins + draws + losses), maximum=1000000)
+    total_score = _coerce_int(raw_user.get('total_score', 0), maximum=MAX_SCORE * max(1, games_played))
+    return {
+        'username': raw_user.get('username') or username,
+        'wins': wins,
+        'draws': draws,
+        'losses': losses,
+        'total_score': total_score,
+        'games_played': games_played,
+        'created_at': raw_user.get('created_at') or _now_iso(),
+    }
+
+
+def _normalize_game(raw_game):
+    if not isinstance(raw_game, dict):
+        return None
+    player1 = raw_game.get('player1')
+    if not player1:
+        return None
+    player2 = raw_game.get('player2') or None
+    score1 = _coerce_int(raw_game.get('score1', 0))
+    score2 = _coerce_int(raw_game.get('score2', 0))
+    winner = raw_game.get('winner')
+    if winner not in {player1, player2, 'DRAW', 'N/A'}:
+        if player2 and score1 == score2:
+            winner = 'DRAW'
+        elif score1 > score2 or not player2:
+            winner = player1
+        else:
+            winner = player2 or 'N/A'
+    return {
+        'player1': player1,
+        'score1': score1,
+        'player2': player2,
+        'score2': score2,
+        'winner': winner,
+        'timestamp': raw_game.get('timestamp') or _now_iso(),
+    }
+
+
+def _normalize_single_entry(raw_entry):
+    if not isinstance(raw_entry, dict) or not raw_entry.get('username'):
+        return None
+    return {
+        'username': raw_entry.get('username'),
+        'score': _coerce_int(raw_entry.get('score', 0)),
+        'timestamp': raw_entry.get('timestamp') or _now_iso(),
+    }
+
+
+def _normalize_data(data):
+    if not isinstance(data, dict):
+        return _default_data()
+
+    users = data.get('users') if isinstance(data.get('users'), dict) else {}
+    games = data.get('games') if isinstance(data.get('games'), list) else []
+    single_leaderboard = (
+        data.get('single_leaderboard')
+        if isinstance(data.get('single_leaderboard'), list)
+        else []
+    )
+
+    normalized = _default_data()
+    normalized['users'] = {
+        username: _normalize_user(username, row)
+        for username, row in users.items()
+        if username
+    }
+    normalized['games'] = [
+        game for game in (_normalize_game(row) for row in games) if game is not None
+    ]
+    normalized['single_leaderboard'] = sorted(
+        [
+            entry for entry in (_normalize_single_entry(row) for row in single_leaderboard)
+            if entry is not None
+        ],
+        key=lambda row: row['score'],
+        reverse=True,
+    )[:20]
+    return normalized
 
 
 def _load_data_unlocked():
@@ -18,21 +123,29 @@ def _load_data_unlocked():
     try:
         with open(DATA_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
-    except Exception:
+    except (OSError, json.JSONDecodeError):
         return _default_data()
 
-    if 'users' not in data or not isinstance(data['users'], dict):
-        data['users'] = {}
-    if 'games' not in data or not isinstance(data['games'], list):
-        data['games'] = []
-    if 'single_leaderboard' not in data or not isinstance(data['single_leaderboard'], list):
-        data['single_leaderboard'] = []
-    return data
+    return _normalize_data(data)
 
 
 def _save_data_unlocked(data):
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    directory = os.path.dirname(os.path.abspath(DATA_FILE)) or '.'
+    os.makedirs(directory, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(prefix='.game_data.', suffix='.tmp', dir=directory)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            json.dump(_normalize_data(data), f, ensure_ascii=False, indent=2)
+            f.write('\n')
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, DATA_FILE)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
 
 
 def _ensure_user(data, username):
@@ -44,7 +157,7 @@ def _ensure_user(data, username):
             'losses': 0,
             'total_score': 0,
             'games_played': 0,
-            'created_at': datetime.now().isoformat()
+            'created_at': _now_iso()
         }
     else:
         user = data['users'][username]
@@ -54,7 +167,7 @@ def _ensure_user(data, username):
         user.setdefault('losses', 0)
         user.setdefault('total_score', 0)
         user.setdefault('games_played', 0)
-        user.setdefault('created_at', datetime.now().isoformat())
+        user.setdefault('created_at', _now_iso())
     return data['users'][username]
 
 
@@ -155,6 +268,8 @@ def save_game_result(player1_name, player1_score, player2_name, player2_score, r
     """게임 결과 저장"""
     with DATA_LOCK:
         data = _load_data_unlocked()
+        player1_score = _coerce_int(player1_score)
+        player2_score = _coerce_int(player2_score)
 
         _ensure_user(data, player1_name)
         if player2_name:
@@ -198,7 +313,7 @@ def save_game_result(player1_name, player1_score, player2_name, player2_score, r
             'player2': player2_name,
             'score2': player2_score,
             'winner': winner_name,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': _now_iso()
         })
 
         _save_data_unlocked(data)
@@ -209,7 +324,7 @@ def get_leaderboard():
     """리더보드 조회"""
     with DATA_LOCK:
         data = _load_data_unlocked()
-        users = list(data['users'].values())
+        users = [dict(row) for row in data['users'].values()]
         for u in users:
             u.setdefault('draws', 0)
         users.sort(key=lambda x: (x['wins'], x['draws'], x['total_score']), reverse=True)
@@ -238,10 +353,11 @@ def save_single_leaderboard(username, score):
     """싱글 랭킹 저장"""
     with DATA_LOCK:
         data = _load_data_unlocked()
+        score = _coerce_int(score)
         entry = {
             'username': username,
             'score': score,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': _now_iso()
         }
         data['single_leaderboard'].append(entry)
         data['single_leaderboard'] = sorted(
@@ -255,7 +371,10 @@ def get_single_leaderboard():
     """싱글 랭킹 조회"""
     with DATA_LOCK:
         data = _load_data_unlocked()
-        return sorted(data.get('single_leaderboard', []), key=lambda x: x['score'], reverse=True)
+        return [
+            dict(row)
+            for row in sorted(data.get('single_leaderboard', []), key=lambda x: x['score'], reverse=True)
+        ]
 
 
 def reset_leaderboard():
@@ -270,7 +389,8 @@ def get_user_stats(username):
     """특정 사용자 통계"""
     with DATA_LOCK:
         data = _load_data_unlocked()
-        return data['users'].get(username, None)
+        user = data['users'].get(username)
+        return dict(user) if user else None
 
 
 def get_user_profile(username, recent_limit=5):
@@ -280,7 +400,7 @@ def get_user_profile(username, recent_limit=5):
         if not user:
             return None
 
-        users = list(data['users'].values())
+        users = [dict(row) for row in data['users'].values()]
         for row in users:
             row.setdefault('draws', 0)
         users.sort(key=lambda row: (row['wins'], row['draws'], row['total_score']), reverse=True)

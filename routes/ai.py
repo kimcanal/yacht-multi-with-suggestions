@@ -1,3 +1,4 @@
+import logging
 import time
 from collections import OrderedDict
 from copy import deepcopy
@@ -8,12 +9,14 @@ from flask import Blueprint, jsonify, request
 from app_state import ai_metrics
 from config import AI_SLOW_LOG_MS, AI_POLICY_MIN_CONFIDENCE
 from utils.ai_utils import record_ai_slow_sample
+from utils.observability import log_json
 from utils.validation import (
     normalize_dice,
+    normalize_rolls_left,
     normalize_scorecard,
     normalize_strategy_mode,
-    safe_int,
 )
+from yacht_ai.report import build_decision_report
 
 ai_bp = Blueprint("ai", __name__)
 
@@ -45,9 +48,12 @@ def _set_cached_recommendation(cache_key, result):
 def recommend():
     try:
         started = time.perf_counter()
-        data = request.json or {}
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({"error": "JSON 객체 본문이 필요합니다"}), 400
+
         dice = normalize_dice(data.get("dice", []))
-        normalized_rolls_left = safe_int(data.get("rolls_left", 0), 0)
+        normalized_rolls_left = normalize_rolls_left(data.get("rolls_left", 0), 0, 2)
         scorecard = normalize_scorecard(data.get("scorecard", []))
         strategy_mode = normalize_strategy_mode(data.get("strategy_mode", "focused"))
 
@@ -62,7 +68,21 @@ def recommend():
 
         open_categories = [i for i, score in enumerate(scorecard) if score is None]
         if not open_categories:
-            return jsonify({"message": "추천 불가", "keep_indices": [], "dice_recommendations": []})
+            result = {
+                "message": "추천 불가",
+                "keep_indices": [],
+                "dice_recommendations": [],
+                "stage": "done",
+                "strategy_mode": strategy_mode,
+                "breakdown": [],
+                "primary_target": None,
+                "summary": "남은 열린 칸이 없어 추천할 수 없습니다.",
+                "policy_source": "exact",
+            }
+            result["decision_report"] = build_decision_report(
+                result, dice, normalized_rolls_left, strategy_mode, scorecard, open_categories
+            )
+            return jsonify(result)
 
         cache_key = _recommend_cache_key(dice, normalized_rolls_left, strategy_mode, scorecard)
         result = _get_cached_recommendation(cache_key)
@@ -79,6 +99,10 @@ def recommend():
                 dice, normalized_rolls_left, open_categories, strategy_mode, scorecard
             )
 
+        result["decision_report"] = build_decision_report(
+            result, dice, normalized_rolls_left, strategy_mode, scorecard, open_categories
+        )
+
         if not request_cache_hit:
             _set_cached_recommendation(cache_key, result)
 
@@ -94,12 +118,18 @@ def recommend():
                 elapsed_ms, result.get("stage"), strategy_mode,
                 normalized_rolls_left, dice, open_categories, result,
             )
-            print(
-                f"[AI] slow recommend elapsed_ms={elapsed_ms:.2f} "
-                f"stage={result.get('stage')} mode={strategy_mode} "
-                f"rolls_left={normalized_rolls_left} dice={dice} "
-                f"open_categories={open_categories} "
-                f"cache_hits={cache_info.hits} cache_misses={cache_info.misses}"
+            log_json(
+                logging.WARNING,
+                "ai_slow_recommend",
+                elapsed_ms=round(elapsed_ms, 2),
+                stage=result.get("stage", "unknown"),
+                mode=strategy_mode,
+                rolls_left=normalized_rolls_left,
+                dice=dice,
+                open_categories=open_categories,
+                cache_hits=cache_info.hits,
+                cache_misses=cache_info.misses,
+                policy_source=result.get("policy_source", "exact"),
             )
 
         response = jsonify(result)

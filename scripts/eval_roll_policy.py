@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -23,6 +24,10 @@ def parse_args():
         "--thresholds",
         default="0.80,0.90,0.95,0.98,0.99",
         help="comma-separated confidence thresholds to report",
+    )
+    parser.add_argument(
+        "--output",
+        help="optional JSON report path",
     )
     return parser.parse_args()
 
@@ -63,18 +68,48 @@ def main():
                 threshold_hits[threshold]["covered"] += 1
                 threshold_hits[threshold]["correct"] += is_correct
 
+    top1_acc = correct / total if total else 0.0
+    top3_acc = top3 / total if total else 0.0
+    threshold_rows = []
     print(
         f"[roll-policy-eval] val_examples={total} "
-        f"top1_acc={correct / total:.6f} top3_acc={top3 / total:.6f}"
+        f"top1_acc={top1_acc:.6f} top3_acc={top3_acc:.6f}"
     )
     for threshold in thresholds:
         covered = threshold_hits[threshold]["covered"]
         coverage = covered / total if total else 0.0
         acc = threshold_hits[threshold]["correct"] / covered if covered else 0.0
+        threshold_rows.append(
+            {
+                "threshold": threshold,
+                "coverage": round(coverage, 6),
+                "accuracy": round(acc, 6),
+                "covered_examples": int(covered),
+            }
+        )
         print(
             f"[roll-policy-eval] threshold={threshold:.2f} "
             f"coverage={coverage:.6f} acc={acc:.6f} covered_examples={covered}"
         )
+
+    if args.output:
+        output_path = Path(args.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        report = {
+            "model_path": args.model,
+            "data_path": args.data,
+            "val_ratio": args.val_ratio,
+            "seed": args.seed,
+            "val_examples": int(total),
+            "top1_accuracy": round(top1_acc, 6),
+            "top3_accuracy": round(top3_acc, 6),
+            "thresholds": threshold_rows,
+            "model_metadata": model.metadata,
+        }
+        with output_path.open("w", encoding="utf-8") as handle:
+            json.dump(report, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+        print(f"[roll-policy-eval] wrote report to {output_path}")
 
 
 if __name__ == "__main__":
