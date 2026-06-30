@@ -6,10 +6,19 @@ Flask 기반 웹 요트 다이스 게임입니다. 싱글플레이, 실시간 1:
 
 ---
 
+## AI/검증 하이라이트
+
+- 한 턴 안의 keep/reroll은 exact tree/DP로 계산하고, 전체 12턴 장기 가치는 score-stage utility와 별도 simulation으로 검증합니다.
+- Roll-policy v2는 teacher split 기준 top-1 98.5200%, teacher 대비 raw 평균 추가 EV 손실 0.080825점입니다.
+- 모델 단독 사용은 rare worst-case가 있어 위험합니다. v2 model-only full-game 평균은 exact 대비 -14.33점이었습니다.
+- 서버 운영 방식은 confidence 0.95 + exact gap guard 0.25를 통과한 경우만 모델을 쓰고, 나머지는 exact solver로 fallback합니다.
+- Runtime guard 포함 검증에서는 모델 채택률 46.7043%, 채택 구간 정확도 99.8040%, fallback 포함 추가 EV 손실 mean/max 0점을 확인했습니다.
+
 추가 문서들:
 - API 상세: [API.md](./API.md)
 - 변경 이력: [CHANGELOG.md](./CHANGELOG.md)
 - 게임 소개 페이지: [`/intro`](https://app.yatch-game.cloud/intro)
+- AI 포트폴리오 요약: [docs/portfolio-ai-summary.md](./docs/portfolio-ai-summary.md)
 - AI 수식 설명: [docs/ai-math.md](./docs/ai-math.md)
 - AI 학습/리포트 로드맵: [docs/ai-learning-roadmap.md](./docs/ai-learning-roadmap.md)
 - 성능 계획: [docs/performance-roadmap.md](./docs/performance-roadmap.md)
