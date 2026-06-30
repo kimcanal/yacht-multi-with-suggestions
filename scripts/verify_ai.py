@@ -57,6 +57,8 @@ def main() -> None:
             "scripts/eval_roll_policy_ev_gap.py",
             "scripts/eval_roll_policy_runtime.py",
             "scripts/generate_teacher_data.py",
+            "scripts/report_roll_policy_hard_cases.py",
+            "scripts/simulate_roll_policy_games.py",
             "scripts/soak_ai.py",
             "scripts/train_roll_policy.py",
             "scripts/verify_ai.py",

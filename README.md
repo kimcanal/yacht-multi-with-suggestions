@@ -144,6 +144,7 @@ roll-stage MLP는 exact solver가 만든 keep 선택을 빠르게 흉내 내는 
 - v2 confidence 0.95 기준: coverage 96.2618%, covered accuracy 99.4294%
 - v2 raw EV gap: teacher 대비 평균 추가 손실 0.080825점, p95 0점, max 69.344027점
 - v2 runtime guard: confidence 0.95 + gap guard 0.25 적용 시 채택률 46.7043%, 채택 구간 정확도 99.8040%, fallback 포함 추가 EV 손실 0점
+- full-game simulation(24 games, focused): exact 평균 151.71점, v2 runtime 평균 151.96점, v2 model-only 평균 137.38점
 - v1 대비: top-1과 평균 추가 EV 손실은 v2가 좋고, top-3/0.95 confidence covered accuracy/runtime 채택률은 v1이 아주 살짝 높음
 
 자세한 학습 설정과 해석은 [docs/model-20260630-roll-policy-v2.md](./docs/model-20260630-roll-policy-v2.md)와 [docs/model-20260630-roll-policy-v1.md](./docs/model-20260630-roll-policy-v1.md)에 정리했습니다.
@@ -274,6 +275,16 @@ python3 scripts/eval_roll_policy_runtime.py \
   --min-confidence 0.95 \
   --guard-gap 0.25 \
   --output artifacts/reports/model-20260630-roll-policy-v2.runtime.json
+```
+
+전체 게임 단위로 비교할 때:
+
+```bash
+python3 scripts/simulate_roll_policy_games.py \
+  --games 24 \
+  --seed 20260630 \
+  --mode focused \
+  --output artifacts/reports/roll-policy-full-game-focused-24.json
 ```
 
 희생 칸 장기 손실 재보정:

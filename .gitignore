@@ -20,3 +20,4 @@ artifacts/reports/*
 !artifacts/reports/model-20260630-roll-policy-v2.eval.json
 !artifacts/reports/model-20260630-roll-policy-v2.ev-gap.json
 !artifacts/reports/model-20260630-roll-policy-v2.runtime.json
+!artifacts/reports/roll-policy-full-game-focused-24.json

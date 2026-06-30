@@ -85,6 +85,28 @@ Runtime policy 기준:
 
 즉, v2를 모델 단독으로 쓰면 worst-case가 있지만, 현재 runtime guard를 적용하면 검증 split에서는 추가 EV 손실이 발생하지 않았다. 대신 모델 채택률이 절반 이하로 떨어진다. 이 trade-off는 의도된 설계다.
 
+## Hard cases
+
+Raw model-only worst case는 [model-20260630-roll-policy-v2-hard-cases.md](./model-20260630-roll-policy-v2-hard-cases.md)에 따로 정리했다. 대표 패턴은 이미 완성된 4/5개짜리 강한 패를 모델이 일부만 keep하는 경우다. 예를 들어 `1,1,1,1,1`에서 teacher는 전부 keep하지만 모델은 4개만 keep해 큰 excess EV gap이 생긴다.
+
+이 hard-case 리포트의 의미는 모델을 폐기해야 한다는 뜻이 아니라, 모델 단독 사용이 위험하다는 근거다. runtime guard가 필요한 이유가 여기서 드러난다.
+
+## Full-game simulation
+
+teacher 일치율이나 single-turn EV gap만으로는 실제 게임 점수 영향을 충분히 설명하지 못한다. 그래서 같은 seed 묶음으로 complete game simulation을 돌렸다. score stage는 동일한 exact 추천을 쓰고, roll stage 정책만 바꿔 비교했다.
+
+Focused mode, 24 games, seed `20260630` 기준:
+
+| Policy | Avg total | Delta vs exact | Upper bonus rate | Avg zero categories |
+| --- | ---: | ---: | ---: | ---: |
+| exact | 151.71 | +0.00 | 8.33% | 1.46 |
+| v1 runtime | 151.71 | +0.00 | 8.33% | 1.46 |
+| v2 runtime | 151.96 | +0.25 | 8.33% | 1.50 |
+| v1 model-only | 147.58 | -4.12 | 8.33% | 1.71 |
+| v2 model-only | 137.38 | -14.33 | 0.00% | 2.04 |
+
+이 결과는 앞의 EV gap 결론과 같은 방향이다. runtime fallback을 넣은 v1/v2는 exact와 거의 같은 점수대를 유지하지만, model-only는 평균 점수와 안정성이 떨어진다. 특히 v2 model-only는 paired game 중 최악 -165점까지 벌어졌다. 따라서 learned roll policy는 "exact solver 대체재"가 아니라 "guard가 붙은 빠른 후보 생성기"로 보는 것이 맞다.
+
 ## 재현 명령
 
 ```bash
@@ -118,6 +140,17 @@ python3 scripts/eval_roll_policy_runtime.py \
   --min-confidence 0.95 \
   --guard-gap 0.25 \
   --output artifacts/reports/model-20260630-roll-policy-v2.runtime.json
+
+python3 scripts/report_roll_policy_hard_cases.py \
+  --input artifacts/reports/model-20260630-roll-policy-v2.ev-gap.json \
+  --output docs/model-20260630-roll-policy-v2-hard-cases.md \
+  --limit 10
+
+python3 scripts/simulate_roll_policy_games.py \
+  --games 24 \
+  --seed 20260630 \
+  --mode focused \
+  --output artifacts/reports/roll-policy-full-game-focused-24.json
 ```
 
 ## 해석
