@@ -1,10 +1,36 @@
 # Yacht Game
 
-Flask 기반 웹 요트 다이스 게임입니다. 싱글플레이, 실시간 1:1 멀티플레이, 관전 모드, 리더보드, AI 추천 기능을 제공합니다.
+Flask 기반 웹 요트 다이스 게임입니다. 싱글플레이, 실시간 1:1 멀티플레이, 관전 모드, 리더보드, AI 추천 기능을 제공합니다. 핵심 작업은 "주사위 keep 추천"을 단순 기능으로 붙인 것이 아니라, exact DP, 학습 모델, runtime guard, simulation으로 추천 품질을 검증 가능한 형태로 만든 점입니다.
 
 라이브: https://app.yatch-game.cloud/
 
 ---
+
+## 30초 요약
+
+이 프로젝트는 요트 다이스 게임에 AI 코치를 붙이고, 그 추천이 어떤 근거로 나오는지 UI와 문서에서 설명하는 웹앱입니다. 한 턴 안의 keep/reroll 선택은 exact tree/DP로 계산하고, 점수 기록 단계는 즉시 점수와 보너스/미래 압력을 함께 보는 평가 함수로 처리합니다.
+
+포트폴리오에서 봐줬으면 하는 지점은 세 가지입니다.
+
+- **게임 서비스 구현**: Flask 서버, 싱글/멀티/관전, 리더보드, room/presence 상태 관리, 서버 검증 랭킹 흐름
+- **AI 추천 시스템**: Focused/Cover 전략, Upper Bonus/Yacht Bonus 반영, 점수 기록 추천, 사람이 읽는 decision report
+- **검증과 운영 안전성**: golden/soak/unittest, full-game simulation, roll-policy v1/v2 실험, confidence + exact guard fallback
+
+| Area | 구현한 것 | 확인한 것 |
+| --- | --- | --- |
+| Turn solver | keep/reroll exact tree/DP | 남은 reroll 수별 최적 후보 비교 |
+| Score decision | 즉시 점수 + bonus + future pressure utility | Upper/Yacht Bonus, sacrifice slot 케이스 |
+| ML policy | exact solver를 teacher로 둔 roll-stage MLP | v2 top-1 98.5200%, top-3 99.7559% |
+| Runtime guard | confidence 0.95 + exact gap guard 0.25 | 채택 구간 추가 EV 손실 mean/max 0점 |
+| Product safety | 서버 검증 세션, room score 재계산 | 조작된 랭킹/멀티 점수 저장 방지 |
+
+## 데모에서 보면 좋은 흐름
+
+1. [`/intro`](https://app.yatch-game.cloud/intro)에서 게임 규칙과 AI 추천 방식 확인
+2. 싱글플레이에서 AI 코치를 켜고 Focused/Cover 전략 차이 확인
+3. 같은 주사위라도 열린 점수칸, 남은 reroll, 보너스 상황에 따라 추천이 바뀌는지 확인
+4. 멀티 방을 만들고 방 코드/관전/재대결/리더보드 흐름 확인
+5. README 하단의 검증 명령으로 AI 계산과 서버 테스트 재현
 
 ## AI/검증 하이라이트
 

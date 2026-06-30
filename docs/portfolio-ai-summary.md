@@ -2,6 +2,25 @@
 
 이 프로젝트의 AI 작업은 "요트 주사위에서 어떤 주사위를 keep할지 추천한다"에서 끝나지 않는다. 핵심은 추천을 만들고, 그 추천이 실제로 안전한지 검증하고, 모델을 exact solver의 대체재가 아니라 guarded candidate generator로 배치한 점이다.
 
+## 30-Second Pitch
+
+요트 다이스는 한 턴 안에서는 모든 keep/reroll 경우를 계산할 수 있지만, 전체 12턴을 매 요청마다 완전 탐색하기에는 부담이 커진다. 이 프로젝트는 그 경계를 분리했다. 한 턴 안의 roll decision은 exact DP로 계산하고, 게임 전체의 장기 가치는 score-stage utility와 simulation으로 검증한다.
+
+학습 모델은 "AI라서 무조건 믿는" 구조가 아니다. exact solver를 teacher로 삼아 roll-stage MLP를 학습했고, 운영에서는 confidence와 exact gap guard를 통과한 경우에만 모델 출력을 사용한다. 통과하지 못하면 exact solver로 fallback한다.
+
+포트폴리오에서 강조할 한 줄은 이렇다.
+
+> Exact solver로 기준선을 만들고, ML 모델의 위험 구간을 EV gap과 full-game simulation으로 검증한 뒤, runtime guard로 안전하게 배치한 AI 추천 시스템.
+
+## Interview Talking Points
+
+- 왜 full-game DP를 바로 하지 않았나: 상태공간은 점수판 mask, upper total, Yacht bonus 가능성까지 커지므로 운영 요청마다 12턴 전체를 exact로 푸는 방식은 비효율적이다.
+- 어디까지 exact인가: 남은 reroll 안의 keep -> chance -> keep -> chance -> score 평가는 exact tree/DP다.
+- 어디부터 heuristic인가: 점수칸에 실제로 기록하는 단계는 즉시 점수, Upper/Yacht Bonus, 남은 칸의 future pressure를 섞은 utility다.
+- 모델이 배운 것은 무엇인가: score decision 전체가 아니라 roll stage에서 exact solver의 keep 선택을 빠르게 근사하는 정책이다.
+- 검증에서 얻은 결론은 무엇인가: teacher accuracy가 높아도 model-only는 rare worst-case가 있으므로, confidence + exact guard + fallback이 필요하다.
+- 제품 관점의 보강은 무엇인가: 싱글 랭킹과 멀티 점수 저장은 서버가 세션/주사위/점수판을 검증해서 클라이언트 조작을 줄였다.
+
 ## Problem
 
 요트 다이스는 한 턴 안에서는 경우의 수를 exact tree/DP로 계산할 수 있지만, 전체 12턴을 완전 탐색하기에는 상태공간이 빠르게 커진다. 그래서 이 프로젝트는 한 턴 내부 roll/reroll 선택은 exact하게 계산하고, 점수 기록 단계는 즉시 점수와 장기 압력을 섞은 utility로 근사한다.
