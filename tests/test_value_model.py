@@ -1,6 +1,6 @@
 import unittest
 
-from yacht_ai.self_play import play_self_play_game
+from yacht_ai.self_play import play_self_play_game, simulate_state_distribution
 from yacht_ai.value_model import VALUE_FEATURE_NAMES, encode_value_state, scorecard_totals
 
 
@@ -36,6 +36,16 @@ class ValueModelFeatureTests(unittest.TestCase):
             game["final_score"] - sample["state"]["current_total"],
         )
         self.assertIsNotNone(game["final_scorecard"][-1])
+
+    def test_state_distribution_reports_quantiles(self):
+        scorecard = [3, 6, 9, 12, 15, 18, 20, 0, 0, 15, 30, None]
+
+        report = simulate_state_distribution(scorecard, trials=3, seed=20260708)
+
+        self.assertEqual(report["trials"], 3)
+        self.assertEqual(report["remaining_score"]["count"], 3)
+        self.assertIn("p10", report["remaining_score"])
+        self.assertLessEqual(report["remaining_score"]["min"], report["remaining_score"]["max"])
 
 
 if __name__ == "__main__":

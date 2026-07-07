@@ -1,9 +1,10 @@
 import random
+import statistics
 
 from .constants import CATS, CATEGORY_NAMES
 from .scoring import calc_score
 from .solver import clear_solver_cache, solve_best_move
-from .value_model import scorecard_totals, value_state_payload
+from .value_model import normalize_scorecard, scorecard_totals, value_state_payload
 
 
 def reroll_from_keep(rng, dice, keep_indices):
@@ -123,4 +124,87 @@ def play_self_play_game(seed, mode="focused", initial_scorecard=None, clear_cach
         "final_scorecard": list(scorecard),
         "final_totals": final_totals,
         "samples": samples,
+    }
+
+
+def percentile(values, ratio):
+    if not values:
+        return 0.0
+    sorted_values = sorted(values)
+    if len(sorted_values) == 1:
+        return float(sorted_values[0])
+    pos = max(0.0, min(1.0, float(ratio))) * (len(sorted_values) - 1)
+    lower = int(pos)
+    upper = min(len(sorted_values) - 1, lower + 1)
+    weight = pos - lower
+    return float(sorted_values[lower] * (1.0 - weight) + sorted_values[upper] * weight)
+
+
+def distribution_summary(values):
+    if not values:
+        return {
+            "count": 0,
+            "mean": 0.0,
+            "stdev": 0.0,
+            "min": 0.0,
+            "p10": 0.0,
+            "p25": 0.0,
+            "p50": 0.0,
+            "p75": 0.0,
+            "p90": 0.0,
+            "max": 0.0,
+        }
+    return {
+        "count": len(values),
+        "mean": round(statistics.fmean(values), 6),
+        "stdev": round(statistics.pstdev(values), 6) if len(values) > 1 else 0.0,
+        "min": min(values),
+        "p10": round(percentile(values, 0.10), 6),
+        "p25": round(percentile(values, 0.25), 6),
+        "p50": round(percentile(values, 0.50), 6),
+        "p75": round(percentile(values, 0.75), 6),
+        "p90": round(percentile(values, 0.90), 6),
+        "max": max(values),
+    }
+
+
+def simulate_state_distribution(scorecard, trials=64, seed=20260708, mode="focused", clear_cache_every=0):
+    initial_scorecard = normalize_scorecard(scorecard)
+    initial_totals = scorecard_totals(initial_scorecard)
+    outcomes = []
+    for trial_idx in range(max(0, int(trials))):
+        trial_seed = int(seed) + trial_idx * 1009
+        game = play_self_play_game(
+            trial_seed,
+            mode,
+            initial_scorecard=initial_scorecard,
+            clear_cache_every=clear_cache_every,
+        )
+        outcomes.append(
+            {
+                "trial": trial_idx,
+                "seed": trial_seed,
+                "final_score": game["final_score"],
+                "remaining_score": game["final_score"] - initial_totals["total_score"],
+                "upper_bonus": bool(game["final_totals"]["upper_bonus"]),
+                "final_scorecard": game["final_scorecard"],
+            }
+        )
+
+    final_scores = [row["final_score"] for row in outcomes]
+    remaining_scores = [row["remaining_score"] for row in outcomes]
+    return {
+        "strategy_mode": mode,
+        "seed": int(seed),
+        "trials": len(outcomes),
+        "initial_state": value_state_payload(initial_scorecard, mode),
+        "initial_totals": initial_totals,
+        "final_score": distribution_summary(final_scores),
+        "remaining_score": distribution_summary(remaining_scores),
+        "upper_bonus_rate": (
+            round(statistics.fmean(1.0 if row["upper_bonus"] else 0.0 for row in outcomes), 6)
+            if outcomes else 0.0
+        ),
+        "worst_outcomes": sorted(outcomes, key=lambda row: row["final_score"])[:5],
+        "best_outcomes": sorted(outcomes, key=lambda row: row["final_score"], reverse=True)[:5],
     }

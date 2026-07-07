@@ -76,6 +76,12 @@ python3 scripts/eval_value_baseline.py \
   --output artifacts/reports/scorecard-value-linear-v1.eval.json \
   --markdown-output docs/scorecard-value-linear-v1-hard-cases.md \
   --limit 10
+
+python3 scripts/simulate_value_state_distribution.py \
+  --scorecard yacht_bonus_active \
+  --trials 128 \
+  --seed 20260708 \
+  --markdown-output docs/yacht-bonus-value-distribution.md
 ```
 
 현재 baseline의 목적은 운영 투입이 아니라 품질 기준선이다.
@@ -100,3 +106,12 @@ python3 scripts/eval_value_baseline.py \
 - Yacht bonus active 상태는 폭발적인 후속 점수 가능성이 있어 단순 선형 baseline이 과소평가하기 쉽다
 
 이 결과는 "바로 운영 투입 가능한 value model"이 아니라 다음 설계 방향을 보여준다. 실제 모델 판단에 쓰려면 최소 수백~수천 게임 self-play 데이터로 재학습하고, 평균값 하나뿐 아니라 quantile/variance target도 함께 예측하는 편이 좋다.
+
+`simulate_value_state_distribution.py`는 이 quantile/variance 방향을 확인하기 위한 도구다. hard-case 리포트에서 나온 특정 scorecard를 여러 seed로 이어 플레이해 p10/p50/p90, 최악/최선 outcome을 뽑는다. 평균 remaining score가 비슷해도 p10이 낮은 상태와 p90이 높은 상태는 score-stage 의사결정에서 다르게 다뤄야 한다.
+
+16-trial smoke 예시:
+
+- `empty`: final mean 175.75, stdev 38.58, p10/p50/p90 136.5 / 166.5 / 236.5
+- `yacht_bonus_active`: remaining mean 111.38, stdev 34.97, p10/p50/p90 67.0 / 107.0 / 147.0, best remaining 203
+
+이 숫자는 아직 작은 표본이지만, 초반에는 분산이 크고 Yacht bonus active 상태는 상방이 크게 열린다는 점을 보여준다.
