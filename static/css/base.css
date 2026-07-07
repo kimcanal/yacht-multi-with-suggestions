@@ -142,6 +142,55 @@ button {
     filter: brightness(1.2);
 }
 
+.controls.game-primary-controls {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 10px;
+    margin-bottom: 36px;
+}
+
+.btn.btn-large {
+    padding: 14px 36px;
+    font-size: 1.15em;
+}
+
+.btn.btn-roll {
+    background: linear-gradient(135deg, var(--purple-0) 0%, var(--purple-1) 100%);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+    color: var(--text-strong);
+}
+
+.btn.btn-reset {
+    background: linear-gradient(135deg, var(--pink-0) 0%, var(--pink-1) 100%);
+    box-shadow: 0 6px 25px rgba(245, 87, 108, 0.5);
+    color: var(--text-strong);
+}
+
+.btn.btn-danger {
+    background: linear-gradient(135deg, var(--danger) 0%, #c92a2a 100%);
+    box-shadow: 0 6px 25px rgba(255, 107, 107, 0.4);
+    color: var(--text-strong);
+}
+
+.btn.btn-warm {
+    background: linear-gradient(135deg, #ffb347 0%, #ff7f50 100%);
+    box-shadow: 0 4px 15px rgba(255, 179, 71, 0.35);
+    color: var(--text-strong);
+}
+
+.btn.btn-teal {
+    background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+    box-shadow: 0 4px 15px rgba(78, 205, 196, 0.4);
+    color: var(--text-strong);
+}
+
+.btn.btn-success {
+    background: linear-gradient(135deg, var(--mint) 0%, #2bb673 100%);
+    box-shadow: 0 4px 15px rgba(89, 240, 194, 0.32);
+    color: #06231b;
+}
+
 .btn-p {
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     color: var(--text-strong);

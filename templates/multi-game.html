@@ -349,12 +349,12 @@
                 <div id="observer-summary-grid" class="observer-meta-grid"></div>
             </div>
             <div class="controls primary-controls" id="player-controls">
-                <button class="btn" onclick="rollDice()" id="roll-btn">🎲 ROLL</button>
-                <button class="btn" style="background:linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); box-shadow:0 4px 15px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
+                <button class="btn btn-roll" onclick="rollDice()" id="roll-btn">🎲 ROLL</button>
+                <button class="btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
             </div>
             <div class="controls primary-controls" id="observer-controls" style="display:none;">
-                <button class="btn" style="background:linear-gradient(135deg, #ffb347 0%, #ff7f50 100%); box-shadow:0 4px 15px rgba(255,179,71,0.35);" data-copy-observer-link onclick="copyObserverLink()">🔗 링크 복사</button>
-                <button class="btn" style="background:linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); box-shadow:0 4px 15px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
+                <button class="btn btn-warm" data-copy-observer-link onclick="copyObserverLink()">🔗 링크 복사</button>
+                <button class="btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
             </div>
             <div class="dice-area">
                 <div class="dice-grid" id="dice-grid"></div>
@@ -386,8 +386,8 @@
             </div>
 
             <div class="controls" style="margin-top:10px;" id="multiplayer-controls">
-                <button class="btn" style="background:linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%); box-shadow:0 4px 15px rgba(78,205,196,0.4); display:none;" id="pass-turn-btn" onclick="passTurn()">🔁 선공권 넘기기</button>
-                <button class="btn" style="background:linear-gradient(135deg, #59f0c2 0%, #2bb673 100%); box-shadow:0 4px 15px rgba(89,240,194,0.32); display:none;" id="rematch-btn" onclick="requestRematch()">🔁 재대결 신청</button>
+                <button class="btn btn-teal" style="display:none;" id="pass-turn-btn" onclick="passTurn()">🔁 선공권 넘기기</button>
+                <button class="btn btn-success" style="display:none;" id="rematch-btn" onclick="requestRematch()">🔁 재대결 신청</button>
             </div>
         </div>
 
