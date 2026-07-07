@@ -152,6 +152,10 @@
             margin-top: 10px;
             margin-bottom: 30px;
         }
+        .primary-controls {
+            margin: 0 0 16px !important;
+            align-items: center;
+        }
         .btn {
             padding: 12px 30px;
             font-size: 16px;
@@ -323,6 +327,30 @@
         .ai-breakdown {
             margin-top: 15px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;
             padding: 12px; font-size: 0.9em; text-align: left;
+        }
+        .score-help {
+            margin: 0 0 12px 0 !important;
+            background: rgba(7, 17, 29, 0.72);
+            border: 1px solid rgba(126, 243, 203, 0.16);
+            border-left: 3px solid rgba(126, 243, 203, 0.7);
+            color: #c7d7e7;
+            line-height: 1.45;
+        }
+        .score-help-kicker {
+            color: #7ef3cb;
+            font-size: 0.72rem;
+            font-weight: 900;
+            letter-spacing: 0;
+            margin-bottom: 4px;
+        }
+        .score-help-dice {
+            color: #f7d36b;
+            font-weight: 900;
+            margin-bottom: 4px;
+        }
+        .score-help-main {
+            color: #d9e5f1;
+            font-size: 0.88rem;
         }
         .ai-mode-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:10px 0 0; }
         .ai-mode-btn {
@@ -554,7 +582,18 @@
             display:block; color:#93a4b7; font-size:0.7rem; font-weight:800; text-transform:uppercase; line-height:1.1;
         }
         .score-overview-value {
-            display:block; margin-top:5px; color:#f7d36b; font-size:1.28rem; font-weight:900; line-height:1.08;
+            display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+            min-height:2.55rem; margin-top:5px; color:#f7d36b; font-size:1.28rem; font-weight:900; line-height:1.08;
+            white-space:nowrap;
+        }
+        .score-overview-main { display:block; line-height:1.08; white-space:nowrap; }
+        .score-preview-delta {
+            display:inline-flex; align-items:center; max-width:100%; padding:2px 7px; border-radius:999px;
+            background:rgba(126,243,203,0.16); border:1px solid rgba(126,243,203,0.34);
+            color:#bfffee; font-size:0.68rem; line-height:1.1; white-space:nowrap;
+        }
+        .score-val.previewing {
+            display:inline-flex; flex-direction:column; align-items:flex-end; gap:2px; min-width:88px;
         }
         .score-overview-card.primary .score-overview-value { color:#7ef3cb; }
         .score-overview-card.bonus .score-overview-value, .score-overview-card.good .score-overview-value { color:#8df59a; }
@@ -613,6 +652,11 @@
             .scorecard-area { max-height:none; }
             .score-overview, .score-duel-overview { grid-template-columns:repeat(2, minmax(0, 1fr)); }
             .scorecard-title { text-align:center !important; }
+            .primary-controls {
+                position:sticky; top:6px; z-index:30; padding:8px;
+                background:rgba(11,16,32,0.92); border:1px solid rgba(148,163,184,0.2);
+                border-radius:14px; backdrop-filter:blur(10px);
+            }
         }
     </style>
 </head>
@@ -629,6 +673,14 @@
                     <button type="button" class="observer-link-btn" data-copy-observer-link onclick="copyObserverLink()">🔗 관전 링크 복사</button>
                 </div>
                 <div id="observer-summary-grid" class="observer-meta-grid"></div>
+            </div>
+            <div class="controls primary-controls" id="player-controls">
+                <button class="btn" onclick="rollDice()" id="roll-btn">🎲 ROLL</button>
+                <button class="btn" style="background:linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); box-shadow:0 4px 15px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
+            </div>
+            <div class="controls primary-controls" id="observer-controls" style="display:none;">
+                <button class="btn" style="background:linear-gradient(135deg, #ffb347 0%, #ff7f50 100%); box-shadow:0 4px 15px rgba(255,179,71,0.35);" data-copy-observer-link onclick="copyObserverLink()">🔗 링크 복사</button>
+                <button class="btn" style="background:linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); box-shadow:0 4px 15px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
             </div>
             <div class="dice-area">
                 <div class="dice-grid" id="dice-grid"></div>
@@ -658,15 +710,7 @@
                     <div id="win-prob-panel" class="winprob-panel"></div>
                 </div>
             </div>
-            <div class="controls" id="player-controls">
-                <button class="btn" onclick="rollDice()" id="roll-btn">🎲 ROLL</button>
-                <button class="btn" style="background:linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); box-shadow:0 4px 15px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
-            </div>
-            <div class="controls" id="observer-controls" style="display:none;">
-                <button class="btn" style="background:linear-gradient(135deg, #ffb347 0%, #ff7f50 100%); box-shadow:0 4px 15px rgba(255,179,71,0.35);" data-copy-observer-link onclick="copyObserverLink()">🔗 링크 복사</button>
-                <button class="btn" style="background:linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); box-shadow:0 4px 15px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
-            </div>
-            
+
             <div class="controls" style="margin-top:10px;" id="multiplayer-controls">
                 <button class="btn" style="background:linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%); box-shadow:0 4px 15px rgba(78,205,196,0.4); display:none;" id="pass-turn-btn" onclick="passTurn()">🔁 선공권 넘기기</button>
                 <button class="btn" style="background:linear-gradient(135deg, #59f0c2 0%, #2bb673 100%); box-shadow:0 4px 15px rgba(89,240,194,0.32); display:none;" id="rematch-btn" onclick="requestRematch()">🔁 재대결 신청</button>
@@ -674,6 +718,7 @@
         </div>
 
         <div class="scorecard-area">
+            <div id="score-desc-area" class="ai-breakdown score-help"></div>
             <div id="scorecard"></div>
         </div>
     </div>
@@ -681,7 +726,7 @@
     <div id="score-toast" class="toast-overlay"></div>
     <script src="{{ url_for('static', filename='js/dom_utils.js', v='20260417-6') }}"></script>
     <script src="{{ url_for('static', filename='js/game_state.js', v='20260406-5') }}"></script>
-    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260521-4') }}"></script>
+    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260708-3') }}"></script>
     <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260521-1') }}"></script>
     <script src="{{ url_for('static', filename='js/winprob.js', v='20260406-5') }}"></script>
     <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260406-5') }}"></script>
@@ -705,7 +750,7 @@
         // 관전 모드 진입: ?mode=observer 파라미터가 있으면 관전자
         if (params.get('mode') === 'observer') {
             isObserver = true;
-            username = username || 'observer_' + Math.floor(Math.random()*10000);
+            username = username || 'obs_' + Math.floor(Math.random()*10000);
             localStorage.setItem('yacht_username', username);
         }
         if (!username) {
@@ -1535,7 +1580,7 @@
         }
 
         function toggleLock(i) {
-            if (isObserver || rollsLeft === 3 || gameOver || !isMyTurn()) return;
+            if (isObserver || rollsLeft >= 3 || rollsLeft <= 0 || gameOver || isRolling || !isMyTurn()) return;
             kept[i] = kept[i] ? 0 : 1;
             GameState.setKept(kept);
             updateDice();
@@ -1882,6 +1927,7 @@ function applyRemoteState(state) {
 function updateScorecard() {
     const el = document.getElementById('scorecard');
     if (!el) return;
+    updateScoreHelp();
     updateTurnProgressUI();
 
     const safeMyCard = Array.isArray(myCard) ? myCard : Array(12).fill(null);

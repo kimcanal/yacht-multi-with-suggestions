@@ -419,6 +419,55 @@ class RouteIntegrationTests(unittest.TestCase):
             self.skipTest("deterministic roll happened to match the forged score")
         self.assertEqual(forged.status_code, 400)
 
+    def test_multiplayer_zero_score_sacrifice_resets_next_turn_state(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        self.assertEqual(created.status_code, 200)
+        code = created.get_json()["code"]
+        host_token = created.get_json()["player_token"]
+
+        joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
+        self.assertEqual(joined.status_code, 200)
+
+        room = rooms.get(code)
+        room["state"].update({
+            "dice": [1, 2, 3, 4, 6],
+            "kept": [0, 0, 0, 0, 0],
+            "rolls_left": 0,
+            "scores": {"host1": [None] * 12, "guest1": [None] * 12},
+            "player_dice": {"host1": [1, 2, 3, 4, 6], "guest1": [6, 6, 6, 6, 6]},
+            "player_kept": {"host1": [0, 0, 0, 0, 0], "guest1": [1, 1, 1, 1, 1]},
+            "player_rolls_left": {"host1": 0, "guest1": 0},
+            "turn": "host1",
+            "version": 4,
+        })
+        rooms.save(code, room)
+
+        host_card = [None] * 12
+        host_card[CATS["Full House"]] = 0
+        sacrificed = self.client.post(
+            f"/api/rooms/{code}/sync",
+            json={
+                "username": "host1",
+                "player_token": host_token,
+                "dice": [1, 1, 1, 1, 1],
+                "kept": [0, 0, 0, 0, 0],
+                "rolls_left": 3,
+                "scores": {"host1": host_card, "guest1": [None] * 12},
+                "turn": "guest1",
+                "game_over": False,
+            },
+        )
+
+        self.assertEqual(sacrificed.status_code, 200)
+        state = sacrificed.get_json()["state"]
+        self.assertEqual(state["scores"]["host1"][CATS["Full House"]], 0)
+        self.assertEqual(state["turn"], "guest1")
+        self.assertEqual(state["rolls_left"], 3)
+        self.assertEqual(state["kept"], [0, 0, 0, 0, 0])
+        self.assertEqual(state["player_dice"]["guest1"], [1, 1, 1, 1, 1])
+        self.assertEqual(state["player_kept"]["guest1"], [0, 0, 0, 0, 0])
+        self.assertEqual(state["player_rolls_left"]["guest1"], 3)
+
     def test_rematch_requires_both_players_and_resets_room(self):
         created = self.client.post("/api/rooms", json={"username": "host1"})
         self.assertEqual(created.status_code, 200)

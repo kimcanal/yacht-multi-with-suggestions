@@ -526,9 +526,12 @@ def sync_room(code):
         if not valid_transition:
             return jsonify({"error": validation_error}), 400
 
-        state.setdefault("player_dice", {})[username] = dice
-        state.setdefault("player_kept", {})[username] = kept
-        state.setdefault("player_rolls_left", {})[username] = rolls_left
+        player_dice = state.setdefault("player_dice", {})
+        player_kept = state.setdefault("player_kept", {})
+        player_rolls_left = state.setdefault("player_rolls_left", {})
+        player_dice[username] = dice
+        player_kept[username] = kept
+        player_rolls_left[username] = rolls_left
 
         prev_turn = state.get("turn")
         new_turn = requested_turn
@@ -537,6 +540,18 @@ def sync_room(code):
             turn_start_time = time.time()
 
         is_game_over = bool(transition["all_done"])
+        score_action = transition.get("score_action")
+        next_dice = dice
+        next_kept = kept
+        next_rolls_left = rolls_left
+        if score_action and not is_game_over and new_turn in room["players"]:
+            next_dice = [1, 1, 1, 1, 1]
+            next_kept = [0, 0, 0, 0, 0]
+            next_rolls_left = 3
+            player_dice[new_turn] = next_dice[:]
+            player_kept[new_turn] = next_kept[:]
+            player_rolls_left[new_turn] = next_rolls_left
+
         winner = None
         loser = None
         end_reason = None
@@ -555,13 +570,13 @@ def sync_room(code):
             end_reason = "score"
 
         new_state = {
-            "dice": dice,
-            "kept": kept,
-            "rolls_left": rolls_left,
+            "dice": next_dice,
+            "kept": next_kept,
+            "rolls_left": next_rolls_left,
             "scores": normalized_scores,
-            "player_dice": state.get("player_dice", {}),
-            "player_kept": state.get("player_kept", {}),
-            "player_rolls_left": state.get("player_rolls_left", {}),
+            "player_dice": player_dice,
+            "player_kept": player_kept,
+            "player_rolls_left": player_rolls_left,
             "turn": new_turn,
             "turn_start_time": turn_start_time,
             "game_over": is_game_over,
@@ -630,6 +645,7 @@ def roll_dice(code):
 
         state.setdefault("player_dice", {})[username] = new_dice
         state.setdefault("player_kept", {})[username] = kept
+        state.setdefault("player_rolls_left", {})[username] = rolls_left - 1
         state["dice"] = new_dice
         state["kept"] = kept
         state["rolls_left"] = rolls_left - 1

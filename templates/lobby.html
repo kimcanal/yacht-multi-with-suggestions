@@ -25,9 +25,9 @@
 
         /* 메인 컨테이너 */
         .lobby-container { 
-            width: 95%; max-width: 1500px; height: 92vh; 
+            width: 95%; max-width: 1500px; height: 94vh;
             background: rgba(20, 20, 35, 0.7); /* 반투명도 조절 */
-            border-radius: 24px; padding: 35px; 
+            border-radius: 24px; padding: 24px;
             backdrop-filter: blur(25px); 
             border: 1px solid rgba(255, 255, 255, 0.08); 
             box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5); 
@@ -37,17 +37,36 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         /* 헤더 */
-        .header-area { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .title { font-family: 'Rajdhani', sans-serif; font-size: 3.2rem; font-weight: 800; color: #fff; margin: 0; text-shadow: 0 0 25px rgba(0,255,204,0.5); letter-spacing: 2px; }
+        .header-area { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .title { font-family: 'Rajdhani', sans-serif; font-size: 2.7rem; font-weight: 800; color: #fff; margin: 0; text-shadow: 0 0 25px rgba(0,255,204,0.5); letter-spacing: 1px; }
         .control-bar { display: flex; gap: 15px; align-items: center; min-width: 0; flex-wrap: wrap; }
+        .quick-start {
+            flex: 0 0 auto; display: grid; grid-template-columns: 1.05fr 1fr; gap: 14px;
+            margin-bottom: 16px;
+        }
+        .quick-card {
+            background: rgba(0, 0, 0, 0.24); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px; padding: 14px; min-width: 0;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.18);
+        }
+        .quick-title { color:#f4f7fb; font-weight:800; font-size:0.92rem; margin-bottom:10px; }
+        .quick-actions { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; }
+        .room-code-row { display:grid; grid-template-columns:minmax(120px, 1fr) auto auto; gap:10px; align-items:center; }
+        .quick-hint { margin-top:8px; color:#8d98a7; font-size:0.78rem; line-height:1.35; }
 
         /* 패널 공통 */
-        .main-content-grid { flex: 1; display: grid; grid-template-columns: 340px 1fr 340px; gap: 25px; overflow: hidden; }
-        .col-wrapper { display: flex; flex-direction: column; gap: 25px; height: 100%; min-height: 0; }
+        .main-content-grid {
+            flex: 1; display: grid; grid-template-columns: 300px minmax(420px, 1fr) 340px;
+            grid-template-areas: "left rooms right"; gap: 16px; overflow: hidden;
+        }
+        .col-wrapper { display: flex; flex-direction: column; gap: 16px; height: 100%; min-height: 0; }
+        .left-column { grid-area:left; }
+        .rooms-column { grid-area:rooms; }
+        .right-column { grid-area:right; }
         
         .panel { 
             background: rgba(0, 0, 0, 0.25); 
-            border-radius: 18px; 
+            border-radius: 16px;
             border: 1px solid rgba(255, 255, 255, 0.05); 
             display: flex; flex-direction: column; overflow: hidden; 
             flex: 1; min-height: 0;
@@ -57,14 +76,14 @@
         .panel:hover { border-color: rgba(255,255,255,0.15); }
 
         .panel-header { 
-            padding: 18px 22px; background: rgba(255, 255, 255, 0.03); 
+            padding: 13px 16px; background: rgba(255, 255, 255, 0.03);
             border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
-            font-weight: 700; color: #00ffcc; font-size: 1.15em; 
+            font-weight: 700; color: #00ffcc; font-size: 1em;
             display: flex; justify-content: space-between; align-items: center;
             letter-spacing: 0.5px;
         }
 
-        .panel-body { flex: 1; overflow-y: auto; padding: 15px; position: relative; }
+        .panel-body { flex: 1; overflow-y: auto; padding: 12px; position: relative; }
         .panel-body::-webkit-scrollbar { width: 6px; }
         .panel-body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
 
@@ -79,7 +98,7 @@
         /* 방 목록 아이템 */
         .room-item {
             background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
-            padding: 16px 20px; margin-bottom: 10px; border-radius: 12px; 
+            padding: 13px 15px; margin-bottom: 9px; border-radius: 12px;
             display: flex; justify-content: space-between; align-items: center; gap: 12px;
             border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s; 
         }
@@ -112,7 +131,7 @@
         }
         
         /* 버튼들 */
-        .btn-mini { padding: 12px 24px; border-radius: 12px; border: none; font-weight: 700; color: white; cursor: pointer; transition: 0.2s; font-size: 0.95rem; }
+        .btn-mini { padding: 11px 18px; border-radius: 12px; border: none; font-weight: 700; color: white; cursor: pointer; transition: 0.2s; font-size: 0.92rem; }
         .btn-mini:hover { transform: translateY(-2px); filter: brightness(1.2); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .btn-p { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
         .btn-s { background: linear-gradient(135deg, #00b894, #00cec9); color:#00332c; }
@@ -121,7 +140,7 @@
         .btn-logout { background: none; border: 1px solid #ff6b6b; color: #ff6b6b; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; transition:0.2s; }
         .btn-logout:hover { background: rgba(255, 107, 107, 0.1); }
 
-        .input-mini { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 12px 16px; border-radius: 12px; width: 150px; font-size: 1rem; text-align:center; letter-spacing:1px; }
+        .input-mini { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 11px 14px; border-radius: 12px; width: 150px; font-size: 1rem; text-align:center; letter-spacing:1px; }
         .input-mini:focus { border-color: #00ffcc; outline: none; }
 
         /* 기타 요소들 */
@@ -229,10 +248,16 @@
             .control-bar { justify-content: center; }
             .user-badge { margin-right: 0; }
             .user-name-display { max-width: min(50vw, 280px); }
+            .quick-start { grid-template-columns:1fr; }
         }
         @media (max-width: 1200px) {
             .lobby-container { height: auto; max-height: 95vh; overflow-y: auto; }
-            .main-content-grid { display: flex; flex-direction: column; overflow: visible; }
+            .main-content-grid {
+                display: flex; flex-direction: column; overflow: visible;
+            }
+            .rooms-column { order:1; }
+            .right-column { order:2; }
+            .left-column { order:3; }
             .panel { height: 350px; flex: none; }
         }
         @media (max-width: 768px) {
@@ -243,6 +268,13 @@
             .control-bar > div[style*="width:1px"] { display: none; }
             .user-badge { width: 100%; justify-content: space-between; padding: 10px 14px; }
             .user-name-display { max-width: calc(100vw - 170px); }
+            .quick-card { padding:12px; }
+            .quick-actions { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; }
+            .room-code-row { grid-template-columns:minmax(0, 1fr) 66px 82px; gap:8px; }
+            .quick-title { margin-bottom:8px; }
+            .quick-hint { font-size:0.72rem; }
+            .quick-card .btn-mini { padding:10px 6px; font-size:0.82rem; }
+            .quick-card .input-mini { padding:10px 8px; font-size:0.9rem; }
             .btn-mini, .input-mini { width: 100%; min-width: 0; }
             .panel { height: 300px; }
             .room-item { flex-direction: column; align-items: stretch; }
@@ -262,7 +294,7 @@
         <div class="login-box">
             <div class="login-title">🎲 YACHT</div>
             <div style="margin-bottom:15px; color:#aaa; font-size:1.1em;">오늘의 닉네임은 무엇인가요?</div>
-            <input type="text" id="login-username" class="login-input" placeholder="Player Name" maxlength="12" autofocus>
+            <input type="text" id="login-username" class="login-input" placeholder="Player Name" maxlength="12" autocomplete="nickname" autocapitalize="off" spellcheck="false" autofocus>
             <button class="login-btn" onclick="submitLogin()">GAME START</button>
             <button class="btn-mini btn-i" style="width:100%; margin-top:12px; padding:16px 20px; font-size:1rem;" onclick="window.location.href='/intro'">📘 게임 소개 보기</button>
         </div>
@@ -275,23 +307,36 @@
                 <div class="user-badge">
                     <span style="font-size:0.9em; color:#aaa;">PLAYER</span>
                     <span id="display-username" class="user-name-display">Guest</span>
-                    <button class="btn-logout" onclick="logout()">✕</button>
+                    <button class="btn-logout" onclick="logout()" aria-label="로그아웃">✕</button>
                 </div>
                 <div style="width:1px; height:30px; background:rgba(255,255,255,0.15); margin:0 5px;"></div>
                 <button class="btn-mini btn-i" onclick="window.location.href='/intro'">📘 게임 소개</button>
-                <div style="width:1px; height:30px; background:rgba(255,255,255,0.15); margin:0 5px;"></div>
-                <button class="btn-mini btn-p" onclick="startGame('solo')">🎮 혼자하기</button>
-                <button class="btn-mini btn-s" onclick="startGame('vs-ai')">🤖 VS AI</button>
-                <div style="width:1px; height:30px; background:rgba(255,255,255,0.15); margin:0 5px;"></div>
-                <input type="text" id="room-code" class="input-mini" placeholder="CODE" maxlength="10" style="text-transform:uppercase;">
-                <button class="btn-mini btn-s" onclick="joinRoomById()">입장</button>
-                <button class="btn-mini btn-c" onclick="createRoom()">방 생성</button>
+            </div>
+        </div>
+
+        <div class="quick-start" aria-label="빠른 시작">
+            <div class="quick-card">
+                <div class="quick-title">바로 시작</div>
+                <div class="quick-actions">
+                    <button class="btn-mini btn-p" onclick="startGame('solo')">🎮 혼자하기</button>
+                    <button class="btn-mini btn-s" onclick="startGame('vs-ai')">🤖 VS AI</button>
+                    <button class="btn-mini btn-c" onclick="createRoom()">방 생성</button>
+                </div>
+            </div>
+            <div class="quick-card">
+                <div class="quick-title">친구 방 입장</div>
+                <div class="room-code-row">
+                    <input type="text" id="room-code" class="input-mini" placeholder="CODE" maxlength="10" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="방 코드" style="text-transform:uppercase;">
+                    <button class="btn-mini btn-s" onclick="joinRoomById()">입장</button>
+                    <button class="btn-mini btn-i" onclick="refreshLobbyNow()">새로고침</button>
+                </div>
+                <div class="quick-hint">대기실 목록에서 참가/관전을 바로 눌러도 됩니다.</div>
             </div>
         </div>
 
         <div class="main-content-grid">
 
-            <div class="col-wrapper">
+            <div class="col-wrapper left-column">
                 <div class="panel" style="flex: 1.5;">
                     <div class="panel-header">
                         <span>👥 접속자 현황</span>
@@ -348,7 +393,7 @@
                 </div>
             </div>
 
-            <div class="col-wrapper">
+            <div class="col-wrapper rooms-column">
                 <div class="panel">
                     <div class="panel-header">
                         <span>📜 대기실 목록</span>
@@ -363,7 +408,7 @@
                 </div>
             </div>
 
-            <div class="col-wrapper">
+            <div class="col-wrapper right-column">
                 <div class="panel" style="flex: 2;">
                     <div class="panel-header">
                         <span>🏆 명예의 전당</span>

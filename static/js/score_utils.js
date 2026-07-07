@@ -99,15 +99,21 @@ function renderScoreMetric(label, value, options = {}) {
     `;
 }
 
+function formatUpperBonusProgress(totals) {
+    return totals.bonus > 0 ? `+${totals.bonus}` : `${Math.max(0, 63 - totals.upper)} 남음`;
+}
+
+function formatUpperBonusAward(totals) {
+    return totals.bonus > 0 ? `+${totals.bonus}` : '-';
+}
+
 function renderSingleScoreOverview(card, totals, options = {}) {
     const openCount = countOpenCategories(card);
-    const upperLeft = Math.max(0, 63 - totals.upper);
-    const bonusText = totals.bonus > 0 ? `+${totals.bonus}` : `${upperLeft} 남음`;
     return `
         <div class="score-overview">
             ${renderScoreMetric('TOTAL', totals.total, { id: options.previewIds ? 'summary-total' : '', tone: 'primary' })}
             ${renderScoreMetric('Upper', `${totals.upper}/63`, { id: options.previewIds ? 'summary-subtotal' : '', meter: totals.upper / 63 })}
-            ${renderScoreMetric('Bonus', bonusText, { id: options.previewIds ? 'summary-bonus' : '', tone: totals.bonus > 0 ? 'bonus' : '', meter: totals.bonus > 0 ? 1 : totals.upper / 63 })}
+            ${renderScoreMetric('Bonus', formatUpperBonusProgress(totals), { id: options.previewIds ? 'summary-bonus' : '', tone: totals.bonus > 0 ? 'bonus' : '', meter: totals.bonus > 0 ? 1 : totals.upper / 63 })}
             ${renderScoreMetric('Open', openCount, { sub: '남은 칸', meter: countFilledCategories(card) / CATS.length })}
         </div>
     `;
@@ -128,10 +134,10 @@ function renderCompareOverview(leftCard, rightCard, leftTotals, rightTotals, opt
             ${renderScoreMetric(options.rightShortLabel || '상대', rightTotals.total)}
             ${renderScoreMetric('차이', formatScoreDiff(leftTotals.total, rightTotals.total), { tone: diffTone })}
             ${renderScoreMetric('Upper', `${leftTotals.upper}/63`, { id: options.previewIds ? 'summary-subtotal' : '', sub: rightTotals.upper ? `상대 ${rightTotals.upper}/63` : '', meter: leftTotals.upper / 63 })}
-            ${renderScoreMetric('Bonus', `+${leftTotals.bonus}`, {
+            ${renderScoreMetric('Bonus', formatUpperBonusProgress(leftTotals), {
                 id: options.previewIds ? 'summary-bonus' : '',
                 tone: leftTotals.bonus > 0 ? 'bonus' : '',
-                sub: rightTotals.bonus > 0 ? `상대 +${rightTotals.bonus}` : '',
+                sub: `상대 ${formatUpperBonusProgress(rightTotals)}`,
                 meter: leftTotals.bonus > 0 ? 1 : leftTotals.upper / 63,
             })}
         </div>
@@ -184,7 +190,7 @@ function renderCard(card, isMine, title) {
     CATS.forEach((c, i) => {
         if (i === 6) {
             h += `<div class="score-item subtotal" style="background:rgba(255,255,255,0.1); cursor:default; min-width:140px;" data-desc="상단 항목의 점수 합계.\n목표는 63점 (각 숫자 3개씩)" data-dice="" onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"><span class="score-name">Subtotal</span><span class="score-val">${totals.upper}/63</span><div class='custom-tip' style='display:none;'></div></div>`;
-            h += `<div class="score-item bonus" style="min-width:140px;" data-desc="상단 합계 63점 이상 \n→ 보너스 35점" data-dice="" onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"><span class="score-name">Upper Bonus</span><span class="score-val">+${totals.bonus}</span><div class='custom-tip' style='display:none;'></div></div>`;
+            h += `<div class="score-item bonus" style="min-width:140px;" data-desc="상단 합계 63점 이상 \n→ 보너스 35점" data-dice="" onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"><span class="score-name">Upper Bonus</span><span class="score-val">${formatUpperBonusAward(totals)}</span><div class='custom-tip' style='display:none;'></div></div>`;
         }
         const clickable = isMine && !gameOver && isMyTurn() && card[i] === null && rollsLeft < 3;
         const showPreview = !gameOver && card[i] === null && rollsLeft < 3 && ((isMine && isMyTurn()) || (!isMine && !isMyTurn()));
@@ -215,11 +221,33 @@ function getScoreMeta(categoryName) {
 }
 
 function getTooltipHandlers() {
-    return `onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"`;
+    return [
+        'onmouseenter="showTip(this)"',
+        'onmouseleave="hideTip()"',
+        'onpointerdown="showTip(this)"',
+        'ontouchstart="showTip(this)"',
+        'ontouchend="hideTip()"',
+        'onfocus="showTip(this)"',
+        'onblur="hideTip()"',
+    ].join(' ');
 }
 
-function getPreviewHandlers(categoryIndex) {
-    return `onmouseenter="previewScore(${categoryIndex})" onmouseleave="clearPreview()" ontouchstart="previewScore(${categoryIndex})" ontouchend="clearPreview()"`;
+function getScorePreviewHandlers(categoryIndex) {
+    return [
+        `onmouseenter="showTip(this); previewScore(${categoryIndex})"`,
+        'onmouseleave="hideTip(); clearPreview()"',
+        `onpointerdown="showTip(this); previewScore(${categoryIndex})"`,
+        `ontouchstart="showTip(this); previewScore(${categoryIndex})"`,
+        'ontouchend="hideTip(); clearPreview()"',
+        `onfocus="showTip(this); previewScore(${categoryIndex})"`,
+        'onblur="hideTip(); clearPreview()"',
+    ].join(' ');
+}
+
+function handleScoreKey(event, categoryIndex) {
+    if (!event || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    pickCategory(categoryIndex);
 }
 
 function applyScoreTooltipChrome(tooltip) {
@@ -313,7 +341,7 @@ function flashScoreSelection(categoryIndex) {
 }
 
 function buildValueMarkup(value, preview) {
-    if (preview) {
+    if (preview !== null && preview !== undefined) {
         return `<span class="compare-score-main">${value}</span><span class="score-preview">(${preview})</span>`;
     }
     return `<span class="compare-score-main">${value}</span>`;
@@ -328,10 +356,11 @@ function renderCompactScoreRow(card, categoryIndex, options = {}) {
     const valueMarkup = buildValueMarkup(card[categoryIndex] !== null ? card[categoryIndex] : '-', preview);
     const classes = `score-item compact-score-row ${card[categoryIndex] !== null ? 'filled' : ''} ${clickable ? 'compact-clickable' : ''}`;
     const clickAttr = clickable ? `onclick="pickCategory(${categoryIndex})"` : '';
-    const previewHandlers = clickable ? getPreviewHandlers(categoryIndex) : '';
+    const keyAttr = clickable ? `role="button" tabindex="0" onkeydown="handleScoreKey(event, ${categoryIndex})"` : 'tabindex="0"';
+    const interactionHandlers = clickable ? getScorePreviewHandlers(categoryIndex) : getTooltipHandlers();
     const tipLayoutAttr = clickable ? 'data-tip-layout="score-preview"' : '';
     return `
-        <div class="${classes}" data-score-flash="${categoryIndex}" ${getTooltipHandlers()} ${clickAttr} ${previewHandlers} ${tipLayoutAttr} data-desc="${escapeHtml(desc)}" data-dice="${escapeHtml(diceEx)}">
+        <div class="${classes}" data-score-flash="${categoryIndex}" ${keyAttr} ${interactionHandlers} ${clickAttr} ${tipLayoutAttr} data-desc="${escapeHtml(desc)}" data-dice="${escapeHtml(diceEx)}">
             <span class="score-name">${escapeHtml(categoryName)}</span>
             <span class="score-val">${valueMarkup}</span>
             <div class="custom-tip" style="display:none;"></div>
@@ -350,6 +379,28 @@ function renderSummaryItem(label, value, options = {}) {
             <div class="custom-tip" style="display:none;"></div>
         </div>
     `;
+}
+
+function renderScoreHelpMarkup(desc = '', diceText = '') {
+    const hasDetail = Boolean(desc || diceText);
+    const title = hasDetail ? '점수 설명' : '점수표 도움말';
+    const body = hasDetail
+        ? escapeHtml(desc || '이 항목의 점수 계산 예시입니다.')
+        : '점수 항목을 누르거나 올리면 계산 설명과 예시가 표시됩니다. 괄호 안 숫자는 지금 제출할 점수입니다.';
+    const dice = diceText
+        ? `<div class="score-help-dice">${escapeHtml(diceText)}</div>`
+        : '';
+    return `
+        <div class="score-help-kicker">${title}</div>
+        ${dice}
+        <div class="score-help-main">${body}</div>
+    `;
+}
+
+function updateScoreHelp(desc = '', diceText = '') {
+    const help = document.getElementById('score-desc-area');
+    if (!help) return;
+    help.innerHTML = renderScoreHelpMarkup(desc, diceText);
 }
 
 function renderCompactSingleCard(card, title, options = {}) {
@@ -411,14 +462,17 @@ function renderCompareCategoryRow(categoryIndex, leftCard, rightCard, options = 
     const leftCellClasses = `compare-value-cell ${leftCard[categoryIndex] !== null ? 'filled' : ''} ${clickable ? 'clickable' : ''}`;
     const rightCellClasses = `compare-value-cell ${rightCard[categoryIndex] !== null ? 'filled' : ''}`;
     const clickAttr = clickable ? `onclick="pickCategory(${categoryIndex})"` : '';
-    const previewHandlers = clickable ? getPreviewHandlers(categoryIndex) : '';
+    const previewHandlers = clickable ? getScorePreviewHandlers(categoryIndex) : '';
+    const keyAttr = clickable ? `role="button" tabindex="0" onkeydown="handleScoreKey(event, ${categoryIndex})"` : '';
+    const tipLayoutAttr = clickable ? 'data-tip-layout="score-preview"' : '';
+    const scoreMetaAttrs = clickable ? `data-desc="${escapeHtml(desc)}" data-dice="${escapeHtml(diceEx)}"` : '';
     return `
         <div class="compare-row">
             <div class="compare-cat-cell tip-trigger" ${getTooltipHandlers()} data-desc="${escapeHtml(desc)}" data-dice="${escapeHtml(diceEx)}">
                 ${escapeHtml(categoryName)}
                 <div class="custom-tip" style="display:none;"></div>
             </div>
-            <div class="${leftCellClasses}" data-score-flash="${categoryIndex}" ${clickAttr} ${previewHandlers}>${leftValueMarkup}</div>
+            <div class="${leftCellClasses}" data-score-flash="${categoryIndex}" ${keyAttr} ${clickAttr} ${previewHandlers} ${tipLayoutAttr} ${scoreMetaAttrs}>${leftValueMarkup}</div>
             <div class="${rightCellClasses}">${rightValueMarkup}</div>
         </div>
     `;
@@ -440,7 +494,7 @@ function renderCompareBoard(leftCard, rightCard, options = {}) {
                 extraClass: ' compare-summary',
                 desc: '상단 항목의 점수 합계입니다. 목표는 63점입니다.',
             });
-            rows += renderCompareStatRow('Upper Bonus', `+${leftTotals.bonus}`, `+${rightTotals.bonus}`, {
+            rows += renderCompareStatRow('Upper Bonus', formatUpperBonusAward(leftTotals), formatUpperBonusAward(rightTotals), {
                 extraClass: ' compare-summary',
                 desc: '상단 합계 63점 이상이면 보너스 35점을 받습니다.',
             });
@@ -477,6 +531,7 @@ function showTip(el) {
     const desc = el.getAttribute('data-desc') || '';
     const diceText = el.getAttribute('data-dice') || '';
     if (!desc && !diceText) return;
+    updateScoreHelp(desc, diceText);
 
     const tip = getGlobalTooltip();
     applyScoreTooltipChrome(tip);
@@ -505,6 +560,18 @@ function hideTip() {
     tip.innerHTML = '';
 }
 
+function formatSignedDelta(value) {
+    const numeric = Number(value) || 0;
+    return numeric >= 0 ? `+${numeric}` : `${numeric}`;
+}
+
+function buildOverviewPreviewValue(current, delta, next) {
+    return `
+        <span class="score-overview-main">${escapeHtml(current)}</span>
+        <span class="score-preview-delta">${escapeHtml(formatSignedDelta(delta))} &rarr; ${escapeHtml(next)}</span>
+    `;
+}
+
 function previewScore(i) {
     if (myCard[i] !== null || rollsLeft === 3 || gameOver) return;
     const sc = calcScore(dice, i);
@@ -516,24 +583,27 @@ function previewScore(i) {
     const totalEl = document.getElementById('summary-total') || document.querySelector('.scorecard-area .total-score span:last-child');
     if (totalEl) {
         const diff = newTotals.total - curTotals.total;
-        totalEl.innerHTML = `${curTotals.total} <span style="color:#00ffcc; font-size:0.8em"> (+${diff}) ➜ ${newTotals.total}</span>`;
+        totalEl.classList.add('previewing');
+        totalEl.innerHTML = buildOverviewPreviewValue(`${curTotals.total}`, diff, `${newTotals.total}`);
     }
 
     const subtotalEl = document.getElementById('summary-subtotal') || document.querySelector('.score-item.subtotal .score-val');
     if (subtotalEl) {
         const diff = newTotals.upper - curTotals.upper;
-        subtotalEl.innerHTML = `${curTotals.upper}/63 <span style="color:#00ffcc; font-size:0.8em"> (+${diff}) ➜ ${newTotals.upper}/63</span>`;
+        subtotalEl.classList.add('previewing');
+        subtotalEl.innerHTML = buildOverviewPreviewValue(`${curTotals.upper}/63`, diff, `${newTotals.upper}/63`);
     }
 
     const bonusEl = document.getElementById('summary-bonus') || document.querySelector('.score-item.bonus .score-val');
     if (bonusEl) {
+        bonusEl.classList.add('previewing');
         if (newTotals.bonus > curTotals.bonus) {
-            bonusEl.innerHTML = `+${curTotals.bonus} <span style="color:#ffd700; font-weight:bold"> (+35) ➜ ${newTotals.bonus}</span>`;
+            bonusEl.innerHTML = buildOverviewPreviewValue(`+${curTotals.bonus}`, newTotals.bonus - curTotals.bonus, `+${newTotals.bonus}`);
             bonusEl.parentElement.style.background = 'rgba(255, 215, 0, 0.25)';
         } else if (newTotals.bonus > 0) {
-            bonusEl.innerHTML = `+${newTotals.bonus}`;
+            bonusEl.innerHTML = `<span class="score-overview-main">+${newTotals.bonus}</span>`;
         } else {
-            bonusEl.innerHTML = `${Math.max(0, 63 - newTotals.upper)} 남음`;
+            bonusEl.innerHTML = `<span class="score-overview-main">${Math.max(0, 63 - newTotals.upper)} 남음</span>`;
         }
     }
 }

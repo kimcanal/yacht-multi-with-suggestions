@@ -94,6 +94,10 @@
         .controls {
             display: flex; gap: 15px; justify-content: center; margin-top: 10px; margin-bottom: 30px;
         }
+        .primary-controls {
+            margin: 0 0 16px !important;
+            align-items: center;
+        }
         .btn {
             padding: 12px 30px; font-size: 16px; font-weight: 600; border: none; border-radius: 30px;
             cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;
@@ -283,6 +287,30 @@
         }
         .ai-breakdown {
             margin-top: 0; background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 12px; font-size: 0.9em; text-align: left;
+        }
+        .score-help {
+            margin: 0 0 12px 0 !important;
+            background: rgba(7, 17, 29, 0.72);
+            border: 1px solid rgba(126, 243, 203, 0.16);
+            border-left: 3px solid rgba(126, 243, 203, 0.7);
+            color: #c7d7e7;
+            line-height: 1.45;
+        }
+        .score-help-kicker {
+            color: #7ef3cb;
+            font-size: 0.72rem;
+            font-weight: 900;
+            letter-spacing: 0;
+            margin-bottom: 4px;
+        }
+        .score-help-dice {
+            color: #f7d36b;
+            font-weight: 900;
+            margin-bottom: 4px;
+        }
+        .score-help-main {
+            color: #d9e5f1;
+            font-size: 0.88rem;
         }
         .ai-mode-row { display:flex; gap:8px; justify-content:center; align-items:center; flex-wrap:wrap; margin:10px 0 12px; }
         .ai-mode-row-label { color:#9fb0c2; font-size:0.8rem; font-weight:800; }
@@ -479,7 +507,18 @@
             display:block; color:#93a4b7; font-size:0.7rem; font-weight:800; text-transform:uppercase; line-height:1.1;
         }
         .score-overview-value {
-            display:block; margin-top:5px; color:#f7d36b; font-size:1.28rem; font-weight:900; line-height:1.08;
+            display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+            min-height:2.55rem; margin-top:5px; color:#f7d36b; font-size:1.28rem; font-weight:900; line-height:1.08;
+            white-space:nowrap;
+        }
+        .score-overview-main { display:block; line-height:1.08; white-space:nowrap; }
+        .score-preview-delta {
+            display:inline-flex; align-items:center; max-width:100%; padding:2px 7px; border-radius:999px;
+            background:rgba(126,243,203,0.16); border:1px solid rgba(126,243,203,0.34);
+            color:#bfffee; font-size:0.68rem; line-height:1.1; white-space:nowrap;
+        }
+        .score-val.previewing {
+            display:inline-flex; flex-direction:column; align-items:flex-end; gap:2px; min-width:88px;
         }
         .score-overview-card.primary .score-overview-value { color:#7ef3cb; }
         .score-overview-card.bonus .score-overview-value, .score-overview-card.good .score-overview-value { color:#8df59a; }
@@ -550,6 +589,11 @@
             .score-overview, .score-duel-overview { grid-template-columns:repeat(2, minmax(0, 1fr)); }
             #scorecard.scorecard-mode-solo .compact-score-layout { grid-template-columns:1fr; }
             .scorecard-title { text-align:center !important; }
+            .primary-controls {
+                position:sticky; top:6px; z-index:30; padding:8px;
+                background:rgba(11,16,32,0.92); border:1px solid rgba(148,163,184,0.2);
+                border-radius:14px; backdrop-filter:blur(10px);
+            }
         }
     </style>
 </head>
@@ -579,6 +623,11 @@
                     </div>
                 </div>
             </div>
+            <div class="controls primary-controls" style="display:flex; gap:18px; justify-content:center; margin-top:10px; margin-bottom:36px;">
+                <button class="btn" onclick="rollDice()" id="roll-btn" style="padding:14px 36px; font-size:1.15em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; box-shadow:0 6px 25px rgba(102,126,234,0.5);">🎲 ROLL</button>
+                <button class="btn btn-reset" onclick="resetGame()" id="new-game-btn" style="padding:14px 36px; font-size:1.15em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%); color:white; box-shadow:0 6px 25px rgba(245,87,108,0.5);">🔄 RESET</button>
+                <button class="btn" style="padding:14px 36px; font-size:1.15em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#ff6b6b 0%,#c92a2a 100%); color:white; box-shadow:0 6px 25px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
+            </div>
             <div class="dice-area" style="background:rgba(255,255,255,0.07); border-radius:28px; padding:48px 36px; box-shadow:0 8px 40px rgba(0,255,204,0.08); border:1.5px solid rgba(255,255,255,0.12); margin-bottom:36px;">
                 <div class="dice-grid" id="dice-grid"></div>
                 <div class="info-bar" style="background:rgba(0,255,204,0.12); border:2px solid #00ffcc; border-radius:18px; padding:18px; text-align:center; font-size:1.25em; color:#00ffcc; font-weight:700; margin-top:18px;">
@@ -605,15 +654,10 @@
                     <div id="ai-breakdown" class="ai-breakdown" style="display:none;"></div>
                 </div>
             </div>
-            <div class="controls" style="display:flex; gap:18px; justify-content:center; margin-top:10px; margin-bottom:36px;">
-                <button class="btn" onclick="rollDice()" id="roll-btn" style="padding:14px 36px; font-size:1.15em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; box-shadow:0 6px 25px rgba(102,126,234,0.5);">🎲 ROLL</button>
-                <button class="btn btn-reset" onclick="resetGame()" id="new-game-btn" style="padding:14px 36px; font-size:1.15em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%); color:white; box-shadow:0 6px 25px rgba(245,87,108,0.5);">🔄 RESET</button>
-                <button class="btn" style="padding:14px 36px; font-size:1.15em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#ff6b6b 0%,#c92a2a 100%); color:white; box-shadow:0 6px 25px rgba(255,107,107,0.4);" onclick="leaveRoom()">🚪 나가기</button>
-            </div>
         </div>
         <div class="scorecard-area" style="background:rgba(255,255,255,0.07); border-radius:28px; padding:28px 24px; box-shadow:0 8px 40px rgba(0,255,204,0.08); border:1.5px solid rgba(255,255,255,0.12);">
+            <div id="score-desc-area" class="ai-breakdown score-help"></div>
             <div id="scorecard"></div>
-            <div id="score-desc-area" class="ai-breakdown" style="margin-top:18px;"></div>
             <div class="footer-credit" style="text-align:center; margin-top:38px; font-size:0.98em; color:rgba(180,220,255,0.6);">
                 Made by <a href="https://kimcanal.github.io/" target="_blank" style="color:#00e6c3; font-weight:600; text-decoration:underline dotted;">kimcanal</a>
             </div>
@@ -635,7 +679,7 @@
             </div>
     <script src="{{ url_for('static', filename='js/dom_utils.js', v='20260417-6') }}"></script>
     <script src="{{ url_for('static', filename='js/game_state.js', v='20260406-5') }}"></script>
-    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260521-4') }}"></script>
+    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260708-3') }}"></script>
     <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260521-1') }}"></script>
     <script src="{{ url_for('static', filename='js/winprob.js', v='20260406-5') }}"></script>
     <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260406-5') }}"></script>
@@ -1268,7 +1312,7 @@
         }
 
         function toggleLock(i) {
-            if (rollsLeft === 3 || gameOver || !isMyTurn() || isRolling || !timerInterval) return;
+            if (rollsLeft >= 3 || rollsLeft <= 0 || gameOver || !isMyTurn() || isRolling) return;
             kept[i] = kept[i] ? 0 : 1;
             commitState();
             updateDice();
@@ -1489,10 +1533,7 @@
             }
 
             updateTurnProgressUI();
-            const descArea = document.getElementById('score-desc-area');
-            if (descArea) {
-                descArea.innerHTML = '<div style="color:#999; text-align:center; padding:8px; font-size:0.95em;">점수 항목에 마우스를 올리면 설명과 예시가 표시됩니다.</div>';
-            }
+            updateScoreHelp();
         }
 
         async function rollDice() {
