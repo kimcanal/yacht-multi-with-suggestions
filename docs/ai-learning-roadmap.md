@@ -90,6 +90,18 @@ python3 scripts/generate_value_distribution_data.py \
   --output artifacts/value/self-play-value-distribution-focused-64x64.jsonl \
   --summary-output artifacts/reports/self-play-value-distribution-focused-64x64.summary.json \
   --overwrite
+
+python3 scripts/train_value_distribution_baselines.py \
+  --data artifacts/value/self-play-value-distribution-focused-64x64.jsonl \
+  --output artifacts/models/scorecard-value-distribution-linear-v1.json \
+  --seed 20260708
+
+python3 scripts/eval_value_distribution_baselines.py \
+  --data artifacts/value/self-play-value-distribution-focused-64x64.jsonl \
+  --model artifacts/models/scorecard-value-distribution-linear-v1.json \
+  --output artifacts/reports/scorecard-value-distribution-linear-v1.eval.json \
+  --markdown-output docs/scorecard-value-distribution-linear-v1-hard-cases.md \
+  --limit 10
 ```
 
 현재 baseline의 목적은 운영 투입이 아니라 품질 기준선이다.
@@ -127,3 +139,5 @@ python3 scripts/generate_value_distribution_data.py \
 이 숫자는 아직 작은 표본이지만, 초반에는 분산이 크고 Yacht bonus active 상태는 상방이 크게 열린다는 점을 보여준다.
 
 2-state distribution-data smoke에서는 `empty`와 `yacht_bonus_active` preset을 각각 4회 rollout했다. 출력 JSONL은 `target_remaining_mean/stdev/p10/p50/p90` 컬럼을 포함했고, `target_remaining_p10`을 대상으로 한 선형 baseline smoke도 정상 동작했다.
+
+`train_value_distribution_baselines.py`와 `eval_value_distribution_baselines.py`는 p10/p50/p90/mean/stdev/upper-bonus-rate를 한 번에 학습/평가한다. 평가 리포트는 target별 MAE/RMSE와 predicted quantile 순서 위반 비율을 함께 본다.
