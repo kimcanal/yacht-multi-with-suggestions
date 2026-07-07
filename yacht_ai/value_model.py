@@ -28,9 +28,18 @@ VALUE_FEATURE_NAMES = (
         "upper_score",
         "upper_gap",
         "upper_bonus_obtained",
+        "upper_bonus_live",
+        "upper_bonus_locked_out",
+        "open_high_upper_count",
+        "open_upper_face_value",
         "lower_score",
         "current_total",
         "yacht_bonus_active",
+        "yacht_open",
+        "choice_open",
+        "open_hand_count",
+        "yacht_bonus_cash_slots",
+        "zero_category_count",
     ]
 )
 
@@ -86,6 +95,20 @@ def encode_value_state(scorecard, strategy_mode="focused"):
     upper_score = totals["upper_score"]
     current_total = totals["total_score"]
     yacht_value = scorecard[CATS["Yacht"]]
+    open_high_upper_count = sum(open_flags[3:6])
+    open_upper_face_value = sum((idx + 1) for idx, value in enumerate(scorecard[:6]) if value is None)
+    yacht_bonus_active = isinstance(yacht_value, (int, float)) and yacht_value >= 50
+    zero_category_count = sum(1 for value in scorecard if value == 0)
+    open_hand_count = sum(
+        open_flags[idx]
+        for idx in (
+            CATS["4 of a Kind"],
+            CATS["Full House"],
+            CATS["Small Straight"],
+            CATS["Large Straight"],
+            CATS["Yacht"],
+        )
+    )
 
     features = [1.0 if strategy_mode == "cover" else 0.0]
     features.extend(open_flags)
@@ -105,9 +128,18 @@ def encode_value_state(scorecard, strategy_mode="focused"):
             min(float(upper_score) / 63.0, 2.0),
             max(0.0, 63.0 - float(upper_score)) / 63.0,
             1.0 if upper_score >= 63 else 0.0,
+            1.0 if upper_score < 63 and open_upper_count > 0 else 0.0,
+            1.0 if upper_score < 63 and open_upper_count == 0 else 0.0,
+            open_high_upper_count / 3.0,
+            open_upper_face_value / 21.0,
             min(float(totals["lower_score"]) / 250.0, 2.0),
             min(float(current_total) / 350.0, 2.0),
-            1.0 if isinstance(yacht_value, (int, float)) and yacht_value >= 50 else 0.0,
+            1.0 if yacht_bonus_active else 0.0,
+            open_flags[CATS["Yacht"]],
+            open_flags[CATS["Choice"]],
+            open_hand_count / 5.0,
+            (sum(open_flags) - open_flags[CATS["Yacht"]]) / 11.0 if yacht_bonus_active else 0.0,
+            zero_category_count / 12.0,
         ]
     )
     return features

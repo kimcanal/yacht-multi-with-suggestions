@@ -69,6 +69,13 @@ python3 scripts/train_value_baseline.py \
   --output artifacts/models/scorecard-value-linear-v1.json \
   --seed 20260708 \
   --ridge 1.0
+
+python3 scripts/eval_value_baseline.py \
+  --data artifacts/value/self-play-value-focused-256.jsonl \
+  --model artifacts/models/scorecard-value-linear-v1.json \
+  --output artifacts/reports/scorecard-value-linear-v1.eval.json \
+  --markdown-output docs/scorecard-value-linear-v1-hard-cases.md \
+  --limit 10
 ```
 
 현재 baseline의 목적은 운영 투입이 아니라 품질 기준선이다.
@@ -76,5 +83,20 @@ python3 scripts/train_value_baseline.py \
 - 입력: 점수판 상태, 열린 칸 mask, 상단 보너스 진행도, 현재 총점, Yacht bonus 상태
 - target: exact self-play가 해당 상태에서 도달한 `target_remaining_score`
 - 활용: score-stage utility를 손으로 조정할 때, 실제 full-game 결과와 어긋나는 구간을 찾는 기준선
+- hard-case 리포트: baseline이 과대/과소평가하는 점수판 상태를 뽑아 다음 휴리스틱 수정 후보로 쓴다
 
-8게임 smoke 기준으로 데이터 생성과 선형 baseline 학습은 정상 동작했다. 실제 모델 판단에 쓰려면 최소 수백~수천 게임 self-play 데이터로 재학습하고, endgame holdout과 full-game simulation을 같이 확인해야 한다.
+현재 feature에는 단순 점수뿐 아니라 몇 가지 interaction 신호도 포함한다.
+
+- upper bonus가 아직 살아있는지, 이미 막혔는지
+- 4/5/6 상단 칸이 얼마나 남았는지
+- Yacht bonus가 켜졌을 때 현금화 가능한 열린 칸이 얼마나 남았는지
+- Choice/Yacht/하단 족보/0점 칸 상태
+
+64게임 train smoke + 16게임 holdout smoke 기준:
+
+- train split: 768 state samples, validation MAE 23.43, validation RMSE 32.84
+- holdout: 192 state samples, MAE 19.76, RMSE 27.52, R2 0.79
+- early game은 같은 empty scorecard에서도 최종 점수 분산이 커서 MAE가 가장 높다
+- Yacht bonus active 상태는 폭발적인 후속 점수 가능성이 있어 단순 선형 baseline이 과소평가하기 쉽다
+
+이 결과는 "바로 운영 투입 가능한 value model"이 아니라 다음 설계 방향을 보여준다. 실제 모델 판단에 쓰려면 최소 수백~수천 게임 self-play 데이터로 재학습하고, 평균값 하나뿐 아니라 quantile/variance target도 함께 예측하는 편이 좋다.

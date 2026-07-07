@@ -157,4 +157,4 @@ python3 scripts/simulate_roll_policy_games.py \
 
 v2에서 확인한 점은 "더 큰 모델이 항상 좋은 것은 아니다"이다. hidden dim 160 후보도 학습했지만, 최종 top-1은 98.3064%로 v1/v2보다 낮았다. 현재 teacher data 규모에서는 모델 용량을 키우기보다 안정적인 구조와 seed/hyperparameter 선택이 더 중요하게 보인다.
 
-다음 의미 있는 v3는 roll-policy 구조 변경보다 teacher data 확장, score-stage value table 연결, self-play value target 추가 쪽이 낫다. 이 기반 작업으로 `generate_value_data.py`와 `train_value_baseline.py`를 추가해 scorecard state -> remaining score baseline을 재현 가능하게 만들었다.
+다음 의미 있는 v3는 roll-policy 구조 변경보다 teacher data 확장, score-stage value table 연결, self-play value target 추가 쪽이 낫다. 이 기반 작업으로 `generate_value_data.py`, `train_value_baseline.py`, `eval_value_baseline.py`를 추가해 scorecard state -> remaining score baseline과 hard-case 분석을 재현 가능하게 만들었다.

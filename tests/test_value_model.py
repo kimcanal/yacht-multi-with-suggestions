@@ -19,6 +19,9 @@ class ValueModelFeatureTests(unittest.TestCase):
 
         self.assertEqual(len(features), len(VALUE_FEATURE_NAMES))
         self.assertEqual(features[0], 1.0)
+        self.assertIn("upper_bonus_live", VALUE_FEATURE_NAMES)
+        self.assertIn("yacht_bonus_cash_slots", VALUE_FEATURE_NAMES)
+        self.assertIn("zero_category_count", VALUE_FEATURE_NAMES)
 
     def test_self_play_one_turn_sample_targets_remaining_score(self):
         scorecard = [3, 6, 9, 12, 15, 18, 20, 0, 0, 15, 30, None]
