@@ -40,21 +40,56 @@
     --success-soft: rgba(20, 184, 166, 0.16);
     --danger: #ff6b6b;
     --danger-strong: #ff4444;
+    --danger-deep: #c92a2a;
     --danger-light: #ffb4b4;
+    --danger-warm: #ff9b8a;
     --danger-soft: rgba(255, 107, 107, 0.14);
     --warning: #ff9f43;
     --warning-soft: #ffb86b;
     --orange: #e17055;
+    --warm-0: #ffb347;
+    --warm-1: #ff7f50;
     --purple-0: #667eea;
     --purple-1: #764ba2;
+    --indigo-0: #6366f1;
+    --indigo-1: #8b5cf6;
     --pink-0: #f093fb;
     --pink-1: #f5576c;
+    --pink-strong-0: #ec4899;
+    --pink-strong-1: #f43f5e;
     --teal-0: #00b894;
     --teal-1: #00cec9;
+    --teal-soft-0: #4ecdc4;
+    --teal-soft-1: #44a08d;
+    --teal-bright: #2dd4bf;
+    --mint-accent: #59f0c2;
+    --mint-pale: #bfffee;
+    --green-strong: #2bb673;
+    --gold-muted: #f7d36b;
+    --gold-pale: #ffef9d;
+    --surface-navy: #17243a;
     --ink-mint: #042820;
     --ink-teal: #00332c;
     --ink-deep: #032d24;
     --ink-success: #06231b;
+    --ink-gold: #3a2200;
+    --ink-warm: #2b1307;
+    --text-bright: #f0f4fa;
+    --text-subtle: #dce8f7;
+    --text-blue: #dbe8f7;
+    --text-help: #c7d7e7;
+    --text-note: #d9e5f1;
+    --text-muted-cool: #b9c7d8;
+    --text-muted-soft: #a9b9ca;
+    --text-muted-blue: #9fb0c2;
+    --text-muted-mid: #93a4b7;
+    --text-muted-deep: #93a3b8;
+    --text-muted-dim: #91a4b8;
+    --text-row: #d3deea;
+    --text-mode: #dbe4ee;
+    --text-plain-muted: #aaa;
+    --text-raised: #f2f4f8;
+    --green-note: #76dcb6;
     --radius-xs: 8px;
     --radius-sm: 10px;
     --radius-md: 12px;
@@ -193,31 +228,31 @@ button {
 }
 
 .btn.btn-danger {
-    background: linear-gradient(135deg, var(--danger) 0%, #c92a2a 100%);
+    background: linear-gradient(135deg, var(--danger) 0%, var(--danger-deep) 100%);
     box-shadow: 0 6px 25px rgba(255, 107, 107, 0.4);
     color: var(--text-strong);
 }
 
 .btn.btn-warm {
-    background: linear-gradient(135deg, #ffb347 0%, #ff7f50 100%);
+    background: linear-gradient(135deg, var(--warm-0) 0%, var(--warm-1) 100%);
     box-shadow: 0 4px 15px rgba(255, 179, 71, 0.35);
     color: var(--text-strong);
 }
 
 .btn.btn-teal {
-    background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+    background: linear-gradient(135deg, var(--teal-soft-0) 0%, var(--teal-soft-1) 100%);
     box-shadow: 0 4px 15px rgba(78, 205, 196, 0.4);
     color: var(--text-strong);
 }
 
 .btn.btn-success {
-    background: linear-gradient(135deg, var(--mint) 0%, #2bb673 100%);
+    background: linear-gradient(135deg, var(--mint) 0%, var(--green-strong) 100%);
     box-shadow: 0 4px 15px rgba(89, 240, 194, 0.32);
     color: var(--ink-success);
 }
 
 .btn-p {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: linear-gradient(135deg, var(--indigo-0), var(--indigo-1));
     color: var(--text-strong);
 }
 
@@ -227,13 +262,13 @@ button {
 }
 
 .btn-c {
-    background: linear-gradient(135deg, #ec4899, #f43f5e);
+    background: linear-gradient(135deg, var(--pink-strong-0), var(--pink-strong-1));
     color: var(--text-strong);
 }
 
 .btn-i {
     background: linear-gradient(135deg, var(--gold), var(--warning));
-    color: #3a2200;
+    color: var(--ink-gold);
 }
 
 .keep-btn {
@@ -326,7 +361,7 @@ button {
 
 .scorecard-title {
     margin-bottom: 12px !important;
-    color: #f4f7fb !important;
+    color: var(--text-panel) !important;
     font-size: 1.25rem !important;
     font-weight: 800;
     text-align: left !important;
@@ -374,14 +409,14 @@ button {
 
 .score-item.filled {
     border-color: rgba(45, 212, 191, 0.24);
-    border-left-color: #2dd4bf;
+    border-left-color: var(--teal-bright);
     background: var(--success-soft);
     cursor: default;
 }
 
 .score-item.bonus {
     border-color: rgba(245, 158, 11, 0.22);
-    border-left-color: #f7d36b;
+    border-left-color: var(--gold-muted);
     background: rgba(245, 158, 11, 0.14);
     cursor: default;
     font-weight: 800;
@@ -390,14 +425,14 @@ button {
 .score-name {
     flex: 1;
     min-width: 0;
-    color: #dce8f7;
+    color: var(--text-subtle);
     font-size: 0.94rem !important;
     font-weight: 800;
 }
 
 .score-val {
     min-width: 60px;
-    color: #f7d36b;
+    color: var(--gold-muted);
     font-size: 1rem !important;
     font-weight: 800;
     text-align: right;
@@ -420,7 +455,7 @@ button {
     border: 1px solid rgba(126, 243, 203, 0.4);
     background: rgba(126, 243, 203, 0.18);
     box-shadow: 0 0 14px rgba(0, 255, 204, 0.12);
-    color: #bfffee;
+    color: var(--mint-pale);
     font-size: 0.78em;
     font-weight: 900;
     line-height: 1.1;
@@ -478,8 +513,8 @@ button {
     padding: 7px 10px;
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: var(--radius-xs);
-    background: #17243a;
-    color: #b9c7d8;
+    background: var(--surface-navy);
+    color: var(--text-muted-cool);
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0;
@@ -492,7 +527,7 @@ button {
 }
 
 .compact-score-row.compact-clickable {
-    border-left-color: #59f0c2;
+    border-left-color: var(--mint-accent);
     background: linear-gradient(135deg, rgba(89, 240, 194, 0.14), var(--surface-1));
     box-shadow: inset 0 0 0 1px rgba(89, 240, 194, 0.16);
 }
@@ -504,7 +539,7 @@ button {
 }
 
 .compact-score-row.compact-clickable .score-val {
-    color: #ffef9d;
+    color: var(--gold-pale);
 }
 
 #scorecard.scorecard-mode-solo .scorecard-title {
@@ -573,7 +608,7 @@ button {
 
 .score-overview-label {
     display: block;
-    color: #93a4b7;
+    color: var(--text-muted-mid);
     font-size: 0.7rem;
     font-weight: 800;
     line-height: 1.1;
@@ -587,7 +622,7 @@ button {
     gap: 3px;
     min-height: 2.55rem;
     margin-top: 5px;
-    color: #f7d36b;
+    color: var(--gold-muted);
     font-size: 1.28rem;
     font-weight: 900;
     line-height: 1.08;
@@ -607,7 +642,7 @@ button {
     padding: 2px 7px;
     border: 1px solid rgba(126, 243, 203, 0.34);
     background: rgba(126, 243, 203, 0.16);
-    color: #bfffee;
+    color: var(--mint-pale);
     font-size: 0.68rem;
     line-height: 1.1;
     white-space: nowrap;
@@ -623,7 +658,7 @@ button {
 }
 
 .score-overview-card.risk .score-overview-value {
-    color: #ff9b8a;
+    color: var(--danger-warm);
 }
 
 .score-overview-sub {
@@ -658,7 +693,7 @@ button {
 }
 
 .score-overview-card.risk .score-overview-meter i {
-    background: #ff9b8a;
+    background: var(--danger-warm);
 }
 
 .compare-board {
@@ -698,8 +733,8 @@ button {
 .compare-cat-head,
 .compare-side-head {
     border: 1px solid rgba(148, 163, 184, 0.18);
-    background: #17243a;
-    color: #b9c7d8;
+    background: var(--surface-navy);
+    color: var(--text-muted-cool);
     font-weight: 800;
 }
 
@@ -722,7 +757,7 @@ button {
 .compare-cat-cell {
     display: flex;
     align-items: center;
-    color: #f0f4fa;
+    color: var(--text-bright);
     font-weight: 700;
 }
 
@@ -741,7 +776,7 @@ button {
 }
 
 .compare-value-cell.clickable {
-    border-left: 3px solid #59f0c2;
+    border-left: 3px solid var(--mint-accent);
     background: linear-gradient(135deg, rgba(89, 240, 194, 0.14), var(--surface-1));
     box-shadow: inset 0 0 0 1px rgba(89, 240, 194, 0.16);
     cursor: pointer;
@@ -779,8 +814,8 @@ button {
     padding: 7px 10px;
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: var(--radius-xs);
-    background: #17243a;
-    color: #dbe8f7;
+    background: var(--surface-navy);
+    color: var(--text-blue);
     font-size: 0.74rem;
     font-weight: 900;
     text-transform: uppercase;
@@ -881,7 +916,7 @@ button {
     border: 1px solid rgba(126, 243, 203, 0.16);
     border-left: 3px solid rgba(126, 243, 203, 0.7);
     background: rgba(7, 17, 29, 0.72);
-    color: #c7d7e7;
+    color: var(--text-help);
     line-height: 1.45;
 }
 
@@ -895,12 +930,12 @@ button {
 
 .score-help-dice {
     margin-bottom: var(--space-1);
-    color: #f7d36b;
+    color: var(--gold-muted);
     font-weight: 900;
 }
 
 .score-help-main {
-    color: #d9e5f1;
+    color: var(--text-note);
     font-size: 0.88rem;
 }
 
@@ -914,7 +949,7 @@ button {
 }
 
 .ai-mode-row-label {
-    color: #9fb0c2;
+    color: var(--text-muted-blue);
     font-size: 0.8rem;
     font-weight: 800;
 }
@@ -923,7 +958,7 @@ button {
     border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: var(--radius-pill);
     background: rgba(255, 255, 255, 0.06);
-    color: #dbe4ee;
+    color: var(--text-mode);
     cursor: pointer;
     font-size: 0.85rem;
     font-weight: 700;
@@ -934,7 +969,7 @@ button {
 .ai-mode-btn.active {
     border-color: var(--mint);
     background: var(--mint);
-    color: #07251d;
+    color: var(--ink-deep);
 }
 
 .ai-mode-guide {
@@ -965,12 +1000,12 @@ button {
     align-items: center;
     gap: var(--space-2);
     margin-bottom: 6px;
-    color: #f4f7fb;
+    color: var(--text-panel);
     font-size: 0.92em;
 }
 
 .ai-mode-card p {
-    color: #a9b9ca;
+    color: var(--text-muted-soft);
     font-size: 0.81em;
     line-height: 1.55;
 }
@@ -1001,7 +1036,7 @@ button {
 }
 
 .ai-panel-title {
-    color: #f4f7fb;
+    color: var(--text-panel);
     font-weight: 800;
 }
 
@@ -1009,7 +1044,7 @@ button {
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: var(--radius-pill);
     background: rgba(255, 255, 255, 0.06);
-    color: #dbe4ee;
+    color: var(--text-mode);
     cursor: pointer;
     font-size: 0.76rem;
     font-weight: 800;
@@ -1051,7 +1086,7 @@ button {
 
 .ai-summary-line {
     margin-bottom: 0;
-    color: #d3deea;
+    color: var(--text-row);
     font-size: 0.88em;
     line-height: 1.45;
 }
@@ -1074,7 +1109,7 @@ button {
     align-items: center;
     padding: 5px 9px;
     background: rgba(255, 255, 255, 0.06);
-    color: #9fb0c2;
+    color: var(--text-muted-blue);
     font-size: 0.74rem;
     font-weight: 800;
 }
@@ -1096,7 +1131,7 @@ button {
 }
 
 .ai-report-title {
-    color: #f4f7fb;
+    color: var(--text-panel);
     font-size: 0.86rem;
     font-weight: 900;
 }
@@ -1121,7 +1156,7 @@ button {
 }
 
 .ai-report-conclusion {
-    color: #dbe6f2;
+    color: var(--text-soft);
     font-size: 0.86rem;
     line-height: 1.5;
 }
@@ -1131,13 +1166,13 @@ button {
     gap: 5px;
     margin: 0;
     padding-left: 17px;
-    color: #a9b9ca;
+    color: var(--text-muted-soft);
     font-size: 0.8rem;
     line-height: 1.45;
 }
 
 .ai-report-list.compact {
-    color: #91a4b8;
+    color: var(--text-muted-dim);
 }
 
 .ai-report-subtitle {
@@ -1149,13 +1184,13 @@ button {
 
 .ai-report-method,
 .ai-report-note {
-    color: #93a3b8;
+    color: var(--text-muted-deep);
     font-size: 0.78rem;
     line-height: 1.5;
 }
 
 .ai-report-note {
-    color: #ffd37a;
+    color: var(--gold-warm);
 }
 
 .ai-breakdown-grid {
@@ -1182,13 +1217,13 @@ button {
 
 .ai-row-name {
     min-width: 0;
-    color: #f2f4f8;
+    color: var(--text-raised);
     font-weight: 800;
 }
 
 .ai-row-keep {
     margin-bottom: var(--space-2);
-    color: #9ab0c2;
+    color: var(--text-muted-blue);
     font-size: 0.82em;
     line-height: 1.45;
 }
@@ -1208,13 +1243,13 @@ button {
 
 .ai-row-reason {
     margin-top: var(--space-2);
-    color: #76dcb6;
+    color: var(--green-note);
     font-size: 0.8em;
     line-height: 1.45;
 }
 
 .ai-more-note {
-    color: #93a3b8;
+    color: var(--text-muted-deep);
     font-size: 0.78em;
     line-height: 1.4;
 }
@@ -1267,7 +1302,7 @@ button {
 }
 
 .toast-cat {
-    color: #aaa;
+    color: var(--text-plain-muted);
     font-size: 0.6em;
     letter-spacing: 2px;
     text-transform: uppercase;
