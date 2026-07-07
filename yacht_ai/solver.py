@@ -1,5 +1,6 @@
 from copy import deepcopy
 from functools import lru_cache
+import os
 
 from .advice import (
     build_reason,
@@ -17,6 +18,7 @@ from .advice import (
     scorecard_to_tuple,
 )
 from .constants import CATS, EPS, FOCUSED_EV_GUARD_POINTS, SACRIFICE_PRIORITY
+from .endgame_value import DEFAULT_ENDGAME_VALUE_TABLE_PATH, load_endgame_value_table
 from .scoring import (
     calc_score,
     can_cash_yacht_bonus,
@@ -384,10 +386,18 @@ def _build_decision_rows(
     dice, scorecard, open_categories, mode,
     keep_action_values, best_keep_tuple, chosen_ev,
     explaining_row, straight_upgrade, all_dice_kept,
+    score_value_mode="heuristic", endgame_value_table=None,
 ):
     """지금 멈추기 비교 / 차선책 비교 decision row 목록을 반환."""
     decision_rows = []
-    stop_now_advice = build_score_stage_advice(dice, scorecard, open_categories, mode)
+    stop_now_advice = build_score_stage_advice(
+        dice,
+        scorecard,
+        open_categories,
+        mode,
+        score_value_mode=score_value_mode,
+        endgame_value_table=endgame_value_table,
+    )
     stop_now_value = float(stop_now_advice.get("expected_value", 0.0))
     stop_now_target = stop_now_advice.get("primary_target") or stop_now_advice.get("message")
     stop_gain = None
@@ -492,16 +502,60 @@ def _format_keep_tuple(dice, kept_tuple):
 # 주 DP 함수 — 내부 클로저 DP 함수들은 그대로 유지 (lru_cache 스코프 필요)
 # ---------------------------------------------------------------------------
 
+def _normalize_score_value_mode(score_value_mode):
+    if score_value_mode in ("value", "endgame_value"):
+        return "value"
+    return "heuristic"
+
+
+def _resolve_score_value_options(score_value_mode=None, endgame_value_table_path=None):
+    requested_mode = score_value_mode
+    if requested_mode is None:
+        requested_mode = os.environ.get("YACHT_SCORE_STAGE_MODE", "heuristic")
+    resolved_mode = _normalize_score_value_mode(requested_mode)
+    resolved_path = endgame_value_table_path or os.environ.get("YACHT_ENDGAME_VALUE_TABLE", "")
+    if resolved_mode == "value" and not resolved_path:
+        resolved_path = DEFAULT_ENDGAME_VALUE_TABLE_PATH
+    if resolved_mode != "value":
+        resolved_path = ""
+    return resolved_mode, resolved_path
+
+
+def _load_score_value_table(score_value_mode, endgame_value_table_path):
+    if score_value_mode != "value" or not endgame_value_table_path:
+        return None
+    try:
+        return load_endgame_value_table(endgame_value_table_path)
+    except OSError:
+        return None
+
+
 @lru_cache(maxsize=4096)
-def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scorecard_tuple):
+def _solve_best_move_cached(
+    dice_key,
+    rolls_left,
+    open_categories,
+    mode,
+    scorecard_tuple,
+    score_value_mode,
+    endgame_value_table_path,
+):
     dice = list(dice_key)
     scorecard = list(scorecard_tuple)
     open_categories = tuple(sorted(set(open_categories)))
     dice_tuple = tuple(sorted(dice))
     yacht_bonus_available = has_yacht_bonus(scorecard)
+    endgame_value_table = _load_score_value_table(score_value_mode, endgame_value_table_path)
 
     if rolls_left == 0:
-        return build_score_stage_advice(dice, scorecard, open_categories, mode)
+        return build_score_stage_advice(
+            dice,
+            scorecard,
+            open_categories,
+            mode,
+            score_value_mode=score_value_mode,
+            endgame_value_table=endgame_value_table,
+        )
 
     # --- 클로저 DP 함수 (per-call lru_cache) ---
 
@@ -516,7 +570,14 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
         best_key = None
         best_utility = float("-inf")
         for category_idx in open_categories:
-            row = score_stage_category_advice(list(state_dice), scorecard, category_idx, mode)
+            row = score_stage_category_advice(
+                list(state_dice),
+                scorecard,
+                category_idx,
+                mode,
+                score_value_mode=score_value_mode,
+                endgame_value_table=endgame_value_table,
+            )
             row_key = (row["utility"], row["score"], -SACRIFICE_PRIORITY.get(row["name"], 99))
             if best_key is None or row_key > best_key:
                 best_key = row_key
@@ -792,6 +853,8 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
         dice, scorecard, open_categories, mode,
         keep_action_values, best_keep_tuple, chosen_ev,
         explaining_row, straight_upgrade, all_dice_kept,
+        score_value_mode=score_value_mode,
+        endgame_value_table=endgame_value_table,
     )
 
     recommendation_context_row = build_recommendation_context_row(
@@ -839,8 +902,20 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
 # 공개 API
 # ---------------------------------------------------------------------------
 
-def solve_best_move(dice, rolls_left, open_categories, strategy_mode="focused", scorecard=None):
+def solve_best_move(
+    dice,
+    rolls_left,
+    open_categories,
+    strategy_mode="focused",
+    scorecard=None,
+    score_value_mode=None,
+    endgame_value_table_path=None,
+):
     mode = normalize_strategy_mode(strategy_mode)
+    resolved_score_value_mode, resolved_endgame_value_table_path = _resolve_score_value_options(
+        score_value_mode,
+        endgame_value_table_path,
+    )
     dice_key = tuple(int(v) for v in dice)
     try:
         rolls_left = int(rolls_left)
@@ -862,6 +937,8 @@ def solve_best_move(dice, rolls_left, open_categories, strategy_mode="focused", 
         tuple(sorted(set(normalized_open))),
         mode,
         scorecard_to_tuple(scorecard),
+        resolved_score_value_mode,
+        resolved_endgame_value_table_path,
     )
     return deepcopy(result)
 

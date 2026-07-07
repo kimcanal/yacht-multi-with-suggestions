@@ -164,3 +164,15 @@ python3 scripts/build_value_table.py \
 - open4: 101,632 states, 245.353초, artifact 약 2.7MB
 
 N=4는 실시간 요청 중 계산할 대상은 아니지만, 오프라인으로 만들어두고 score stage의 `즉시 점수 + V(next_state)` 실험에 쓰기에는 현실적인 크기다.
+
+score stage value mode는 운영 기본값을 바꾸지 않는 opt-in 경로다.
+
+```bash
+YACHT_SCORE_STAGE_MODE=value \
+YACHT_ENDGAME_VALUE_TABLE=artifacts/value/endgame-value-table-open4.json \
+python3 server.py
+```
+
+table에 있는 후반 next state는 exact V를 쓰고, 아직 커버하지 못하는 초반 상태는 기존 휴리스틱으로 fallback한다. 이 단계에서는 learned value model을 연결하지 않는다.
+
+기존 `scripts/check_ai_golden.py`는 운영 기본값인 휴리스틱 추천을 고정하는 회귀 테스트다. value mode는 score-stage 결정을 의도적으로 바꿀 수 있으므로 별도 full-game A/B로 평가한다.

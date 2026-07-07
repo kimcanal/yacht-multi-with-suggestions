@@ -441,7 +441,14 @@ def score_stage_sacrifice_reason(row):
     return f"현재 점수판 기준 {name}의 장기 손실 추정이 낮은 편이라 희생 후보로 둘 수 있습니다"
 
 
-def score_stage_category_advice(dice, scorecard, category_idx, mode):
+def score_stage_category_advice(
+    dice,
+    scorecard,
+    category_idx,
+    mode,
+    score_value_mode="heuristic",
+    endgame_value_table=None,
+):
     scorecard = scorecard_to_tuple(scorecard)
     scorecard_context = _scorecard_context_cached(scorecard)
     name = CATEGORY_NAMES[category_idx]
@@ -463,6 +470,16 @@ def score_stage_category_advice(dice, scorecard, category_idx, mode):
         and scorecard_context["yacht_bonus_available"]
         and calc_score(dice, CATS["Yacht"]) == 50
     )
+    immediate_gain = float(score)
+    if category_idx < 6 and scorecard_context["current_upper"] < 63 <= scorecard_context["current_upper"] + score:
+        immediate_gain += UPPER_BONUS_VALUE
+    if yacht_bonus_active:
+        immediate_gain += YACHT_BONUS_CASH_IN
+
+    exact_next_state_value = None
+    exact_next_state_key = None
+    if score_value_mode == "value" and endgame_value_table is not None:
+        exact_next_state_value, exact_next_state_key = endgame_value_table.lookup_scorecard(next_scorecard)
 
     if category_idx < 6:
         face = category_idx + 1
@@ -537,6 +554,13 @@ def score_stage_category_advice(dice, scorecard, category_idx, mode):
     utility += long_term_profile["quality_bonus"]
     utility += UPPER_BONUS_VALUE * bonus_prob_delta
     utility -= future_pressure
+    utility_mode = "heuristic"
+    if score_value_mode == "value":
+        utility_mode = "heuristic_fallback"
+    if exact_next_state_value is not None:
+        utility = immediate_gain + exact_next_state_value
+        utility_mode = "endgame_value"
+
     long_term_note = score_stage_long_term_note(
         {
             "score": score,
@@ -567,6 +591,10 @@ def score_stage_category_advice(dice, scorecard, category_idx, mode):
         "current_state_value": current_state_value,
         "next_state_value": next_state_value,
         "state_value_delta": next_state_value - current_state_value,
+        "immediate_gain": immediate_gain,
+        "utility_mode": utility_mode,
+        "exact_next_state_value": exact_next_state_value,
+        "exact_next_state_key": exact_next_state_key,
         "before_bonus_prob": upper_before_prob,
         "after_bonus_prob": upper_after_prob,
         "bonus_prob_drop": max(0.0, upper_before_prob - upper_after_prob),
@@ -617,10 +645,30 @@ def _rebalance_choice_score_stage(rows):
     )
 
 
-def build_score_stage_advice(dice, scorecard, open_categories, mode):
+def build_score_stage_advice(
+    dice,
+    scorecard,
+    open_categories,
+    mode,
+    score_value_mode="heuristic",
+    endgame_value_table=None,
+):
     scorecard = scorecard_to_tuple(scorecard)
-    rows = [score_stage_category_advice(dice, scorecard, idx, mode) for idx in open_categories]
-    _rebalance_choice_score_stage(rows)
+    rows = [
+        score_stage_category_advice(
+            dice,
+            scorecard,
+            idx,
+            mode,
+            score_value_mode=score_value_mode,
+            endgame_value_table=endgame_value_table,
+        )
+        for idx in open_categories
+    ]
+    value_hits = any(row.get("utility_mode") == "endgame_value" for row in rows)
+    if not value_hits:
+        _rebalance_choice_score_stage(rows)
+    ranked_rows = sorted(rows, key=lambda row: (row["utility"], row["score"]), reverse=True)
     positive_rows = [row for row in rows if row["score"] > 0]
     positive_rows.sort(key=lambda row: (row["utility"], row["score"]), reverse=True)
 
@@ -631,26 +679,52 @@ def build_score_stage_advice(dice, scorecard, open_categories, mode):
         sacrifice_rows.sort(key=_score_stage_sacrifice_key)
 
     display_rows = []
-    for row in positive_rows[:3]:
+    score_display_rows = ranked_rows[:3] if value_hits else positive_rows[:3]
+    for row in score_display_rows:
         reason = row["reason"]
         if row.get("long_term_note"):
             reason = f"{reason} {row['long_term_note']}"
+        if row.get("utility_mode") == "endgame_value":
+            reason = (
+                f"{reason} 즉시 획득 {row.get('immediate_gain', row['score']):.1f}점 + "
+                f"후속 exact V {row.get('exact_next_state_value', 0.0):.1f}점 기준입니다."
+            )
         display_rows.append(
             {
                 "name": row["name"],
                 "prob": 0.0,
                 "meter": min(1.0, max(DECISION_ROW_METER_FLOOR, row["utility"] / SCORE_ROW_UTILITY_SCALE)),
                 "val_str": f"{row['score']}점",
-                "type": "score",
-                "keep_str": "지금 기록 추천",
+                "type": "score" if row["score"] > 0 else "sacrifice",
+                "keep_str": "지금 기록 추천" if row["score"] > 0 else "망한 턴 정리용 희생 후보",
                 "keep_indices": [],
                 "reason": reason,
             }
         )
 
-    if positive_rows:
+    if value_hits:
+        best_row = ranked_rows[0] if ranked_rows else None
+    elif positive_rows:
         best_row = positive_rows[0]
-        if best_row.get("long_term_note"):
+    else:
+        best_row = None
+
+    if best_row:
+        if best_row.get("utility_mode") == "endgame_value":
+            display_rows.insert(
+                1,
+                {
+                    "name": "Endgame V",
+                    "prob": 0.0,
+                    "meter": min(1.0, max(DECISION_ROW_METER_FLOOR, best_row["utility"] / SCORE_ROW_UTILITY_SCALE)),
+                    "val_str": f"V {best_row.get('exact_next_state_value', 0.0):.1f}",
+                    "type": "decision",
+                    "keep_str": "즉시 점수 + exact V(next_state)",
+                    "keep_indices": [],
+                    "reason": f"후반 value table에서 `{best_row.get('exact_next_state_key')}` 상태를 조회했습니다.",
+                }
+            )
+        elif best_row.get("long_term_note"):
             display_rows.insert(
                 1,
                 {
@@ -683,12 +757,10 @@ def build_score_stage_advice(dice, scorecard, open_categories, mode):
         if len(display_rows) >= 5:
             break
 
-    if positive_rows:
-        best_row = positive_rows[0]
+    if best_row:
         summary = f"점수 기록 추천: {best_row['name']} {best_row['score']}점. {best_row['reason']}"
         primary_target = best_row["name"]
     else:
-        best_row = None
         best_sacrifice = sacrifice_rows[0] if sacrifice_rows else None
         if best_sacrifice:
             summary = (

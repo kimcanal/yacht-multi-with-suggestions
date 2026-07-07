@@ -175,7 +175,15 @@ python3 scripts/build_value_table.py \
 - `artifacts/value/endgame-value-table-open3.json`: 열린 칸 3개 이하 38,272 states, 81.881초
 - `artifacts/value/endgame-value-table-open4.json`: 열린 칸 4개 이하 101,632 states, 245.353초
 
-다음 단계는 이 value table을 score stage에서 opt-in으로 조회해 휴리스틱을 `즉시 점수 + V(next_state)`와 비교하는 실험입니다.
+score stage value 모드는 운영 기본값이 아니라 opt-in 실험이다. 기본은 기존 휴리스틱이며, 아래처럼 켜면 table에 있는 후반 상태에서만 `즉시 점수 + V(next_state)`를 쓰고 초반 미커버 상태는 휴리스틱으로 fallback한다.
+
+```bash
+YACHT_SCORE_STAGE_MODE=value \
+YACHT_ENDGAME_VALUE_TABLE=artifacts/value/endgame-value-table-open4.json \
+python3 server.py
+```
+
+다음 단계는 이 value table 모드를 full-game simulation으로 기존 휴리스틱과 비교하는 실험입니다.
 
 ### Roll policy 모델 버전
 
