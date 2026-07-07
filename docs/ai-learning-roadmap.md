@@ -82,6 +82,14 @@ python3 scripts/simulate_value_state_distribution.py \
   --trials 128 \
   --seed 20260708 \
   --markdown-output docs/yacht-bonus-value-distribution.md
+
+python3 scripts/generate_value_distribution_data.py \
+  --source-jsonl artifacts/value/self-play-value-focused-256.jsonl \
+  --max-states 64 \
+  --trials-per-state 64 \
+  --output artifacts/value/self-play-value-distribution-focused-64x64.jsonl \
+  --summary-output artifacts/reports/self-play-value-distribution-focused-64x64.summary.json \
+  --overwrite
 ```
 
 현재 baseline의 목적은 운영 투입이 아니라 품질 기준선이다.
@@ -109,9 +117,13 @@ python3 scripts/simulate_value_state_distribution.py \
 
 `simulate_value_state_distribution.py`는 이 quantile/variance 방향을 확인하기 위한 도구다. hard-case 리포트에서 나온 특정 scorecard를 여러 seed로 이어 플레이해 p10/p50/p90, 최악/최선 outcome을 뽑는다. 평균 remaining score가 비슷해도 p10이 낮은 상태와 p90이 높은 상태는 score-stage 의사결정에서 다르게 다뤄야 한다.
 
+`generate_value_distribution_data.py`는 여러 scorecard state에 대해 같은 분포 target을 JSONL로 저장한다. 이 출력은 `train_value_baseline.py --target target_remaining_p10`처럼 target만 바꿔서 하방/중앙/상방 모델을 따로 학습하는 데 쓸 수 있다.
+
 16-trial smoke 예시:
 
 - `empty`: final mean 175.75, stdev 38.58, p10/p50/p90 136.5 / 166.5 / 236.5
 - `yacht_bonus_active`: remaining mean 111.38, stdev 34.97, p10/p50/p90 67.0 / 107.0 / 147.0, best remaining 203
 
 이 숫자는 아직 작은 표본이지만, 초반에는 분산이 크고 Yacht bonus active 상태는 상방이 크게 열린다는 점을 보여준다.
+
+2-state distribution-data smoke에서는 `empty`와 `yacht_bonus_active` preset을 각각 4회 rollout했다. 출력 JSONL은 `target_remaining_mean/stdev/p10/p50/p90` 컬럼을 포함했고, `target_remaining_p10`을 대상으로 한 선형 baseline smoke도 정상 동작했다.
