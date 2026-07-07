@@ -193,6 +193,8 @@ python3 server.py
 
 평균과 Upper Bonus는 좋아졌지만 손실 케이스도 더 많아졌으므로, 아직 운영 기본값으로 승격하지 않고 guard/학습 value fallback 실험 대상으로 둡니다. 자세한 결과는 [docs/score-value-mode-focused-200.md](./docs/score-value-mode-focused-200.md)에 있습니다.
 
+초반 상태용 learned value 실험도 진행했지만, 현재 선형 baseline은 보류입니다. 256 self-play games / 3,072 samples로 재학습한 `scorecard-value-linear-v1`은 validation MAE 24.4397이고 전체 eval MAE 22.9456입니다. 그러나 `exact table → learned model → heuristic fallback` hybrid 모드는 200게임에서 평균 168.895점으로 heuristic 대비 -8.740점이었습니다. 따라서 learned value는 더 강한 uncertainty/turn별 guard 또는 비선형 모델 전까지 score-stage 기본 판단에 연결하지 않습니다.
+
 ### Roll policy 모델 버전
 
 roll-stage MLP는 exact solver가 만든 keep 선택을 빠르게 흉내 내는 distillation 모델입니다. 모델 파일은 날짜와 역할을 이름에 넣어서 `model-YYYYMMDD-roll-policy-vN.json` 형태로 구분합니다. 현재 최신 모델은 `v2`이고, `v1`은 비교용 baseline으로 남겨둡니다.

@@ -448,6 +448,9 @@ def score_stage_category_advice(
     mode,
     score_value_mode="heuristic",
     endgame_value_table=None,
+    learned_value_model=None,
+    learned_value_max_mae=25.0,
+    learned_value_min_turns=5,
 ):
     scorecard = scorecard_to_tuple(scorecard)
     scorecard_context = _scorecard_context_cached(scorecard)
@@ -478,8 +481,17 @@ def score_stage_category_advice(
 
     exact_next_state_value = None
     exact_next_state_key = None
-    if score_value_mode == "value" and endgame_value_table is not None:
+    if score_value_mode in ("value", "hybrid") and endgame_value_table is not None:
         exact_next_state_value, exact_next_state_key = endgame_value_table.lookup_scorecard(next_scorecard)
+    learned_next_state_value = None
+    if (
+        score_value_mode == "hybrid"
+        and exact_next_state_value is None
+        and learned_value_model is not None
+        and learned_value_model.is_usable(float(learned_value_max_mae))
+        and sum(1 for value in next_scorecard if value is not None) >= int(learned_value_min_turns)
+    ):
+        learned_next_state_value = learned_value_model.predict_remaining(next_scorecard, mode)
 
     if category_idx < 6:
         face = category_idx + 1
@@ -555,11 +567,14 @@ def score_stage_category_advice(
     utility += UPPER_BONUS_VALUE * bonus_prob_delta
     utility -= future_pressure
     utility_mode = "heuristic"
-    if score_value_mode == "value":
+    if score_value_mode in ("value", "hybrid"):
         utility_mode = "heuristic_fallback"
     if exact_next_state_value is not None:
         utility = immediate_gain + exact_next_state_value
         utility_mode = "endgame_value"
+    elif learned_next_state_value is not None:
+        utility = immediate_gain + learned_next_state_value
+        utility_mode = "learned_value"
 
     long_term_note = score_stage_long_term_note(
         {
@@ -595,6 +610,9 @@ def score_stage_category_advice(
         "utility_mode": utility_mode,
         "exact_next_state_value": exact_next_state_value,
         "exact_next_state_key": exact_next_state_key,
+        "learned_next_state_value": learned_next_state_value,
+        "learned_model_id": getattr(learned_value_model, "model_id", None),
+        "learned_validation_mae": getattr(learned_value_model, "validation_mae", None),
         "before_bonus_prob": upper_before_prob,
         "after_bonus_prob": upper_after_prob,
         "bonus_prob_drop": max(0.0, upper_before_prob - upper_after_prob),
@@ -652,6 +670,9 @@ def build_score_stage_advice(
     mode,
     score_value_mode="heuristic",
     endgame_value_table=None,
+    learned_value_model=None,
+    learned_value_max_mae=25.0,
+    learned_value_min_turns=5,
 ):
     scorecard = scorecard_to_tuple(scorecard)
     rows = [
@@ -662,10 +683,13 @@ def build_score_stage_advice(
             mode,
             score_value_mode=score_value_mode,
             endgame_value_table=endgame_value_table,
+            learned_value_model=learned_value_model,
+            learned_value_max_mae=learned_value_max_mae,
+            learned_value_min_turns=learned_value_min_turns,
         )
         for idx in open_categories
     ]
-    value_hits = any(row.get("utility_mode") == "endgame_value" for row in rows)
+    value_hits = any(row.get("utility_mode") in ("endgame_value", "learned_value") for row in rows)
     if not value_hits:
         _rebalance_choice_score_stage(rows)
     ranked_rows = sorted(rows, key=lambda row: (row["utility"], row["score"]), reverse=True)
@@ -688,6 +712,11 @@ def build_score_stage_advice(
             reason = (
                 f"{reason} 즉시 획득 {row.get('immediate_gain', row['score']):.1f}점 + "
                 f"후속 exact V {row.get('exact_next_state_value', 0.0):.1f}점 기준입니다."
+            )
+        elif row.get("utility_mode") == "learned_value":
+            reason = (
+                f"{reason} 즉시 획득 {row.get('immediate_gain', row['score']):.1f}점 + "
+                f"학습 V {row.get('learned_next_state_value', 0.0):.1f}점 기준입니다."
             )
         display_rows.append(
             {
@@ -722,6 +751,23 @@ def build_score_stage_advice(
                     "keep_str": "즉시 점수 + exact V(next_state)",
                     "keep_indices": [],
                     "reason": f"후반 value table에서 `{best_row.get('exact_next_state_key')}` 상태를 조회했습니다.",
+                }
+            )
+        elif best_row.get("utility_mode") == "learned_value":
+            display_rows.insert(
+                1,
+                {
+                    "name": "Learned V",
+                    "prob": 0.0,
+                    "meter": min(1.0, max(DECISION_ROW_METER_FLOOR, best_row["utility"] / SCORE_ROW_UTILITY_SCALE)),
+                    "val_str": f"V {best_row.get('learned_next_state_value', 0.0):.1f}",
+                    "type": "decision",
+                    "keep_str": "즉시 점수 + guarded learned V(next_state)",
+                    "keep_indices": [],
+                    "reason": (
+                        f"{best_row.get('learned_model_id')} 모델을 사용했습니다. "
+                        f"validation MAE {best_row.get('learned_validation_mae')}"
+                    ),
                 }
             )
         elif best_row.get("long_term_note"):

@@ -185,3 +185,28 @@ table에 있는 후반 next state는 exact V를 쓰고, 아직 커버하지 못�
 - value mode는 게임당 평균 5.0 score-stage turns에서 endgame table을 hit했고, 나머지 7.0 turns는 초반 fallback이었다.
 
 결론: exact endgame V는 평균과 Upper Bonus 페이스를 올리지만 손실 꼬리도 크다. 운영 기본값은 유지하고, 다음 실험은 learned early value나 guard 조건으로 큰 음수 delta를 줄이는 방향이 맞다.
+
+## Learned Early Value Hybrid
+
+초반 미커버 상태를 채우기 위해 256 self-play games / 3,072 samples로 `scorecard-value-linear-v1`을 재학습했다.
+
+- train: 2,458 examples, MAE 22.5723, RMSE 31.7251, R2 0.7613
+- validation: 614 examples, MAE 24.4397, RMSE 33.9404, R2 0.7295
+- full-data eval: 3,072 examples, MAE 22.9456, RMSE 32.1800, R2 0.7550
+
+hybrid 모드는 `exact endgame table -> learned linear value -> heuristic fallback` 순서다. guard는 다음 조건을 둔다.
+
+- model target이 `target_remaining_score`
+- feature schema가 현재 encoder와 일치
+- validation MAE <= 25.0
+- learned V를 쓰는 next state가 최소 5턴 이상 진행된 상태
+- 예측 remaining score는 0~350 범위로 clamp
+
+200게임 paired A/B 결과:
+
+- heuristic: 평균 177.635, 표준편차 44.5676, Upper Bonus 34.5%
+- hybrid: 평균 168.895, 표준편차 43.5269, Upper Bonus 36.5%
+- paired delta: 평균 -8.740점, win/loss/tie 39.0% / 56.5% / 4.5%, 범위 -150~+146
+- hybrid는 게임당 평균 exact table 5.0 turns, learned model 3.0 turns, heuristic fallback 4.0 turns를 사용했다.
+
+결론: 현재 선형 learned value는 validation MAE guard를 통과해도 full-game 의사결정에는 해롭다. 특히 초반 상태의 정책 분포 shift를 감당하지 못하므로 운영 기본값은 계속 휴리스틱이고, learned value는 더 많은 데이터, turn별 calibration, quantile/uncertainty guard, 비선형 모델 전까지 연결하지 않는다.

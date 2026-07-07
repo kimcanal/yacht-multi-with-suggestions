@@ -19,6 +19,7 @@ from .advice import (
 )
 from .constants import CATS, EPS, FOCUSED_EV_GUARD_POINTS, SACRIFICE_PRIORITY
 from .endgame_value import DEFAULT_ENDGAME_VALUE_TABLE_PATH, load_endgame_value_table
+from .learned_value import load_linear_value_model
 from .scoring import (
     calc_score,
     can_cash_yacht_bonus,
@@ -387,6 +388,7 @@ def _build_decision_rows(
     keep_action_values, best_keep_tuple, chosen_ev,
     explaining_row, straight_upgrade, all_dice_kept,
     score_value_mode="heuristic", endgame_value_table=None,
+    learned_value_model=None, learned_value_max_mae=25.0, learned_value_min_turns=5,
 ):
     """지금 멈추기 비교 / 차선책 비교 decision row 목록을 반환."""
     decision_rows = []
@@ -397,6 +399,9 @@ def _build_decision_rows(
         mode,
         score_value_mode=score_value_mode,
         endgame_value_table=endgame_value_table,
+        learned_value_model=learned_value_model,
+        learned_value_max_mae=learned_value_max_mae,
+        learned_value_min_turns=learned_value_min_turns,
     )
     stop_now_value = float(stop_now_advice.get("expected_value", 0.0))
     stop_now_target = stop_now_advice.get("primary_target") or stop_now_advice.get("message")
@@ -503,30 +508,64 @@ def _format_keep_tuple(dice, kept_tuple):
 # ---------------------------------------------------------------------------
 
 def _normalize_score_value_mode(score_value_mode):
+    if score_value_mode in ("hybrid", "learned_value"):
+        return "hybrid"
     if score_value_mode in ("value", "endgame_value"):
         return "value"
     return "heuristic"
 
 
-def _resolve_score_value_options(score_value_mode=None, endgame_value_table_path=None):
+def _resolve_score_value_options(
+    score_value_mode=None,
+    endgame_value_table_path=None,
+    learned_value_model_path=None,
+    learned_value_max_mae=None,
+    learned_value_min_turns=None,
+):
     requested_mode = score_value_mode
     if requested_mode is None:
         requested_mode = os.environ.get("YACHT_SCORE_STAGE_MODE", "heuristic")
     resolved_mode = _normalize_score_value_mode(requested_mode)
     resolved_path = endgame_value_table_path or os.environ.get("YACHT_ENDGAME_VALUE_TABLE", "")
-    if resolved_mode == "value" and not resolved_path:
+    if resolved_mode in ("value", "hybrid") and not resolved_path:
         resolved_path = DEFAULT_ENDGAME_VALUE_TABLE_PATH
-    if resolved_mode != "value":
+    if resolved_mode not in ("value", "hybrid"):
         resolved_path = ""
-    return resolved_mode, resolved_path
+    resolved_model_path = learned_value_model_path or os.environ.get("YACHT_LEARNED_VALUE_MODEL", "")
+    if resolved_mode != "hybrid":
+        resolved_model_path = ""
+    if learned_value_max_mae is None:
+        try:
+            resolved_max_mae = float(os.environ.get("YACHT_LEARNED_VALUE_MAX_MAE", "25.0"))
+        except ValueError:
+            resolved_max_mae = 25.0
+    else:
+        resolved_max_mae = float(learned_value_max_mae)
+    if learned_value_min_turns is None:
+        try:
+            resolved_min_turns = int(os.environ.get("YACHT_LEARNED_VALUE_MIN_TURNS", "5"))
+        except ValueError:
+            resolved_min_turns = 5
+    else:
+        resolved_min_turns = int(learned_value_min_turns)
+    return resolved_mode, resolved_path, resolved_model_path, resolved_max_mae, max(0, resolved_min_turns)
 
 
 def _load_score_value_table(score_value_mode, endgame_value_table_path):
-    if score_value_mode != "value" or not endgame_value_table_path:
+    if score_value_mode not in ("value", "hybrid") or not endgame_value_table_path:
         return None
     try:
         return load_endgame_value_table(endgame_value_table_path)
     except OSError:
+        return None
+
+
+def _load_learned_value_model(score_value_mode, learned_value_model_path):
+    if score_value_mode != "hybrid" or not learned_value_model_path:
+        return None
+    try:
+        return load_linear_value_model(learned_value_model_path)
+    except (OSError, ValueError):
         return None
 
 
@@ -539,6 +578,9 @@ def _solve_best_move_cached(
     scorecard_tuple,
     score_value_mode,
     endgame_value_table_path,
+    learned_value_model_path,
+    learned_value_max_mae,
+    learned_value_min_turns,
 ):
     dice = list(dice_key)
     scorecard = list(scorecard_tuple)
@@ -546,6 +588,7 @@ def _solve_best_move_cached(
     dice_tuple = tuple(sorted(dice))
     yacht_bonus_available = has_yacht_bonus(scorecard)
     endgame_value_table = _load_score_value_table(score_value_mode, endgame_value_table_path)
+    learned_value_model = _load_learned_value_model(score_value_mode, learned_value_model_path)
 
     if rolls_left == 0:
         return build_score_stage_advice(
@@ -555,6 +598,9 @@ def _solve_best_move_cached(
             mode,
             score_value_mode=score_value_mode,
             endgame_value_table=endgame_value_table,
+            learned_value_model=learned_value_model,
+            learned_value_max_mae=learned_value_max_mae,
+            learned_value_min_turns=learned_value_min_turns,
         )
 
     # --- 클로저 DP 함수 (per-call lru_cache) ---
@@ -577,6 +623,9 @@ def _solve_best_move_cached(
                 mode,
                 score_value_mode=score_value_mode,
                 endgame_value_table=endgame_value_table,
+                learned_value_model=learned_value_model,
+                learned_value_max_mae=learned_value_max_mae,
+                learned_value_min_turns=learned_value_min_turns,
             )
             row_key = (row["utility"], row["score"], -SACRIFICE_PRIORITY.get(row["name"], 99))
             if best_key is None or row_key > best_key:
@@ -855,6 +904,9 @@ def _solve_best_move_cached(
         explaining_row, straight_upgrade, all_dice_kept,
         score_value_mode=score_value_mode,
         endgame_value_table=endgame_value_table,
+        learned_value_model=learned_value_model,
+        learned_value_max_mae=learned_value_max_mae,
+        learned_value_min_turns=learned_value_min_turns,
     )
 
     recommendation_context_row = build_recommendation_context_row(
@@ -910,11 +962,23 @@ def solve_best_move(
     scorecard=None,
     score_value_mode=None,
     endgame_value_table_path=None,
+    learned_value_model_path=None,
+    learned_value_max_mae=None,
+    learned_value_min_turns=None,
 ):
     mode = normalize_strategy_mode(strategy_mode)
-    resolved_score_value_mode, resolved_endgame_value_table_path = _resolve_score_value_options(
+    (
+        resolved_score_value_mode,
+        resolved_endgame_value_table_path,
+        resolved_learned_value_model_path,
+        resolved_learned_value_max_mae,
+        resolved_learned_value_min_turns,
+    ) = _resolve_score_value_options(
         score_value_mode,
         endgame_value_table_path,
+        learned_value_model_path,
+        learned_value_max_mae,
+        learned_value_min_turns,
     )
     dice_key = tuple(int(v) for v in dice)
     try:
@@ -939,6 +1003,9 @@ def solve_best_move(
         scorecard_to_tuple(scorecard),
         resolved_score_value_mode,
         resolved_endgame_value_table_path,
+        resolved_learned_value_model_path,
+        resolved_learned_value_max_mae,
+        resolved_learned_value_min_turns,
     )
     return deepcopy(result)
 

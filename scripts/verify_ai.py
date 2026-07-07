@@ -73,6 +73,7 @@ def main() -> None:
             "yacht_ai/__init__.py",
             "yacht_ai/constants.py",
             "yacht_ai/endgame_value.py",
+            "yacht_ai/learned_value.py",
             "yacht_ai/report.py",
             "yacht_ai/scoring.py",
             "yacht_ai/advice.py",

@@ -25,5 +25,10 @@ artifacts/value/*
 !artifacts/reports/roll-policy-full-game-focused-24.json
 !artifacts/reports/roll-policy-full-game-focused-100.json
 !artifacts/reports/score-value-mode-focused-200.json
+!artifacts/reports/self-play-value-focused-256.summary.json
+!artifacts/reports/scorecard-value-linear-v1.eval.json
+!artifacts/reports/score-value-hybrid-focused-200.json
 !artifacts/value/endgame-value-table-open3.json
 !artifacts/value/endgame-value-table-open4.json
+!artifacts/value/self-play-value-focused-256.jsonl
+!artifacts/models/scorecard-value-linear-v1.json

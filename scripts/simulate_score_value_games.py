@@ -26,6 +26,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=20260708, help="base random seed")
     parser.add_argument("--mode", choices=("focused", "cover"), default="focused")
     parser.add_argument("--value-table", default=DEFAULT_ENDGAME_VALUE_TABLE_PATH)
+    parser.add_argument("--learned-model", default="")
+    parser.add_argument("--learned-max-mae", type=float, default=25.0)
+    parser.add_argument("--learned-min-turns", type=int, default=5)
+    parser.add_argument("--policies", default="heuristic,value", help="comma-separated score policies: heuristic,value,hybrid")
     parser.add_argument("--output", default="")
     parser.add_argument("--markdown-output", default="")
     parser.add_argument("--report-every", type=int, default=25)
@@ -65,17 +69,23 @@ def solve_move(
     mode: str,
     score_mode: str,
     value_table: str,
+    learned_model: str,
+    learned_max_mae: float,
+    learned_min_turns: int,
 ) -> dict:
     open_categories = [idx for idx, value in enumerate(scorecard) if value is None]
-    if score_mode == "value":
+    if score_mode in ("value", "hybrid"):
         return yacht_engine.solve_best_move(
             dice,
             rolls_left,
             open_categories,
             mode,
             scorecard,
-            score_value_mode="value",
+            score_value_mode=score_mode,
             endgame_value_table_path=value_table,
+            learned_value_model_path=learned_model,
+            learned_value_max_mae=learned_max_mae,
+            learned_value_min_turns=learned_min_turns,
         )
     return yacht_engine.solve_best_move(dice, rolls_left, open_categories, mode, scorecard)
 
@@ -86,9 +96,12 @@ def choose_score_category(
     mode: str,
     score_mode: str,
     value_table: str,
+    learned_model: str,
+    learned_max_mae: float,
+    learned_min_turns: int,
 ) -> tuple[int, dict]:
     open_categories = [idx for idx, value in enumerate(scorecard) if value is None]
-    result = solve_move(dice, 0, scorecard, mode, score_mode, value_table)
+    result = solve_move(dice, 0, scorecard, mode, score_mode, value_table, learned_model, learned_max_mae, learned_min_turns)
     category_idx = CATS.get(result.get("primary_target"))
     if category_idx in open_categories:
         return category_idx, result
@@ -115,19 +128,38 @@ def apply_score(dice: list[int], scorecard: list[int | None], category_idx: int)
     scorecard[category_idx] = score
 
 
-def play_game(seed: int, mode: str, score_mode: str, value_table: str) -> dict:
+def play_game(
+    seed: int,
+    mode: str,
+    score_mode: str,
+    value_table: str,
+    learned_model: str,
+    learned_max_mae: float,
+    learned_min_turns: int,
+) -> dict:
     rng = random.Random(seed)
     scorecard: list[int | None] = [None] * 12
     score_decisions = []
     roll_decisions = 0
     value_score_hits = 0
+    learned_value_score_hits = 0
     value_score_fallbacks = 0
 
     while any(value is None for value in scorecard):
         dice = [rng.randint(1, 6) for _ in range(5)]
         rolls_left = 2
         while rolls_left > 0:
-            result = solve_move(dice, rolls_left, scorecard, mode, score_mode, value_table)
+            result = solve_move(
+                dice,
+                rolls_left,
+                scorecard,
+                mode,
+                score_mode,
+                value_table,
+                learned_model,
+                learned_max_mae,
+                learned_min_turns,
+            )
             keep_indices = list(result.get("keep_indices", []))
             roll_decisions += 1
             if len(keep_indices) == 5:
@@ -135,10 +167,22 @@ def play_game(seed: int, mode: str, score_mode: str, value_table: str) -> dict:
             dice = reroll_from_keep(rng, dice, keep_indices)
             rolls_left -= 1
 
-        category_idx, score_result = choose_score_category(dice, scorecard, mode, score_mode, value_table)
-        if any(row.get("name") == "Endgame V" for row in score_result.get("breakdown", [])):
+        category_idx, score_result = choose_score_category(
+            dice,
+            scorecard,
+            mode,
+            score_mode,
+            value_table,
+            learned_model,
+            learned_max_mae,
+            learned_min_turns,
+        )
+        row_names = {row.get("name") for row in score_result.get("breakdown", [])}
+        if "Endgame V" in row_names:
             value_score_hits += 1
-        elif score_mode == "value":
+        elif "Learned V" in row_names:
+            learned_value_score_hits += 1
+        elif score_mode in ("value", "hybrid"):
             value_score_fallbacks += 1
         score_decisions.append({
             "turn": len(score_decisions) + 1,
@@ -152,6 +196,7 @@ def play_game(seed: int, mode: str, score_mode: str, value_table: str) -> dict:
     metrics = score_metrics(scorecard)
     metrics["roll_decisions"] = roll_decisions
     metrics["value_score_hits"] = value_score_hits
+    metrics["learned_value_score_hits"] = learned_value_score_hits
     metrics["value_score_fallbacks"] = value_score_fallbacks
     metrics["score_decisions"] = score_decisions
     return metrics
@@ -178,6 +223,7 @@ def summarize(label: str, games: list[dict], baseline_games: list[dict] | None =
         "avg_yacht_bonus_count": round(statistics.fmean(game["yacht_bonus_count"] for game in games), 6),
         "avg_zero_categories": round(statistics.fmean(game["zero_categories"] for game in games), 4),
         "avg_value_score_hits": round(statistics.fmean(game["value_score_hits"] for game in games), 4),
+        "avg_learned_value_score_hits": round(statistics.fmean(game["learned_value_score_hits"] for game in games), 4),
         "avg_value_score_fallbacks": round(statistics.fmean(game["value_score_fallbacks"] for game in games), 4),
         "avg_delta_vs_heuristic": round(statistics.fmean(paired_delta), 4) if paired_delta else 0.0,
         "median_delta_vs_heuristic": round(statistics.median(paired_delta), 4) if paired_delta else 0.0,
@@ -204,6 +250,8 @@ def render_markdown(report: dict) -> str:
         f"- Games: `{report['games']}` paired seeds",
         f"- Seed: `{report['seed']}`",
         f"- Value table: `{report['value_table']}`",
+        f"- Learned model: `{report['learned_model'] or '-'}`",
+        f"- Learned guard: validation MAE <= `{report['learned_max_mae']}`, next turns >= `{report['learned_min_turns']}`",
         "",
         "## Summary",
         "",
@@ -214,15 +262,15 @@ def render_markdown(report: dict) -> str:
             f"upper bonus {row['upper_bonus_rate']}, yacht bonus avg {row['avg_yacht_bonus_count']}, "
             f"delta {row['avg_delta_vs_heuristic']:+.4f}"
         )
-    value_row = next((row for row in report["policies"] if row["label"] == "value"), None)
-    if value_row:
+    for value_row in [row for row in report["policies"] if row["label"] != "heuristic"]:
         lines.extend([
             "",
-            "## Value Mode Details",
+            f"## {value_row['label']} Details",
             "",
             f"- Win/loss/tie vs heuristic: {value_row['win_rate_vs_heuristic']} / {value_row['loss_rate_vs_heuristic']} / "
             f"{round(1.0 - value_row['win_rate_vs_heuristic'] - value_row['loss_rate_vs_heuristic'], 6)}",
-            f"- Avg score-stage table hits per game: {value_row['avg_value_score_hits']}",
+            f"- Avg score-stage exact table hits per game: {value_row['avg_value_score_hits']}",
+            f"- Avg score-stage learned hits per game: {value_row['avg_learned_value_score_hits']}",
             f"- Avg score-stage fallback turns per game: {value_row['avg_value_score_fallbacks']}",
             f"- Delta range: {value_row['min_delta_vs_heuristic']} to {value_row['max_delta_vs_heuristic']}",
         ])
@@ -232,17 +280,33 @@ def render_markdown(report: dict) -> str:
 def main() -> None:
     args = parse_args()
     seeds = [args.seed + idx * 1009 for idx in range(args.games)]
+    policies = [name.strip() for name in args.policies.split(",") if name.strip()]
+    unknown = [name for name in policies if name not in ("heuristic", "value", "hybrid")]
+    if unknown:
+        raise SystemExit(f"unknown policies: {', '.join(unknown)}")
+    if "heuristic" not in policies:
+        raise SystemExit("--policies must include heuristic as the baseline")
     raw_results = {}
     summaries = []
 
-    for label in ("heuristic", "value"):
+    for label in policies:
         games = []
         for idx, seed in enumerate(seeds, start=1):
-            games.append(play_game(seed, args.mode, label, args.value_table))
+            games.append(
+                play_game(
+                    seed,
+                    args.mode,
+                    label,
+                    args.value_table,
+                    args.learned_model,
+                    args.learned_max_mae,
+                    args.learned_min_turns,
+                )
+            )
             if args.report_every and (idx % args.report_every == 0 or idx == args.games):
                 print(f"[score-value-sim] policy={label} games={idx}/{args.games}")
         raw_results[label] = games
-        baseline = raw_results.get("heuristic") if label == "value" else None
+        baseline = raw_results.get("heuristic") if label != "heuristic" else None
         summaries.append(summarize(label, games, baseline))
 
     report = {
@@ -250,6 +314,9 @@ def main() -> None:
         "games": args.games,
         "seed": args.seed,
         "value_table": args.value_table,
+        "learned_model": args.learned_model,
+        "learned_max_mae": args.learned_max_mae,
+        "learned_min_turns": args.learned_min_turns,
         "policies": summaries,
     }
     print("[score-value-sim] summary")

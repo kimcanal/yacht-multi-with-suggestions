@@ -6,7 +6,9 @@ from pathlib import Path
 from yacht_ai.advice import build_score_stage_advice
 from yacht_ai.constants import CATS
 from yacht_ai.endgame_value import EndgameValueTable, state_key_from_scorecard
+from yacht_ai.learned_value import LinearScorecardValueModel
 from yacht_ai.solver import solve_best_move
+from yacht_ai.value_model import VALUE_FEATURE_NAMES
 from scripts.build_value_table import (
     build_exact_endgame_batch_table,
     build_value_table_from_state,
@@ -100,6 +102,45 @@ class EndgameValueTableTests(unittest.TestCase):
 
         self.assertEqual(result["primary_target"], "Ones")
         self.assertEqual(result["expected_value"], 160.0)
+
+    def test_hybrid_mode_uses_guarded_learned_value_fallback(self):
+        dice = [1, 2, 3, 4, 6]
+        scorecard = [None] * 12
+        empty_table = EndgameValueTable.from_payload({"batch_open_count": 0, "values": {}})
+        model = LinearScorecardValueModel.from_payload({
+            "model_id": "test-linear-value",
+            "target": "target_remaining_score",
+            "feature_names": list(VALUE_FEATURE_NAMES),
+            "validation_metrics": {"mae": 10.0},
+            "bias": 42.0,
+            "weights": [0.0] * len(VALUE_FEATURE_NAMES),
+        })
+
+        guarded = build_score_stage_advice(
+            dice,
+            scorecard,
+            [CATS["Choice"], CATS["Large Straight"]],
+            "focused",
+            score_value_mode="hybrid",
+            endgame_value_table=empty_table,
+            learned_value_model=model,
+            learned_value_max_mae=25.0,
+            learned_value_min_turns=0,
+        )
+        blocked = build_score_stage_advice(
+            dice,
+            scorecard,
+            [CATS["Choice"], CATS["Large Straight"]],
+            "focused",
+            score_value_mode="hybrid",
+            endgame_value_table=empty_table,
+            learned_value_model=model,
+            learned_value_max_mae=5.0,
+            learned_value_min_turns=0,
+        )
+
+        self.assertTrue(any(row["name"] == "Learned V" for row in guarded["breakdown"]))
+        self.assertFalse(any(row["name"] == "Learned V" for row in blocked["breakdown"]))
 
 
 if __name__ == "__main__":
