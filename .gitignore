@@ -24,5 +24,6 @@ artifacts/value/*
 !artifacts/reports/model-20260630-roll-policy-v2.runtime.json
 !artifacts/reports/roll-policy-full-game-focused-24.json
 !artifacts/reports/roll-policy-full-game-focused-100.json
+!artifacts/reports/score-value-mode-focused-200.json
 !artifacts/value/endgame-value-table-open3.json
 !artifacts/value/endgame-value-table-open4.json

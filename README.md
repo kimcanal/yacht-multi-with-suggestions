@@ -185,6 +185,14 @@ python3 server.py
 
 다음 단계는 이 value table 모드를 full-game simulation으로 기존 휴리스틱과 비교하는 실험입니다.
 
+200게임 paired simulation focused 결과:
+
+- heuristic: 평균 177.635, 표준편차 44.5676, Upper Bonus 34.5%, Yacht bonus 평균 0.030
+- value mode: 평균 178.440, 표준편차 47.9419, Upper Bonus 40.5%, Yacht bonus 평균 0.035
+- paired delta: 평균 +0.805점, win/loss/tie 30.5% / 37.0% / 32.5%, 범위 -72~+193
+
+평균과 Upper Bonus는 좋아졌지만 손실 케이스도 더 많아졌으므로, 아직 운영 기본값으로 승격하지 않고 guard/학습 value fallback 실험 대상으로 둡니다. 자세한 결과는 [docs/score-value-mode-focused-200.md](./docs/score-value-mode-focused-200.md)에 있습니다.
+
 ### Roll policy 모델 버전
 
 roll-stage MLP는 exact solver가 만든 keep 선택을 빠르게 흉내 내는 distillation 모델입니다. 모델 파일은 날짜와 역할을 이름에 넣어서 `model-YYYYMMDD-roll-policy-vN.json` 형태로 구분합니다. 현재 최신 모델은 `v2`이고, `v1`은 비교용 baseline으로 남겨둡니다.
