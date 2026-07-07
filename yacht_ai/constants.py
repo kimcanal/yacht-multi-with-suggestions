@@ -50,6 +50,10 @@ FOCUSED_HAND_PRIORITY = {
     "Yacht": 0,
 }
 
+# Focused mode may chase a target hand, but should not accept a large
+# strategic-value loss just to improve that target's hit probability.
+FOCUSED_EV_GUARD_POINTS = 4.0
+
 # Exact single-turn baselines from a fresh turn:
 # initial roll + up to two rerolls, optimized for one target category.
 FRESH_TURN_CATEGORY_EV = {

@@ -149,15 +149,15 @@ def build_recommendation_context_row(mode, chosen_ev, explaining_row, straight_u
 
     if stop_now_target and stop_gain is not None:
         if stop_gain >= 0:
-            reason += f" 지금 {stop_now_target}로 바로 적는 선택보다도 EV가 {stop_gain:.2f}점 높습니다."
+            reason += f" 지금 {stop_now_target}로 바로 적는 선택보다도 평가가 {stop_gain:.2f}점 높습니다."
         else:
-            reason += f" 다만 지금 {stop_now_target}로 적는 쪽이 EV는 {abs(stop_gain):.2f}점 높습니다."
+            reason += f" 다만 지금 {stop_now_target}로 적는 쪽이 평가는 {abs(stop_gain):.2f}점 높습니다."
 
     return {
         "name": "추천 근거",
         "prob": 0.0,
         "meter": min(1.0, max(DECISION_ROW_METER_FLOOR, abs(chosen_ev) / DECISION_ROW_EV_SCALE)),
-        "val_str": f"EV {chosen_ev:.2f}",
+        "val_str": f"평가 {chosen_ev:.2f}",
         "type": "decision",
         "keep_str": "현재 턴 점수 + 남은 칸 가치 함께 반영",
         "keep_indices": keep_indices,
@@ -749,26 +749,26 @@ def build_upper_roll_rows(dice, scorecard, open_categories, mode, keep_ev_map):
 
         if bonus_delta:
             reason = f"지금 {cat_name}에 적으면 Upper Bonus +35를 바로 확보할 수 있습니다."
-            summary_text = f"상단 보너스 추천: {cat_name} EV {keep_ev:.1f}, 이번 턴 보너스 마감권"
+            summary_text = f"상단 보너스 추천: {cat_name} 평가 {keep_ev:.1f}, 이번 턴 보너스 마감권"
         elif current_score > 0 and after_bonus_prob >= before_bonus_prob + 0.05:
             reason = (
                 f"현재 상단 {current_upper}/63. {cat_name} {current_score}점이면 "
                 f"Upper Bonus 가능성이 {before_bonus_prob * 100:.1f}% → {after_bonus_prob * 100:.1f}%로 올라갑니다."
             )
-            summary_text = f"상단 보너스 추천: {cat_name} EV {keep_ev:.1f}, 보너스 확률 {after_bonus_prob * 100:.0f}%"
+            summary_text = f"상단 보너스 추천: {cat_name} 평가 {keep_ev:.1f}, 보너스 확률 {after_bonus_prob * 100:.0f}%"
         elif current_score > 0:
             reason = f"현재 상단 {current_upper}/63. {cat_name} {current_score}점이면 목표까지 {remaining_after_score}점 남습니다."
-            summary_text = f"상단 보너스 추천: {cat_name} EV {keep_ev:.1f}"
+            summary_text = f"상단 보너스 추천: {cat_name} 평가 {keep_ev:.1f}"
         else:
             reason = f"{cat_name}를 모아 상단 보너스 페이스를 이어갈 수 있습니다."
-            summary_text = f"상단 보너스 추천: {cat_name} EV {keep_ev:.1f}"
+            summary_text = f"상단 보너스 추천: {cat_name} 평가 {keep_ev:.1f}"
 
         rows.append(
             {
                 "name": cat_name,
                 "prob": prob_get_more,
                 "meter": min(1.0, max(prob_get_more, keep_ev / 60.0)),
-                "val_str": f"EV {keep_ev:.1f}",
+                "val_str": f"평가 {keep_ev:.1f}",
                 "type": "upper",
                 "keep_str": f"{keep_label} → Upper Bonus 페이스",
                 "keep_indices": keep_indices,

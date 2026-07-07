@@ -95,7 +95,7 @@ GOLDEN_CASES = [
             "stage": "roll",
             "strategy_mode": "focused",
             "message": "[6, 6, 6] Keep (Sixes 노리기)",
-            "summary": "상단 보너스 추천: Sixes EV 99.7, 이번 턴 보너스 마감권",
+            "summary": "상단 보너스 추천: Sixes 평가 99.7, 이번 턴 보너스 마감권",
             "keep_indices": [0, 1, 2],
             "primary_target": "Sixes",
             "expected_value": 99.71,

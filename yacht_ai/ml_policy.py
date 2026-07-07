@@ -364,7 +364,7 @@ def _fixed_keep_roll_explanation(dice, keep_indices, rolls_left, strategy_mode, 
                     "name": "지금 멈추기 비교",
                     "prob": 0.0,
                     "meter": min(1.0, max(0.1, abs(stop_gain) / 12.0)),
-                    "val_str": f"EV {stop_gain:+.2f}",
+                    "val_str": f"평가 {stop_gain:+.2f}",
                     "type": "decision",
                     "keep_str": stop_keep_str,
                     "keep_indices": keep_indices,
@@ -387,16 +387,16 @@ def _fixed_keep_roll_explanation(dice, keep_indices, rolls_left, strategy_mode, 
                 else f"{alt_keep_label} 쪽이 조금 더 유리"
             )
             alt_reason = (
-                f"차선책보다 기대값이 {alt_gap:.2f}점 높습니다."
+                f"차선책보다 평가값이 {alt_gap:.2f}점 높습니다."
                 if alt_gap >= 0
-                else f"{alt_keep_label} 쪽이 기대값 {abs(alt_gap):.2f}점만큼 더 높습니다."
+                else f"{alt_keep_label} 쪽이 평가값 {abs(alt_gap):.2f}점만큼 더 높습니다."
             )
             rows.append(
                 {
                     "name": "차선책 비교",
                     "prob": 0.0,
                     "meter": min(1.0, max(0.1, abs(alt_gap) / 10.0)),
-                    "val_str": f"EV {alt_gap:+.2f}",
+                    "val_str": f"평가 {alt_gap:+.2f}",
                     "type": "decision",
                     "keep_str": alt_keep_str,
                     "keep_indices": keep_indices,
@@ -543,7 +543,7 @@ def _fixed_keep_roll_explanation(dice, keep_indices, rolls_left, strategy_mode, 
         if decision_rows:
             breakdown = breakdown[:3] + decision_rows + breakdown[3:]
 
-        summary = build_summary(summary_row, strategy_mode) if summary_row else f"집중 공략 추천: {keep_label}, 기대값 {chosen_ev:.2f}"
+        summary = build_summary(summary_row, strategy_mode) if summary_row else f"집중 공략 추천: {keep_label}, 평가값 {chosen_ev:.2f}"
         if straight_upgrade:
             summary = f"집중 공략 추천: Large Straight {straight_upgrade['val_str']}, 실패해도 Small Straight 유지"
             primary_target = "Large Straight"
@@ -556,7 +556,7 @@ def _fixed_keep_roll_explanation(dice, keep_indices, rolls_left, strategy_mode, 
             elif primary_target and all_dice_kept:
                 message = f"지금 기록 추천 ({primary_target})"
         if all_dice_kept and not straight_upgrade:
-            summary = stop_now_advice.get("summary", f"집중 공략 추천: 지금 기록하는 편이 기대값 {chosen_ev:.2f}로 가장 좋습니다")
+            summary = stop_now_advice.get("summary", f"집중 공략 추천: 지금 기록하는 편이 평가값 {chosen_ev:.2f}로 가장 좋습니다")
             primary_target = stop_now_advice.get("primary_target")
             breakdown = stop_now_advice.get("breakdown", [])[:3] + decision_rows + stop_now_advice.get("breakdown", [])[3:]
 
@@ -738,7 +738,7 @@ def _fixed_keep_roll_explanation(dice, keep_indices, rolls_left, strategy_mode, 
             "breakdown": breakdown,
             "primary_target": stop_now_advice.get("primary_target") if all_dice_kept else "핸드 하나 이상 성공",
             "summary": (
-                stop_now_advice.get("summary", f"커버 플레이 추천: 지금 기록하는 편이 기대값 {chosen_ev:.2f}로 가장 좋습니다")
+                stop_now_advice.get("summary", f"커버 플레이 추천: 지금 기록하는 편이 평가값 {chosen_ev:.2f}로 가장 좋습니다")
                 if all_dice_kept
                 else f"커버 플레이: 핸드 하나 이상 {cover_success_prob * 100:.2f}%, 전부 실패 {cover_fail_prob * 100:.2f}%"
             ),

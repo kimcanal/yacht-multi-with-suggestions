@@ -16,7 +16,7 @@ from .advice import (
     score_stage_category_advice,
     scorecard_to_tuple,
 )
-from .constants import CATS, EPS, SACRIFICE_PRIORITY
+from .constants import CATS, EPS, FOCUSED_EV_GUARD_POINTS, SACRIFICE_PRIORITY
 from .scoring import (
     calc_score,
     can_cash_yacht_bonus,
@@ -403,7 +403,7 @@ def _build_decision_rows(
             "name": "지금 멈추기 비교",
             "prob": 0.0,
             "meter": min(1.0, max(0.1, abs(stop_gain) / 12.0)),
-            "val_str": f"EV {stop_gain:+.2f}",
+            "val_str": f"평가 {stop_gain:+.2f}",
             "type": "decision",
             "keep_str": stop_keep_str,
             "keep_indices": kept_tuple_to_indices(dice, best_keep_tuple),
@@ -420,7 +420,7 @@ def _build_decision_rows(
         alt_gap = chosen_ev - alt_value
         alt_keep_label = _format_keep_tuple(dice, alt_keep_tuple)
         if alt_gap >= 0:
-            alt_reason = f"차선책보다 기대값이 {alt_gap:.2f}점 높습니다."
+            alt_reason = f"차선책보다 평가값이 {alt_gap:.2f}점 높습니다."
             alt_keep_str = f"{alt_keep_label} 대비 현재 추천 우세"
         else:
             target_reason = ""
@@ -436,9 +436,9 @@ def _build_decision_rows(
                 )
             elif mode == "focused" and explaining_row and explaining_row.get("type") == "upper":
                 target_reason = " 대신 현재 추천은 Upper Bonus 페이스를 더 좋게 가져갑니다."
-            alt_reason = f"{alt_keep_label} 쪽이 기대값 {abs(alt_gap):.2f}점만큼 더 높습니다.{target_reason}"
+            alt_reason = f"{alt_keep_label} 쪽이 평가값 {abs(alt_gap):.2f}점만큼 더 높습니다.{target_reason}"
             alt_keep_str = (
-                f"{alt_keep_label} 쪽은 EV 우세, 현재 추천은 {explaining_row.get('name', '목표')} 우선"
+                f"{alt_keep_label} 쪽은 평가 우세, 현재 추천은 {explaining_row.get('name', '목표')} 우선"
                 if explaining_row and explaining_row.get("name")
                 else f"{alt_keep_label} 쪽이 조금 더 유리"
             )
@@ -446,7 +446,7 @@ def _build_decision_rows(
             "name": "차선책 비교",
             "prob": 0.0,
             "meter": min(1.0, max(0.1, abs(alt_gap) / 10.0)),
-            "val_str": f"EV {alt_gap:+.2f}",
+            "val_str": f"평가 {alt_gap:+.2f}",
             "type": "decision",
             "keep_str": alt_keep_str,
             "keep_indices": kept_tuple_to_indices(dice, best_keep_tuple),
@@ -454,6 +454,29 @@ def _build_decision_rows(
         })
 
     return decision_rows, stop_now_advice, stop_gain
+
+
+def _build_focus_ev_guard_row(dice, best_keep_tuple, focus_ev_guard):
+    if not focus_ev_guard:
+        return None
+
+    focused_label = _format_keep_tuple(dice, focus_ev_guard["focus_keep_tuple"])
+    chosen_label = _format_keep_tuple(dice, best_keep_tuple)
+    target_name = focus_ev_guard.get("target_name") or "목표 족보"
+    gap = focus_ev_guard["gap"]
+    return {
+        "name": "집중 공략 보정",
+        "prob": 0.0,
+        "meter": min(1.0, max(0.15, gap / 30.0)),
+        "val_str": f"평가 +{gap:.2f}",
+        "type": "decision",
+        "keep_str": f"{chosen_label} 선택",
+        "keep_indices": kept_tuple_to_indices(dice, best_keep_tuple),
+        "reason": (
+            f"{target_name} 확률만 보면 {focused_label}도 후보지만, "
+            f"점수판 평가가 {gap:.2f}점 낮아 현재 선택으로 보정했습니다."
+        ),
+    }
 
 
 def _format_keep_tuple(dice, kept_tuple):
@@ -584,11 +607,13 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
     upper_rows = build_upper_roll_rows(dice, scorecard, open_categories, mode, keep_ev_map)
     best_upper_row = upper_rows[0] if upper_rows else None
     upper_focus_override = False
+    focus_ev_guard = None
 
     if best_hand_moves:
         best_focus_move = max(best_hand_moves, key=lambda m: mode_rank(m, mode))
         focus_keep_tuple = best_focus_move["kept_tuple"]
         focus_ev = keep_ev_map.get(focus_keep_tuple, float("-inf"))
+        focus_ev_gap = best_ev - focus_ev
         if (
             best_upper_row
             and current_upper >= 42
@@ -596,6 +621,15 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
         ):
             best_keep_tuple = best_general_keep_tuple
             upper_focus_override = True
+        elif mode == "focused" and focus_ev_gap > FOCUSED_EV_GUARD_POINTS:
+            best_keep_tuple = best_general_keep_tuple
+            focus_ev_guard = {
+                "focus_keep_tuple": focus_keep_tuple,
+                "focus_ev": focus_ev,
+                "best_ev": best_ev,
+                "gap": focus_ev_gap,
+                "target_name": best_focus_move.get("name"),
+            }
         else:
             best_keep_tuple = focus_keep_tuple
     else:
@@ -739,19 +773,19 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
 
     style_label = "집중 공략" if mode != "cover" else "커버 플레이"
     if cover_fallback and best_keep_indices:
-        summary = f"{style_label}: 커버 대상이 없어 일반 추천으로 전환, [{', '.join(kept_vals)}] keep, 기대값 {chosen_ev:.2f}"
+        summary = f"{style_label}: 커버 대상이 없어 일반 추천으로 전환, [{', '.join(kept_vals)}] keep, 평가값 {chosen_ev:.2f}"
     elif cover_fallback:
-        summary = f"{style_label}: 커버 대상이 없어 일반 추천으로 전환, 기대값 {chosen_ev:.2f}"
+        summary = f"{style_label}: 커버 대상이 없어 일반 추천으로 전환, 평가값 {chosen_ev:.2f}"
     elif straight_upgrade:
         summary = f"{style_label} 추천: Large Straight {straight_upgrade['val_str']}, 실패해도 Small Straight 유지"
     elif explaining_row:
         summary = build_summary(explaining_row, mode)
     elif best_keep_indices and not all_dice_kept:
-        summary = f"{style_label} 추천: [{', '.join(kept_vals)}] keep, 기대값 {chosen_ev:.2f}"
+        summary = f"{style_label} 추천: [{', '.join(kept_vals)}] keep, 평가값 {chosen_ev:.2f}"
     elif all_dice_kept:
-        summary = f"{style_label} 추천: 지금 기록하는 편이 기대값 {chosen_ev:.2f}로 가장 좋습니다"
+        summary = f"{style_label} 추천: 지금 기록하는 편이 평가값 {chosen_ev:.2f}로 가장 좋습니다"
     else:
-        summary = f"{style_label} 추천: 모두 굴리기, 기대값 {chosen_ev:.2f}"
+        summary = f"{style_label} 추천: 모두 굴리기, 평가값 {chosen_ev:.2f}"
 
     # decision rows (지금 멈추기 / 차선책 비교)
     decision_rows, stop_now_advice, stop_gain = _build_decision_rows(
@@ -768,6 +802,10 @@ def _solve_best_move_cached(dice_key, rolls_left, open_categories, mode, scoreca
     )
     if recommendation_context_row:
         breakdown = breakdown[:1] + [recommendation_context_row] + breakdown[1:]
+    focus_ev_guard_row = _build_focus_ev_guard_row(dice, best_keep_tuple, focus_ev_guard)
+    if focus_ev_guard_row:
+        insert_at = 2 if recommendation_context_row else 1
+        breakdown = breakdown[:insert_at] + [focus_ev_guard_row] + breakdown[insert_at:]
 
     if decision_rows:
         breakdown = breakdown[:3] + decision_rows[:2] + breakdown[3:]
