@@ -3,6 +3,7 @@
     --bg-1: #101a34;
     --bg-2: #0b1020;
     --bg-3: #101827;
+    --bg-deep: #050510;
     --surface-0: rgba(255, 255, 255, 0.03);
     --surface-1: rgba(255, 255, 255, 0.05);
     --surface-2: rgba(255, 255, 255, 0.08);
@@ -15,30 +16,45 @@
     --text: #eef4ff;
     --text-strong: #ffffff;
     --text-game: #eaf2ff;
+    --text-panel: #f4f7fb;
+    --text-soft: #dbe3ee;
+    --text-faint: #c7d6eb;
+    --text-cool: #b9c7da;
     --muted: #9fb2cd;
     --muted-2: #8fa3b8;
     --muted-3: #6f7d8d;
     --mint: #63f5d2;
     --mint-strong: #7ef3cb;
     --mint-bright: #00ffcc;
+    --mint-light: #7fffe5;
     --mint-soft: rgba(99, 245, 210, 0.14);
     --mint-line: rgba(126, 243, 203, 0.34);
     --gold: #ffd36b;
     --gold-strong: #ffd700;
+    --gold-warm: #ffd37a;
+    --gold-bright: #ffd666;
     --gold-soft: rgba(255, 211, 107, 0.14);
     --sky: #85c6ff;
+    --sky-soft: #7fd0ff;
     --success: #8df59a;
     --success-soft: rgba(20, 184, 166, 0.16);
     --danger: #ff6b6b;
     --danger-strong: #ff4444;
+    --danger-light: #ffb4b4;
     --danger-soft: rgba(255, 107, 107, 0.14);
     --warning: #ff9f43;
+    --warning-soft: #ffb86b;
+    --orange: #e17055;
     --purple-0: #667eea;
     --purple-1: #764ba2;
     --pink-0: #f093fb;
     --pink-1: #f5576c;
     --teal-0: #00b894;
     --teal-1: #00cec9;
+    --ink-mint: #042820;
+    --ink-teal: #00332c;
+    --ink-deep: #032d24;
+    --ink-success: #06231b;
     --radius-xs: 8px;
     --radius-sm: 10px;
     --radius-md: 12px;
@@ -56,6 +72,7 @@
     --shadow-strong: 0 40px 80px rgba(0, 0, 0, 0.5);
     --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
     --font-display: "Rajdhani", var(--font-ui);
+    /* Breakpoint standard: 480px compact phones, 768px large phones/tablets, 1024px stacked app layouts. */
     --breakpoint-sm: 480px;
     --breakpoint-md: 768px;
     --breakpoint-lg: 1024px;
@@ -196,7 +213,7 @@ button {
 .btn.btn-success {
     background: linear-gradient(135deg, var(--mint) 0%, #2bb673 100%);
     box-shadow: 0 4px 15px rgba(89, 240, 194, 0.32);
-    color: #06231b;
+    color: var(--ink-success);
 }
 
 .btn-p {
@@ -206,7 +223,7 @@ button {
 
 .btn-s {
     background: linear-gradient(135deg, var(--teal-0), var(--teal-1));
-    color: #00332c;
+    color: var(--ink-teal);
 }
 
 .btn-c {

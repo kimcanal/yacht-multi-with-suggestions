@@ -6,7 +6,7 @@
     <title>🎲 Yacht - 로비</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260708-2') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260708-3') }}">
     
     <style>
         /* [기본 스타일] */
@@ -16,7 +16,7 @@
         /* 배경: 더 깊이감 있게 */
         .background-fx { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; 
-            background: radial-gradient(circle at 50% 50%, var(--bg-1) 0%, #050510 100%);
+            background: radial-gradient(circle at 50% 50%, var(--bg-1) 0%, var(--bg-deep) 100%);
             animation: pulseBg 10s infinite alternate;
         }
         @keyframes pulseBg {
@@ -50,10 +50,11 @@
             border-radius: 16px; padding: 14px; min-width: 0;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.18);
         }
-        .quick-title { color:#f4f7fb; font-weight:800; font-size:0.92rem; margin-bottom:10px; }
+        .quick-title { color:var(--text-panel); font-weight:800; font-size:0.92rem; margin-bottom:10px; }
         .quick-actions { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; }
-        .room-code-row { display:grid; grid-template-columns:minmax(120px, 1fr) auto auto; gap:10px; align-items:center; }
-        .quick-hint { margin-top:8px; color:#8d98a7; font-size:0.78rem; line-height:1.35; }
+        .quick-actions .btn-mini { min-width: 0; }
+        .room-code-row { display:grid; grid-template-columns:minmax(0, 1fr) auto auto; gap:10px; align-items:center; min-width:0; }
+        .quick-hint { margin-top:8px; color:var(--muted-2); font-size:0.78rem; line-height:1.35; }
 
         /* 패널 공통 */
         .main-content-grid {
@@ -80,9 +81,11 @@
             padding: 13px 16px; background: rgba(255, 255, 255, 0.03);
             border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
             font-weight: 700; color: var(--mint-bright); font-size: 1em;
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+            min-width: 0;
             letter-spacing: 0.5px;
         }
+        .panel-header > span { min-width: 0; }
 
         .panel-body { flex: 1; overflow-y: auto; padding: 12px; position: relative; }
         .panel-body::-webkit-scrollbar { width: 6px; }
@@ -91,10 +94,10 @@
         /* [NEW] 빈 상태 꾸미기 */
         .empty-state {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100%; color: #666; text-align: center; gap: 15px;
+            height: 100%; color: var(--muted-3); text-align: center; gap: 15px;
         }
         .empty-icon { font-size: 3rem; opacity: 0.3; filter: grayscale(100%); margin-bottom: 5px; }
-        .empty-text { font-size: 0.95em; color: #777; line-height: 1.4; }
+        .empty-text { font-size: 0.95em; color: var(--muted-3); line-height: 1.4; }
 
         /* 방 목록 아이템 */
         .room-item {
@@ -110,11 +113,11 @@
         .room-code { color: var(--text-strong); font-weight: 700; font-size: 1.2em; font-family:'Rajdhani'; }
         .room-meta { min-width: 0; flex: 1; }
         .room-players {
-            font-size: 0.9em; color: #aaa; margin-top: 2px;
+            font-size: 0.9em; color: var(--muted); margin-top: 2px;
             min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
             writing-mode: horizontal-tb; word-break: keep-all; overflow-wrap: anywhere;
         }
-        .room-action { flex: 0 0 auto; }
+        .room-action { flex: 0 1 auto; min-width: 0; }
         
         /* 유저 배지 */
         .user-badge { 
@@ -132,11 +135,11 @@
         }
         
         /* 버튼들 */
-        .btn-logout { background: none; border: 1px solid #ff6b6b; color: #ff6b6b; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; transition:0.2s; }
+        .btn-logout { background: none; border: 1px solid var(--danger); color: var(--danger); padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; transition:0.2s; }
         .btn-logout:hover { background: rgba(255, 107, 107, 0.1); }
 
-        .input-mini { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 11px 14px; border-radius: 12px; width: 150px; font-size: 1rem; text-align:center; letter-spacing:1px; }
-        .input-mini:focus { border-color: #00ffcc; outline: none; }
+        .input-mini { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: var(--text-strong); padding: 11px 14px; border-radius: 12px; width: min(150px, 100%); min-width: 0; font-size: 1rem; text-align:center; letter-spacing:1px; }
+        .input-mini:focus { border-color: var(--mint-bright); outline: none; }
 
         /* 기타 요소들 */
         .leaderboard-item {
@@ -151,70 +154,74 @@
             margin-bottom: 14px; padding: 14px; border-radius: 12px;
             background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
         }
-        .spotlight-empty { color: #8a8f98; font-size: 0.9em; line-height: 1.5; }
-        .spotlight-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-        .spotlight-kicker { font-size: 0.74em; color: #8d98a7; text-transform: uppercase; }
-        .spotlight-name { margin-top: 4px; font-size: 1.05em; font-weight: 700; color: #f4f7fb; }
-        .spotlight-rank { color: #00ffcc; font-family:'Rajdhani'; margin-left: 6px; }
+        .spotlight-empty { color: var(--muted-2); font-size: 0.9em; line-height: 1.5; }
+        .spotlight-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; min-width: 0; }
+        .spotlight-header > div:first-child { min-width: 0; }
+        .spotlight-kicker { font-size: 0.74em; color: var(--muted-2); text-transform: uppercase; }
+        .spotlight-name { margin-top: 4px; font-size: 1.05em; font-weight: 700; color: var(--text-panel); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .spotlight-rank { color: var(--mint-bright); font-family:'Rajdhani'; margin-left: 6px; }
         .spotlight-streak {
             padding: 4px 10px; border-radius: 999px; font-size: 0.78em; font-weight: 700; white-space: nowrap;
-            border: 1px solid rgba(255,255,255,0.1); color: #dbe3ee;
+            border: 1px solid rgba(255,255,255,0.1); color: var(--text-soft);
+            flex: 0 1 auto; max-width: 46%; overflow: hidden; text-overflow: ellipsis;
         }
-        .spotlight-streak.win { color: #7fffe5; border-color: rgba(0,255,204,0.24); background: rgba(0,255,204,0.1); }
-        .spotlight-streak.loss { color: #ffb4b4; border-color: rgba(255,107,107,0.24); background: rgba(255,107,107,0.12); }
-        .spotlight-streak.draw { color: #ffd37a; border-color: rgba(255,211,122,0.24); background: rgba(255,211,122,0.12); }
+        .spotlight-streak.win { color: var(--mint-light); border-color: rgba(0,255,204,0.24); background: rgba(0,255,204,0.1); }
+        .spotlight-streak.loss { color: var(--danger-light); border-color: rgba(255,107,107,0.24); background: rgba(255,107,107,0.12); }
+        .spotlight-streak.draw { color: var(--gold-warm); border-color: rgba(255,211,122,0.24); background: rgba(255,211,122,0.12); }
         .spotlight-grid {
             margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
         }
         .spotlight-metric {
             padding: 10px; border-radius: 10px; background: rgba(0,0,0,0.22); min-width: 0;
         }
-        .spotlight-metric-label { font-size: 0.74em; color: #8d98a7; }
+        .spotlight-metric-label { font-size: 0.74em; color: var(--muted-2); }
         .spotlight-metric-value {
-            margin-top: 4px; color: #f4f7fb; font-weight: 700; overflow-wrap: anywhere;
+            margin-top: 4px; color: var(--text-panel); font-weight: 700; overflow-wrap: anywhere;
         }
         .spotlight-form { margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .spotlight-form-label { font-size: 0.78em; color: #8d98a7; }
+        .spotlight-form-label { font-size: 0.78em; color: var(--muted-2); }
         .form-pill {
             width: 26px; height: 26px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center;
-            font-size: 0.76em; font-weight: 700; color: #f4f7fb; background: rgba(255,255,255,0.08);
+            font-size: 0.76em; font-weight: 700; color: var(--text-panel); background: rgba(255,255,255,0.08);
         }
-        .form-pill.win { background: rgba(0,255,204,0.14); color: #7fffe5; }
-        .form-pill.loss { background: rgba(255,107,107,0.14); color: #ffb4b4; }
-        .form-pill.draw { background: rgba(255,211,122,0.14); color: #ffd37a; }
+        .form-pill.win { background: rgba(0,255,204,0.14); color: var(--mint-light); }
+        .form-pill.loss { background: rgba(255,107,107,0.14); color: var(--danger-light); }
+        .form-pill.draw { background: rgba(255,211,122,0.14); color: var(--gold-warm); }
         .recent-game-item {
             padding: 12px 10px; border-bottom: 1px solid rgba(255,255,255,0.05);
         }
         .recent-game-top, .recent-game-bottom {
             display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
+            min-width: 0;
         }
         .recent-game-top { margin-bottom: 4px; }
-        .recent-matchup, .recent-score { color: #f4f7fb; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-        .recent-time, .recent-winner { color: #8d98a7; font-size: 0.8em; text-align: right; }
-        .recent-winner strong { color: #00ffcc; font-weight: 700; }
+        .recent-matchup, .recent-score { color: var(--text-panel); font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+        .recent-time, .recent-winner { color: var(--muted-2); font-size: 0.8em; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+        .recent-winner strong { color: var(--mint-bright); font-weight: 700; }
         
         .status-row { margin-bottom: 18px; }
         /* [수정] 라벨을 상단 정렬 */
-        .status-label { font-size: 0.85em; color: #ccc; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+        .status-label { font-size: 0.85em; color: var(--text-faint); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; min-width: 0; }
+        .status-label > * { min-width: 0; }
         .bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
         .bar-fill { height: 100%; background: var(--mint-bright); width: 0%; transition: width 0.5s; box-shadow: 0 0 10px rgba(0,255,204,0.5); }
         
-        .rank-tabs { display: flex; gap: 8px; }
-        .rank-tab { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #888; padding: 4px 10px; border-radius: 15px; cursor: pointer; font-size: 0.75em; transition: 0.2s; }
-        .rank-tab.active { background: rgba(0,255,204,0.15); border-color: #00ffcc; color: #00ffcc; font-weight: bold; }
+        .rank-tabs { display: flex; gap: 8px; flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+        .rank-tab { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--muted-3); padding: 4px 10px; border-radius: 15px; cursor: pointer; font-size: 0.75em; transition: 0.2s; min-width: 0; }
+        .rank-tab.active { background: rgba(0,255,204,0.15); border-color: var(--mint-bright); color: var(--mint-bright); font-weight: bold; }
 
-        .status-badge { font-size:0.7em; padding:2px 8px; border-radius:10px; margin-left:8px; font-weight:600; }
-        .badge-wait { background:rgba(255,255,255,0.1); color:#aaa; }
-        .badge-game { background:rgba(0, 184, 148, 0.2); color:#00ffcc; border:1px solid rgba(0, 255, 204, 0.3); }
-        .badge-watch { background:rgba(255, 214, 102, 0.14); color:#ffd666; border:1px solid rgba(255, 214, 102, 0.28); }
+        .status-badge { display:inline-flex; align-items:center; max-width:100%; font-size:0.7em; padding:2px 8px; border-radius:10px; margin-left:8px; font-weight:600; }
+        .badge-wait { background:rgba(255,255,255,0.1); color:var(--muted); }
+        .badge-game { background:rgba(0, 184, 148, 0.2); color:var(--mint-bright); border:1px solid rgba(0, 255, 204, 0.3); }
+        .badge-watch { background:rgba(255, 214, 102, 0.14); color:var(--gold-bright); border:1px solid rgba(255, 214, 102, 0.28); }
         .room-badges { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
         .room-phase {
             font-size: 0.72em; padding: 3px 8px; border-radius: 999px; font-weight: 700;
             letter-spacing: 0.02em;
         }
-        .room-phase.waiting { background: rgba(255,255,255,0.1); color: #cfcfcf; }
-        .room-phase.playing { background: rgba(0,255,204,0.14); color: #7fffe5; border: 1px solid rgba(0,255,204,0.22); }
-        .room-phase.finished { background: rgba(255,107,107,0.15); color: #ffb4b4; border: 1px solid rgba(255,107,107,0.24); }
+        .room-phase.waiting { background: rgba(255,255,255,0.1); color: var(--text-faint); }
+        .room-phase.playing { background: rgba(0,255,204,0.14); color: var(--mint-light); border: 1px solid rgba(0,255,204,0.22); }
+        .room-phase.finished { background: rgba(255,107,107,0.15); color: var(--danger-light); border: 1px solid rgba(255,107,107,0.24); }
         .lobby-user-row {
             padding: 10px 0; display: flex; align-items: center; gap: 10px;
             border-bottom: 1px solid rgba(255,255,255,0.05); min-width: 0;
@@ -227,15 +234,15 @@
             min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
             writing-mode: horizontal-tb; word-break: keep-all; overflow-wrap: normal;
         }
-        .lobby-user-status { margin-left: auto; flex: 0 0 auto; }
+        .lobby-user-status { margin-left: auto; flex: 0 1 auto; min-width: 0; }
 
         /* 로그인 오버레이 */
         #login-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10, 10, 20, 0.85); backdrop-filter: blur(12px); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
         .login-box { text-align: center; background: rgba(30, 30, 50, 0.6); padding: 60px; border-radius: 40px; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); }
-        .login-title { font-family: 'Rajdhani', sans-serif; font-size: 5rem; font-weight: 800; color: #fff; margin-bottom: 40px; text-shadow: 0 0 40px rgba(0,255,204,0.6); }
-        .login-input { width: 100%; padding: 20px 30px; font-size: 1.3rem; background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.15); color: #fff; border-radius: 15px; margin-bottom: 25px; text-align: center; transition: 0.3s; }
-        .login-input:focus { border-color: #00ffcc; outline: none; box-shadow: 0 0 25px rgba(0, 255, 204, 0.2); }
-        .login-btn { width: 100%; padding: 20px; font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg, #00b894, #00cec9); border: none; border-radius: 15px; color: #00332c; cursor: pointer; transition: 0.2s; box-shadow: 0 10px 30px rgba(0, 184, 148, 0.3); }
+        .login-title { font-family: 'Rajdhani', sans-serif; font-size: 5rem; font-weight: 800; color: var(--text-strong); margin-bottom: 40px; text-shadow: 0 0 40px rgba(0,255,204,0.6); }
+        .login-input { width: 100%; padding: 20px 30px; font-size: 1.3rem; background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.15); color: var(--text-strong); border-radius: 15px; margin-bottom: 25px; text-align: center; transition: 0.3s; }
+        .login-input:focus { border-color: var(--mint-bright); outline: none; box-shadow: 0 0 25px rgba(0, 255, 204, 0.2); }
+        .login-btn { width: 100%; padding: 20px; font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg, var(--teal-0), var(--teal-1)); border: none; border-radius: 15px; color: var(--ink-teal); cursor: pointer; transition: 0.2s; box-shadow: 0 10px 30px rgba(0, 184, 148, 0.3); }
         .login-btn:hover { transform: scale(1.03); filter: brightness(1.1); }
 
         @media (max-width: 1024px) {
@@ -288,7 +295,7 @@
         <div id="login-overlay">
         <div class="login-box">
             <div class="login-title">🎲 YACHT</div>
-            <div style="margin-bottom:15px; color:#aaa; font-size:1.1em;">오늘의 닉네임은 무엇인가요?</div>
+            <div style="margin-bottom:15px; color:var(--muted); font-size:1.1em;">오늘의 닉네임은 무엇인가요?</div>
             <input type="text" id="login-username" class="login-input" placeholder="Player Name" maxlength="12" autocomplete="nickname" autocapitalize="off" spellcheck="false" autofocus>
             <button class="login-btn" onclick="submitLogin()">GAME START</button>
             <button class="btn-mini btn-i" style="width:100%; margin-top:12px; padding:16px 20px; font-size:1rem;" onclick="window.location.href='/intro'">📘 게임 소개 보기</button>
@@ -297,10 +304,10 @@
 
     <div class="lobby-container">
         <div class="header-area">
-            <div class="title">🎲 YACHT <span style="font-size:0.5em; color:#aaa; vertical-align:middle;">ONLINE</span></div>
+            <div class="title">🎲 YACHT <span style="font-size:0.5em; color:var(--muted); vertical-align:middle;">ONLINE</span></div>
             <div class="control-bar">
                 <div class="user-badge">
-                    <span style="font-size:0.9em; color:#aaa;">PLAYER</span>
+                    <span style="font-size:0.9em; color:var(--muted);">PLAYER</span>
                     <span id="display-username" class="user-name-display">Guest</span>
                     <button class="btn-logout" onclick="logout()" aria-label="로그아웃">✕</button>
                 </div>
@@ -348,16 +355,16 @@
                     <div class="panel-header">📊 서버 상태</div>
                     <div class="panel-body">
                         <div class="status-row">
-                            <div class="status-label"><span>Active Users</span> <span id="online-count" style="color:#fff; font-weight:700;">-</span></div>
+                            <div class="status-label"><span>Active Users</span> <span id="online-count" style="color:var(--text-strong); font-weight:700;">-</span></div>
                         </div>
                         <div class="status-row">
-                            <div class="status-label"><span>Active Games</span> <span id="active-rooms" style="color:#fff; font-weight:700;">-</span></div>
+                            <div class="status-label"><span>Active Games</span> <span id="active-rooms" style="color:var(--text-strong); font-weight:700;">-</span></div>
                         </div>
                         <div class="status-row">
                             <div class="status-label">
                                 <span>
                                     <span>CPU Usage</span>
-                                    <span id="cpu-model" style="display:block; font-size:0.75em; color:#888; font-weight:400;"></span>
+                                    <span id="cpu-model" style="display:block; font-size:0.75em; color:var(--muted-3); font-weight:400;"></span>
                                 </span>
                                 <span id="cpu-usage">-</span>
                             </div>
@@ -368,7 +375,7 @@
                                 <span>Memory</span> 
                                 <div style="text-align:right;">
                                     <span id="memory-usage" style="display:block;">-</span>
-                                    <span id="memory-actual" style="font-size:0.75em; color:#888; font-weight:400;"></span>
+                                    <span id="memory-actual" style="font-size:0.75em; color:var(--muted-3); font-weight:400;"></span>
                                 </div>
                             </div>
                             <div class="bar-bg"><div class="bar-fill" id="memory-bar"></div></div>
@@ -378,12 +385,12 @@
                                 <span>AI Recommend</span>
                                 <div style="text-align:right;">
                                     <span id="ai-latency" style="display:block;">-</span>
-                                    <span id="ai-cache" style="font-size:0.75em; color:#888; font-weight:400;"></span>
+                                    <span id="ai-cache" style="font-size:0.75em; color:var(--muted-3); font-weight:400;"></span>
                                 </div>
                             </div>
-                            <div id="ai-slow-list" style="display:flex; flex-direction:column; gap:6px; margin-top:8px; font-size:0.74em; color:#8d98a7;"></div>
+                            <div id="ai-slow-list" style="display:flex; flex-direction:column; gap:6px; margin-top:8px; font-size:0.74em; color:var(--muted-2);"></div>
                         </div>
-                        <div style="margin-top:15px; text-align:center; font-size:0.75em; color:#555; font-family:'Rajdhani'">ID: <span id="client-id-disp">...</span></div>
+                        <div style="margin-top:15px; text-align:center; font-size:0.75em; color:var(--muted-3); font-family:'Rajdhani'">ID: <span id="client-id-disp">...</span></div>
                     </div>
                 </div>
             </div>
@@ -392,7 +399,7 @@
                 <div class="panel">
                     <div class="panel-header">
                         <span>📜 대기실 목록</span>
-                        <span style="font-size:0.8em; color:#aaa; font-weight:400;">Real-time</span>
+                        <span style="font-size:0.8em; color:var(--muted); font-weight:400;">Real-time</span>
                     </div>
                     <div class="panel-body" id="room-list">
                         <div class="empty-state">
@@ -437,11 +444,11 @@
             </div>
 
         </div>
-        <div id="error" style="color:#ff6b6b; text-align:center; margin-top:10px; font-weight:bold;"></div>
+        <div id="error" style="color:var(--danger); text-align:center; margin-top:10px; font-weight:bold;"></div>
     </div>
 
     <footer style="position:fixed; bottom:15px; width:100%; text-align:center; pointer-events:auto;">
-        <span style="background:rgba(0,0,0,0.6); padding:5px 15px; border-radius:20px; color:#555; font-size:0.8em;">Developed by <a href="https://kimcanal.github.io/" target="_blank" style="color:#00ffcc; text-decoration:none; font-weight:600;">kimcanal</a></span>
+        <span style="background:rgba(0,0,0,0.6); padding:5px 15px; border-radius:20px; color:var(--muted-3); font-size:0.8em;">Developed by <a href="https://kimcanal.github.io/" target="_blank" style="color:var(--mint-bright); text-decoration:none; font-weight:600;">kimcanal</a></span>
     </footer>
 
     <script>
@@ -509,7 +516,7 @@
                     const normalized = entry === 'W' ? 'win' : entry === 'L' ? 'loss' : 'draw';
                     return `<span class="form-pill ${normalized}">${entry}</span>`;
                 }).join('')
-                : '<span style="color:#8d98a7; font-size:0.82em;">아직 멀티 경기 기록이 없습니다.</span>';
+                : '<span style="color:var(--muted-2); font-size:0.82em;">아직 멀티 경기 기록이 없습니다.</span>';
 
             root.className = 'spotlight-card';
             root.innerHTML = `
@@ -661,8 +668,8 @@
                     const rawName = (u.username && u.username !== 'undefined') ? u.username : '익명';
                     const name = escapeHtml(rawName);
                     const isMe = rawName === myUsername;
-                    const nameColor = isMe ? '#ffd700' : '#00ffcc';
-                    const meLabel = isMe ? '<span style="color:#aaa; font-size:0.8em; margin-left:4px;">(나)</span>' : '';
+                    const nameColor = isMe ? 'var(--gold-strong)' : 'var(--mint-bright)';
+                    const meLabel = isMe ? '<span style="color:var(--muted); font-size:0.8em; margin-left:4px;">(나)</span>' : '';
                     
                     let statusBadge = '';
                     if(u.status === '게임중') statusBadge = '<span class="status-badge badge-game">게임중</span>';
@@ -693,8 +700,8 @@
                     const observerCount = Number(r.observer_count || 0);
                     const roomPhase = r.room_phase || (isFull ? 'playing' : 'waiting');
                     let pInfo = r.players.length === 0 ? '대기 중' :
-                                r.players.length === 1 ? `<span style="color:#00ffcc">${escapeHtml(r.players[0])}</span>` :
-                                `<span style="color:#00ffcc">${escapeHtml(r.players[0])}</span> vs <span style="color:#ff6b6b">${escapeHtml(r.players[1])}</span>`;
+                                r.players.length === 1 ? `<span style="color:var(--mint-bright)">${escapeHtml(r.players[0])}</span>` :
+                                `<span style="color:var(--mint-bright)">${escapeHtml(r.players[0])}</span> vs <span style="color:var(--danger)">${escapeHtml(r.players[1])}</span>`;
                     const phaseLabel = roomPhase === 'playing' ? '진행 중' : (roomPhase === 'finished' ? '종료됨' : '대기 중');
                     const audienceBadge = observerCount > 0 ? `<span class="status-badge badge-watch">관전자 ${observerCount}</span>` : '';
                     
@@ -710,7 +717,7 @@
                         </div>
                         <div class="room-action">
                             ${isFull 
-                                ? `<button class="btn-mini" style="background:#e17055; padding:6px 12px; font-size:0.8em;" onclick="joinAsObserver('${r.code}')">👁️ 관전</button>`
+                                ? `<button class="btn-mini" style="background:var(--orange); padding:6px 12px; font-size:0.8em;" onclick="joinAsObserver('${r.code}')">👁️ 관전</button>`
                                 : `<button class="btn-mini btn-s" style="padding:6px 12px; font-size:0.8em;" onclick="joinRoom('${r.code}')">참가</button>`
                             }
                         </div>
@@ -792,8 +799,8 @@
                     
                     return `
                     <div class="leaderboard-item${clickableClass}${selectedClass}" ${clickAttr}>
-                        <div style="font-weight:500; color:#eee;"><span class="rank-badge">${i+1}</span> ${escapeHtml(u.username)}</div>
-                        <div style="color:#aaa; font-family:'Rajdhani'">${detail}</div>
+                        <div style="font-weight:500; color:var(--text);"><span class="rank-badge">${i+1}</span> ${escapeHtml(u.username)}</div>
+                        <div style="color:var(--muted); font-family:'Rajdhani'">${detail}</div>
                     </div>`;
                 }).join('');
                 if (currentRankMode === 'multi') refreshPlayerSpotlight();
@@ -867,7 +874,7 @@
                 const slowRoot = document.getElementById('ai-slow-list');
                 if (slowRoot) {
                     if (!slowSamples.length) {
-                        slowRoot.innerHTML = '<div style="color:#666;">최근 느린 케이스 없음</div>';
+                        slowRoot.innerHTML = '<div style="color:var(--muted-3);">최근 느린 케이스 없음</div>';
                     } else {
                         slowRoot.innerHTML = slowSamples.slice(0, 3).map((sample) => {
                             const elapsed = Number(sample.elapsed_ms || 0).toFixed(0);
@@ -879,8 +886,8 @@
                             const openSlots = escapeHtml(sample.open_slots ?? '-');
                             return `
                                 <div style="padding-top:6px; border-top:1px solid rgba(255,255,255,0.06);">
-                                    <div><span style="color:#ffb86b;">${elapsed}ms</span> · ${stage} · ${mode}${target}</div>
-                                    <div style="margin-top:2px; color:#6f7d8d;">[${escapeHtml(dice)}] / roll ${rollsLeft} / open ${openSlots}</div>
+                                    <div><span style="color:var(--warning-soft);">${elapsed}ms</span> · ${stage} · ${mode}${target}</div>
+                                    <div style="margin-top:2px; color:var(--muted-3);">[${escapeHtml(dice)}] / roll ${rollsLeft} / open ${openSlots}</div>
                                 </div>
                             `;
                         }).join('');

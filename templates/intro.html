@@ -6,7 +6,7 @@
     <title>🎲 Yacht - 게임 소개</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260708-2') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260708-3') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -66,8 +66,8 @@
             background: rgba(99, 245, 210, 0.12);
         }
         .btn-primary {
-            color: #042820;
-            background: linear-gradient(135deg, var(--mint), #7fd0ff);
+            color: var(--ink-mint);
+            background: linear-gradient(135deg, var(--mint), var(--sky-soft));
             border: none;
             box-shadow: 0 10px 30px rgba(99, 245, 210, 0.2);
         }
@@ -167,7 +167,7 @@
         }
         .stat-sub {
             margin-top: 8px;
-            color: #b9c7da;
+            color: var(--text-cool);
             font-size: 0.84rem;
             line-height: 1.5;
         }
@@ -193,8 +193,8 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: #032d24;
-            background: linear-gradient(135deg, #63f5d2, #ffd36b);
+            color: var(--ink-deep);
+            background: linear-gradient(135deg, var(--mint), var(--gold));
             font-weight: 800;
         }
         .section-grid {
@@ -239,7 +239,7 @@
         }
         .section-note {
             margin-top: 14px;
-            color: #c7d6eb;
+            color: var(--text-faint);
             line-height: 1.7;
             font-size: 0.95rem;
         }

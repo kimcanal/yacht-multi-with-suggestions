@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎲 Yacht - Single Player</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260708-2') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260708-3') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -180,7 +180,7 @@
             .dice-area { padding: 16px 10px !important; border-radius: 18px !important; margin-bottom: 16px !important; }
             .scorecard-area { padding: 16px 10px !important; border-radius: 18px !important; }
             .controls { flex-wrap: wrap; gap: 10px !important; margin-bottom: 18px !important; }
-            .controls .btn { flex: 1 1 calc(50% - 6px); min-width: 130px; padding: 11px 14px !important; font-size: 0.98rem !important; }
+            .controls .btn { flex: 1 1 calc(50% - 6px); min-width: min(130px, 100%); padding: 11px 14px !important; font-size: 0.98rem !important; }
             .rolls-remaining { font-size: 1.2rem; }
         }
         /* UX readability refresh */
