@@ -9,19 +9,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260708-1') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --bg-0: #060814;
-            --bg-1: #101a34;
-            --panel: rgba(10, 14, 28, 0.72);
-            --panel-strong: rgba(16, 24, 45, 0.88);
-            --line: rgba(140, 196, 255, 0.18);
-            --mint: #63f5d2;
-            --mint-soft: rgba(99, 245, 210, 0.14);
-            --gold: #ffd36b;
-            --sky: #85c6ff;
-            --text: #eef4ff;
-            --muted: #9fb2cd;
-        }
         body {
             min-height: 100vh;
             font-family: 'Pretendard', sans-serif;
@@ -50,7 +37,7 @@
             font-weight: 700;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: #fff;
+            color: var(--text-strong);
             text-shadow: 0 0 28px rgba(99, 245, 210, 0.35);
         }
         .topbar-actions {
@@ -80,7 +67,7 @@
         }
         .btn-primary {
             color: #042820;
-            background: linear-gradient(135deg, #63f5d2, #7fd0ff);
+            background: linear-gradient(135deg, var(--mint), #7fd0ff);
             border: none;
             box-shadow: 0 10px 30px rgba(99, 245, 210, 0.2);
         }
@@ -149,7 +136,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            color: #fff;
+            color: var(--text-strong);
             font-size: 1.12rem;
             font-weight: 700;
             margin-bottom: 14px;
@@ -175,7 +162,7 @@
         .stat-value {
             font-family: 'Rajdhani', sans-serif;
             font-size: 2rem;
-            color: #fff;
+            color: var(--text-strong);
             line-height: 1;
         }
         .stat-sub {
@@ -197,7 +184,7 @@
         .timeline-step strong {
             display: block;
             margin-bottom: 5px;
-            color: #fff;
+            color: var(--text-strong);
         }
         .step-no {
             width: 34px;
@@ -235,7 +222,7 @@
         .score-item strong {
             display: block;
             margin-bottom: 6px;
-            color: #fff;
+            color: var(--text-strong);
         }
         .feature p,
         .rule-item p,
@@ -272,7 +259,7 @@
             color: var(--muted);
             line-height: 1.65;
         }
-        @media (max-width: 980px) {
+        @media (max-width: 1024px) {
             .hero-grid,
             .section-grid,
             .rule-list,
@@ -283,7 +270,7 @@
                 grid-template-columns: 1fr;
             }
         }
-        @media (max-width: 720px) {
+        @media (max-width: 768px) {
             .page-shell {
                 width: min(100vw, calc(100vw - 20px));
                 padding-top: 18px;
