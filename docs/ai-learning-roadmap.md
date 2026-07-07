@@ -141,3 +141,26 @@ python3 scripts/eval_value_distribution_baselines.py \
 2-state distribution-data smoke에서는 `empty`와 `yacht_bonus_active` preset을 각각 4회 rollout했다. 출력 JSONL은 `target_remaining_mean/stdev/p10/p50/p90` 컬럼을 포함했고, `target_remaining_p10`을 대상으로 한 선형 baseline smoke도 정상 동작했다.
 
 `train_value_distribution_baselines.py`와 `eval_value_distribution_baselines.py`는 p10/p50/p90/mean/stdev/upper-bonus-rate를 한 번에 학습/평가한다. 평가 리포트는 target별 MAE/RMSE와 predicted quantile 순서 위반 비율을 함께 본다.
+
+## Exact Endgame Value Table
+
+score stage 휴리스틱을 장기 가치와 정면 비교하기 위해 후반 endgame value table을 오프라인 artifact로 만든다. 키는 README의 12턴 value DP 실험과 동일하게 `closed_mask:upper_total:yacht_bonus_available`이다.
+
+```bash
+python3 scripts/build_value_table.py \
+  --batch-open-count 3 \
+  --output artifacts/value/endgame-value-table-open3.json \
+  --max-states 40000
+
+python3 scripts/build_value_table.py \
+  --batch-open-count 4 \
+  --output artifacts/value/endgame-value-table-open4.json \
+  --max-states 110000
+```
+
+측정 결과:
+
+- open3: 38,272 states, 81.881초, artifact 약 1.0MB
+- open4: 101,632 states, 245.353초, artifact 약 2.7MB
+
+N=4는 실시간 요청 중 계산할 대상은 아니지만, 오프라인으로 만들어두고 score stage의 `즉시 점수 + V(next_state)` 실험에 쓰기에는 현실적인 크기다.

@@ -12,12 +12,15 @@ full horizon and can be expensive.
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import math
 import sys
 import time
 from functools import lru_cache
 from pathlib import Path
+
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -34,6 +37,7 @@ from yacht_ai.scoring import (
 
 YACHT_IDX = CATS["Yacht"]
 ALL_CLOSED_MASK = (1 << len(CATEGORY_NAMES)) - 1
+DICE_INDEX = {dice: idx for idx, dice in enumerate(DICE_STATES)}
 
 
 class StateLimitReached(RuntimeError):
@@ -53,6 +57,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--yacht-bonus", action="store_true", help="start with Yacht bonus available")
     parser.add_argument("--output", default="", help="optional JSON artifact path")
     parser.add_argument("--sample-states", type=int, default=20, help="number of computed states to store in JSON")
+    parser.add_argument(
+        "--batch-open-count",
+        type=int,
+        default=None,
+        help="compute every state with at most this many open categories and write a full value table",
+    )
+    parser.add_argument("--progress-every", type=int, default=0, help="print batch progress every N start states")
     return parser.parse_args()
 
 
@@ -147,20 +158,132 @@ def mask_from_open_arg(open_arg: str) -> int:
     return mask
 
 
-def build_value_table_from_state(
-    start_mask: int,
-    start_upper_total: int,
-    start_yacht_bonus: bool,
+def iter_endgame_states(max_open_count: int):
+    bounded_open = max(0, min(len(CATEGORY_NAMES), int(max_open_count)))
+    category_indices = tuple(range(len(CATEGORY_NAMES)))
+    for open_count in range(bounded_open + 1):
+        for open_idxs in itertools.combinations(category_indices, open_count):
+            mask = ALL_CLOSED_MASK
+            for idx in open_idxs:
+                mask &= ~(1 << idx)
+            for upper_total in range(64):
+                yield (mask, upper_total, False)
+                yield (mask, upper_total, True)
+
+
+def summarize_open_counts(values: dict[tuple[int, int, bool], float]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for mask, _upper_total, _yacht_bonus_available in values:
+        open_count = len(open_categories(mask))
+        key = str(open_count)
+        counts[key] = counts.get(key, 0) + 1
+    return dict(sorted(counts.items(), key=lambda item: int(item[0])))
+
+
+def build_batch_roll_context():
+    keep_tuples = tuple(
+        itertools.combinations_with_replacement(range(1, 7), keep_size)
+        for keep_size in range(6)
+    )
+    keep_tuples = tuple(itertools.chain.from_iterable(keep_tuples))
+    keep_index = {kept_tuple: idx for idx, kept_tuple in enumerate(keep_tuples)}
+    transition_matrix = np.zeros((len(keep_tuples), len(DICE_STATES)), dtype=np.float64)
+    for kept_tuple, keep_idx in keep_index.items():
+        for next_dice, prob in get_transition_distribution(kept_tuple):
+            transition_matrix[keep_idx, DICE_INDEX[next_dice]] += prob
+
+    allowed_keep_indices = [
+        np.asarray([keep_index[kept_tuple] for kept_tuple in get_keep_options(dice)], dtype=np.int32)
+        for dice in DICE_STATES
+    ]
+    initial_probs = np.zeros(len(DICE_STATES), dtype=np.float64)
+    for dice, prob in get_outcomes_probs(5):
+        initial_probs[DICE_INDEX[dice]] = prob
+    return {
+        "transition_matrix": transition_matrix,
+        "allowed_keep_indices": allowed_keep_indices,
+        "initial_probs": initial_probs,
+    }
+
+
+def exact_fresh_turn_ev_from_terminal(terminal_values, roll_context) -> float:
+    terminal = np.asarray(terminal_values, dtype=np.float64)
+    current = terminal
+    transition_matrix = roll_context["transition_matrix"]
+    allowed_keep_indices = roll_context["allowed_keep_indices"]
+    for _roll in range(2):
+        expected_by_keep = transition_matrix @ current
+        next_values = np.empty_like(current)
+        for dice_idx, keep_indices in enumerate(allowed_keep_indices):
+            next_values[dice_idx] = max(terminal[dice_idx], float(np.max(expected_by_keep[keep_indices])))
+        current = next_values
+    return float(roll_context["initial_probs"] @ current)
+
+
+def build_exact_endgame_batch_table(
+    max_open_count: int,
+    max_states: int,
+    progress_every: int = 0,
+) -> dict[tuple[int, int, bool], float]:
+    bounded_open = max(0, min(len(CATEGORY_NAMES), int(max_open_count)))
+    value_cache: dict[tuple[int, int, bool], float] = {}
+    roll_context = build_batch_roll_context()
+    total_start_states = sum(1 for _state in iter_endgame_states(bounded_open))
+    processed = 0
+
+    for open_count in range(bounded_open + 1):
+        masks = []
+        for open_idxs in itertools.combinations(range(len(CATEGORY_NAMES)), open_count):
+            mask = ALL_CLOSED_MASK
+            for idx in open_idxs:
+                mask &= ~(1 << idx)
+            masks.append(mask)
+
+        for mask in masks:
+            cats = open_categories(mask)
+            for upper_total in range(64):
+                for yacht_bonus_available in (False, True):
+                    state = (mask, upper_total, yacht_bonus_available)
+                    if state in value_cache:
+                        processed += 1
+                        continue
+                    if len(value_cache) >= max_states:
+                        raise StateLimitReached(f"state limit reached: {max_states}")
+                    if not cats:
+                        value_cache[state] = 0.0
+                    else:
+                        terminal_values = np.empty(len(DICE_STATES), dtype=np.float64)
+                        for dice_idx, dice in enumerate(DICE_STATES):
+                            best_value = float("-inf")
+                            for category_idx in cats:
+                                gain, next_state = score_transition(
+                                    mask,
+                                    upper_total,
+                                    yacht_bonus_available,
+                                    dice,
+                                    category_idx,
+                                )
+                                best_value = max(best_value, gain + value_cache[next_state])
+                            terminal_values[dice_idx] = best_value
+                        value_cache[state] = exact_fresh_turn_ev_from_terminal(terminal_values, roll_context)
+                    processed += 1
+                    if progress_every and (processed % progress_every == 0 or processed == total_start_states):
+                        print(f"[value-table] start_states={processed}/{total_start_states} computed_states={len(value_cache)}")
+    return value_cache
+
+
+def build_value_table_for_states(
+    start_states,
     max_exact_open: int,
     max_states: int,
-) -> tuple[dict[tuple[int, int, bool], float], float]:
+    progress_every: int = 0,
+) -> tuple[dict[tuple[int, int, bool], float], dict[tuple[int, int, bool], float]]:
     value_cache: dict[tuple[int, int, bool], float] = {}
 
     def value(mask: int, upper_total: int, yacht_bonus_available: bool) -> float:
-        state = (mask, upper_total, yacht_bonus_available)
-        cached = value_cache.get(state)
-        if cached is not None:
-            return cached
+        state = (mask, max(0, min(63, upper_total)), bool(yacht_bonus_available))
+        if state in value_cache:
+            return value_cache[state]
         if len(value_cache) >= max_states:
             raise StateLimitReached(f"state limit reached: {max_states}")
         if mask == ALL_CLOSED_MASK:
@@ -202,8 +325,31 @@ def build_value_table_from_state(
         value_cache[state] = turn_ev
         return turn_ev
 
-    start_value = value(start_mask, max(0, min(63, start_upper_total)), start_yacht_bonus)
-    return value_cache, start_value
+    start_values = {}
+    total_states = len(start_states) if hasattr(start_states, "__len__") else None
+    for index, state in enumerate(start_states, start=1):
+        normalized_state = (state[0], max(0, min(63, state[1])), bool(state[2]))
+        start_values[normalized_state] = value(*normalized_state)
+        if progress_every and (index % progress_every == 0 or index == total_states):
+            total_label = total_states if total_states is not None else "?"
+            print(f"[value-table] start_states={index}/{total_label} computed_states={len(value_cache)}")
+    return value_cache, start_values
+
+
+def build_value_table_from_state(
+    start_mask: int,
+    start_upper_total: int,
+    start_yacht_bonus: bool,
+    max_exact_open: int,
+    max_states: int,
+) -> tuple[dict[tuple[int, int, bool], float], float]:
+    start_state = (start_mask, start_upper_total, start_yacht_bonus)
+    value_cache, start_values = build_value_table_for_states(
+        [start_state],
+        max_exact_open,
+        max_states,
+    )
+    return value_cache, start_values[(start_mask, max(0, min(63, start_upper_total)), bool(start_yacht_bonus))]
 
 
 def encode_state(state: tuple[int, int, bool]) -> str:
@@ -211,9 +357,64 @@ def encode_state(state: tuple[int, int, bool]) -> str:
     return f"{mask}:{upper_total}:{1 if yacht_bonus_available else 0}"
 
 
+def build_batch_payload(args: argparse.Namespace, started: float) -> dict:
+    batch_open_count = max(0, min(len(CATEGORY_NAMES), int(args.batch_open_count)))
+    values = build_exact_endgame_batch_table(
+        batch_open_count,
+        args.max_states,
+        progress_every=max(0, args.progress_every),
+    )
+    elapsed_s = time.perf_counter() - started
+    encoded_values = {
+        encode_state(state): round(value, 6)
+        for state, value in sorted(values.items())
+    }
+    return {
+        "status": "ok",
+        "table_type": "endgame_exact_value_table",
+        "batch_open_count": batch_open_count,
+        "max_exact_open": batch_open_count,
+        "max_states": args.max_states,
+        "computed_states": len(values),
+        "requested_start_states": len(values),
+        "start_values": len(values),
+        "elapsed_seconds": round(elapsed_s, 3),
+        "state_encoding": "closed_mask:upper_total:yacht_bonus_available",
+        "upper_total_cap": 63,
+        "category_names": CATEGORY_NAMES,
+        "open_count_counts": summarize_open_counts(values),
+        "values": encoded_values,
+    }
+
+
 def main() -> None:
     args = parse_args()
     started = time.perf_counter()
+
+    if args.batch_open_count is not None:
+        try:
+            payload = build_batch_payload(args, started)
+        except StateLimitReached as exc:
+            payload = {
+                "status": "state_limit_reached",
+                "error": str(exc),
+                "batch_open_count": args.batch_open_count,
+                "max_states": args.max_states,
+                "elapsed_seconds": round(time.perf_counter() - started, 3),
+            }
+        preview = dict(payload)
+        if "values" in preview:
+            preview["values"] = f"<{len(payload['values'])} encoded states>"
+        print(json.dumps(preview, ensure_ascii=False, indent=2))
+
+        output_path = Path(args.output or f"artifacts/value/endgame-value-table-open{payload['batch_open_count']}.json")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"[value-table] wrote {payload.get('computed_states', 0)} states to {output_path}")
+        if payload["status"] != "ok":
+            raise SystemExit(2)
+        return
+
     status = "ok"
     error = None
     start_mask = mask_from_open_arg(args.open)

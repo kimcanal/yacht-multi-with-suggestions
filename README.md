@@ -161,9 +161,21 @@ python3 scripts/build_value_table.py \
   --open Fives,Sixes,Yacht \
   --upper-total 35 \
   --max-exact-open 3
+
+python3 scripts/build_value_table.py \
+  --batch-open-count 4 \
+  --output artifacts/value/endgame-value-table-open4.json \
+  --max-states 110000
 ```
 
-상태는 닫힌 점수칸 bitmask, 63점으로 cap한 상단 합계, Yacht Bonus 가능 여부로 압축합니다. 후반 1~3칸 exact endgame은 이 Xeon 환경에서 빠르게 계산되지만, 4칸 exact도 약 30초 수준이라 전체 12턴 full DP를 운영 요청마다 직접 계산하는 방식은 맞지 않습니다. 다음 단계는 이 스크립트로 value table을 오프라인 샤딩/캐싱하고, score stage의 휴리스틱을 `즉시 점수 + V(next_state)`와 비교하는 실험입니다.
+상태는 닫힌 점수칸 bitmask, 63점으로 cap한 상단 합계, Yacht Bonus 가능 여부로 압축합니다. 후반 1~3칸 exact endgame은 빠르게 계산되지만, 전체 12턴 full DP를 운영 요청마다 직접 계산하는 방식은 맞지 않습니다.
+
+현재 저장된 endgame artifact:
+
+- `artifacts/value/endgame-value-table-open3.json`: 열린 칸 3개 이하 38,272 states, 81.881초
+- `artifacts/value/endgame-value-table-open4.json`: 열린 칸 4개 이하 101,632 states, 245.353초
+
+다음 단계는 이 value table을 score stage에서 opt-in으로 조회해 휴리스틱을 `즉시 점수 + V(next_state)`와 비교하는 실험입니다.
 
 ### Roll policy 모델 버전
 

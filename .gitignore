@@ -10,8 +10,10 @@ nohup.out
 artifacts/*
 !artifacts/models/
 !artifacts/reports/
+!artifacts/value/
 artifacts/models/*
 artifacts/reports/*
+artifacts/value/*
 !artifacts/models/model-20260630-roll-policy-v1.json
 !artifacts/reports/model-20260630-roll-policy-v1.eval.json
 !artifacts/reports/model-20260630-roll-policy-v1.ev-gap.json
@@ -22,3 +24,5 @@ artifacts/reports/*
 !artifacts/reports/model-20260630-roll-policy-v2.runtime.json
 !artifacts/reports/roll-policy-full-game-focused-24.json
 !artifacts/reports/roll-policy-full-game-focused-100.json
+!artifacts/value/endgame-value-table-open3.json
+!artifacts/value/endgame-value-table-open4.json
