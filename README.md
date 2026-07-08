@@ -199,7 +199,7 @@ python3 server.py
 - value_score_only: 평균 177.650, 표준편차 44.7589, Upper Bonus 39.0%, paired delta 평균 +0.015점, 범위 -77~+104
 - open3-only score mode: 평균 177.155, Upper Bonus 35.5%, paired delta 평균 -0.480점
 
-전체 value mode는 평균과 Upper Bonus가 좋아졌지만 roll/keep 선택까지 바뀌면서 손실 케이스도 커진다. `value_score_only`는 더 보수적이고 Upper Bonus 페이스만 개선하지만 평균 개선은 거의 없다. 둘 다 아직 운영 기본값으로 승격하지 않고 opt-in 실험으로 둔다. 자세한 결과는 [docs/score-value-mode-focused-200.md](./docs/score-value-mode-focused-200.md), [docs/score-value-score-only-focused-200.md](./docs/score-value-score-only-focused-200.md)에 있습니다.
+전체 value mode는 평균과 Upper Bonus가 좋아졌지만 roll/keep 선택까지 바뀌면서 손실 케이스도 커진다. `value_score_only`는 더 보수적이고 Upper Bonus 페이스만 개선하지만 평균 개선은 거의 없다. 둘 다 아직 운영 기본값으로 승격하지 않고 opt-in 실험으로 둔다. 자세한 결과는 [docs/score-value-mode-focused-200.md](./docs/score-value-mode-focused-200.md), [docs/score-value-score-only-focused-200.md](./docs/score-value-score-only-focused-200.md), [docs/score-value-score-only-focused-200-analysis.md](./docs/score-value-score-only-focused-200-analysis.md)에 있습니다.
 
 초반 상태용 learned value 실험도 진행했지만, 현재 선형 baseline은 보류입니다. 256 self-play games / 3,072 samples로 재학습한 `scorecard-value-linear-v1`은 validation MAE 24.4397이고 전체 eval MAE 22.9456입니다. 그러나 `exact table → learned model → heuristic fallback` hybrid 모드는 200게임에서 평균 168.895점으로 heuristic 대비 -8.740점이었습니다. 따라서 learned value는 더 강한 uncertainty/turn별 guard 또는 비선형 모델 전까지 score-stage 기본 판단에 연결하지 않습니다.
 
