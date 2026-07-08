@@ -37,6 +37,9 @@ artifacts/value/*
 !artifacts/reports/self-play-value-focused-256.summary.json
 !artifacts/reports/scorecard-value-linear-v1.eval.json
 !artifacts/reports/score-value-hybrid-focused-200.json
+!artifacts/reports/ai-runtime-heuristic-cold.json
+!artifacts/reports/ai-runtime-value-optimal-cold.json
+!artifacts/reports/ai-runtime-value-optimal-warm.json
 !artifacts/value/endgame-value-table-open3.json
 !artifacts/value/endgame-value-table-open4.json
 !artifacts/value/endgame-value-table-open12.npz

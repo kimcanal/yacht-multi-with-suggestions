@@ -166,31 +166,25 @@ python3 scripts/build_value_table.py \
 
 N=12도 실시간 요청 중 계산할 대상은 아니지만, 오프라인 artifact로 만들면 런타임에서는 dense table lookup만 하면 된다.
 
-score stage value mode는 운영 기본값을 바꾸지 않는 opt-in 경로다.
+score stage value mode는 운영 기본값을 바꾸지 않는 opt-in 경로다. 기본 table 경로는 전체 12칸 dense artifact인 `artifacts/value/endgame-value-table-open12.npz`다.
 
 ```bash
-YACHT_SCORE_STAGE_MODE=value \
-YACHT_ENDGAME_VALUE_TABLE=artifacts/value/endgame-value-table-open4.json \
-python3 server.py
+YACHT_SCORE_STAGE_MODE=value python3 server.py
 ```
 
-full table에서 Focused/Cover 설명 UX를 걷어내고 순수 기대점수 최적 keep을 보려면 `value_optimal`을 쓴다.
+full table에서 Focused/Cover 설명 UX를 걷어내고 순수 기대점수 최적 keep을 보려면 서버 환경변수로 `value_optimal`을 쓰거나, 실제 서비스의 세 번째 전략 모드 `optimal`을 선택한다. API `strategy_mode: "optimal"`은 내부적으로 `score_value_mode=value_optimal`을 사용하며, 추천 근거에 기대 최종점수와 차선 대비 차이를 보여준다.
 
 ```bash
-YACHT_SCORE_STAGE_MODE=value_optimal \
-YACHT_ENDGAME_VALUE_TABLE=artifacts/value/endgame-value-table-open12.npz \
-python3 server.py
+YACHT_SCORE_STAGE_MODE=value_optimal python3 server.py
 ```
 
 roll/keep 판단은 유지하고 실제 점수 기록 순간만 exact V를 쓰는 좁은 모드는 `value_score_only`다.
 
 ```bash
-YACHT_SCORE_STAGE_MODE=value_score_only \
-YACHT_ENDGAME_VALUE_TABLE=artifacts/value/endgame-value-table-open4.json \
-python3 server.py
+YACHT_SCORE_STAGE_MODE=value_score_only python3 server.py
 ```
 
-table에 있는 후반 next state는 exact V를 쓰고, 아직 커버하지 못하는 초반 상태는 기존 휴리스틱으로 fallback한다. 이 단계에서는 learned value model을 연결하지 않는다.
+open12 table은 전체 scorecard 상태를 커버하므로 value 계열 모드는 초반부터 exact V(next_state)를 조회한다. 이전 open3/open4 JSON은 후반 endgame 실험용 historical artifact로 남긴다. 이 단계에서는 learned value model을 운영 경로에 연결하지 않는다.
 
 기존 `scripts/check_ai_golden.py`는 운영 기본값인 휴리스틱 추천을 고정하는 회귀 테스트다. value mode는 score-stage 결정을 의도적으로 바꿀 수 있으므로 별도 full-game A/B로 평가한다.
 
@@ -210,11 +204,19 @@ full open12 table indexed 200게임 결과:
 - `value_optimal`: 평균 198.645, heuristic 대비 +30.450, 95% CI +24.3329~+36.5671, one-sided p=8.64e-23, Upper Bonus 66.0%
 - `value_optimal` 평균은 full table 초기 상태 EV 198.358185와 거의 일치한다. 즉 full table이 기대점수 기준선 역할을 제대로 한다.
 
-결론: full-game exact V는 기존 휴리스틱 대비 명확한 기대점수 개선이다. 다만 `value_optimal`은 기존 Focused/Cover UX와 추천 성격이 크게 달라지므로 운영 기본값은 유지하고, UI 설명/전략 모드 재설계를 별도 단계로 둔다.
+결론: full-game exact V는 기존 휴리스틱 대비 명확한 기대점수 개선이다. 다만 `value_optimal`은 기존 Focused/Cover와 추천 성격이 다르므로 운영 기본값은 유지하고, 사용자가 직접 선택하는 `optimal` 전략 모드로 노출한다.
+
+대표 6개 추천 요청 런타임 벤치마크:
+
+- heuristic cold-cache: 평균 37.83~193.57ms
+- value-optimal cold-cache: 평균 58.54~140.25ms
+- value-optimal warm-cache: 평균 0.04~0.05ms
+
+결과 artifact는 `artifacts/reports/ai-runtime-heuristic-cold.json`, `artifacts/reports/ai-runtime-value-optimal-cold.json`, `artifacts/reports/ai-runtime-value-optimal-warm.json`이다. cold-cache는 solver DP 캐시를 매번 비우고, warm-cache는 각 시나리오를 prewarm한 뒤 측정한다.
 
 ## Learned Early Value Hybrid
 
-초반 미커버 상태를 채우기 위해 256 self-play games / 3,072 samples로 `scorecard-value-linear-v1`을 재학습했다.
+초반 미커버 상태를 채우기 위해 256 self-play games / 3,072 samples로 `scorecard-value-linear-v1`을 재학습했다. full-game exact table이 들어온 뒤 이 경로는 historical/experimental로 격리한다.
 
 - train: 2,458 examples, MAE 22.5723, RMSE 31.7251, R2 0.7613
 - validation: 614 examples, MAE 24.4397, RMSE 33.9404, R2 0.7295

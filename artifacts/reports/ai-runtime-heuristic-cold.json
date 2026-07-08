@@ -1,0 +1,74 @@
+{
+  "repeats": 5,
+  "warm_cache": false,
+  "score_value_mode": "heuristic",
+  "value_table": null,
+  "scenarios": [
+    {
+      "name": "straight_upgrade_focused",
+      "mode": "focused",
+      "rolls_left": 1,
+      "min_ms": 32.86758400099643,
+      "avg_ms": 37.83149160044559,
+      "max_ms": 49.114625000584056,
+      "message": "[1, 2, 3, 4] Keep (Large Straight 업그레이드)",
+      "summary": "집중 공략 추천: Large Straight 16.67%, 실패해도 Small Straight 유지",
+      "policy_source": "exact"
+    },
+    {
+      "name": "full_house_focus",
+      "mode": "focused",
+      "rolls_left": 2,
+      "min_ms": 78.87083300011,
+      "avg_ms": 84.47975840026629,
+      "max_ms": 90.45883399994636,
+      "message": "[6, 6, 5, 5] Keep (Full House 노리기)",
+      "summary": "집중 공략 추천: Full House 확률 55.56%",
+      "policy_source": "exact"
+    },
+    {
+      "name": "full_house_cover",
+      "mode": "cover",
+      "rolls_left": 2,
+      "min_ms": 138.50008299959882,
+      "avg_ms": 157.03798359973007,
+      "max_ms": 166.0377089992835,
+      "message": "[6, 6, 5, 5] Keep (커버 플레이)",
+      "summary": "커버 플레이: 핸드 하나 이상 55.56%, 전부 실패 44.44%",
+      "policy_source": ""
+    },
+    {
+      "name": "yacht_bonus_focused",
+      "mode": "focused",
+      "rolls_left": 2,
+      "min_ms": 121.51758400068502,
+      "avg_ms": 134.53945860055683,
+      "max_ms": 148.55250000073283,
+      "message": "[6, 6, 6] Keep (4 of a Kind 노리기)",
+      "summary": "집중 공략 추천: 4 of a Kind 확률 51.77%",
+      "policy_source": "exact"
+    },
+    {
+      "name": "yacht_bonus_cover",
+      "mode": "cover",
+      "rolls_left": 2,
+      "min_ms": 183.35687500075437,
+      "avg_ms": 193.57082480019017,
+      "max_ms": 205.5160830004752,
+      "message": "[6, 6, 6] Keep (커버 플레이)",
+      "summary": "커버 플레이: 핸드 하나 이상 69.14%, 전부 실패 30.86%",
+      "policy_source": ""
+    },
+    {
+      "name": "upper_bonus_finish_focused",
+      "mode": "focused",
+      "rolls_left": 2,
+      "min_ms": 61.31570900106453,
+      "avg_ms": 66.98850020002283,
+      "max_ms": 75.15595799850416,
+      "message": "[6, 6, 6] Keep (Sixes 노리기)",
+      "summary": "상단 보너스 추천: Sixes 평가 99.7, 이번 턴 보너스 마감권",
+      "policy_source": "exact"
+    }
+  ]
+}

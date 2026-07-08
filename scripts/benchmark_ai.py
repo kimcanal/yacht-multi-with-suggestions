@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import statistics
 import sys
 import time
@@ -60,10 +61,29 @@ SCENARIOS = [
         "scorecard": [3, 6, 9, 12, 15, None, None, None, None, None, None, None],
     },
 ]
-def run_case(case: dict, repeats: int, warm_cache: bool) -> tuple[float, float, float, str]:
+def run_case(
+    case: dict,
+    repeats: int,
+    warm_cache: bool,
+    score_value_mode: str | None,
+    value_table: str | None,
+) -> dict:
     timings = []
     message = ""
+    summary = ""
+    policy_source = ""
     open_categories = [i for i, value in enumerate(case["scorecard"]) if value is None]
+    if warm_cache:
+        yacht_engine.clear_solver_cache()
+        yacht_engine.solve_best_move(
+            case["dice"],
+            case["rolls_left"],
+            open_categories,
+            case["mode"],
+            case["scorecard"],
+            score_value_mode=score_value_mode,
+            endgame_value_table_path=value_table,
+        )
     for _ in range(repeats):
         if not warm_cache:
             yacht_engine.clear_solver_cache()
@@ -74,27 +94,62 @@ def run_case(case: dict, repeats: int, warm_cache: bool) -> tuple[float, float, 
             open_categories,
             case["mode"],
             case["scorecard"],
+            score_value_mode=score_value_mode,
+            endgame_value_table_path=value_table,
         )
         timings.append((time.perf_counter() - started) * 1000)
         message = result.get("message", "")
-    return min(timings), statistics.mean(timings), max(timings), message
+        summary = result.get("summary", "")
+        policy_source = result.get("policy_source", "")
+    return {
+        "name": case["name"],
+        "mode": case["mode"],
+        "rolls_left": case["rolls_left"],
+        "min_ms": min(timings),
+        "avg_ms": statistics.mean(timings),
+        "max_ms": max(timings),
+        "message": message,
+        "summary": summary,
+        "policy_source": policy_source,
+    }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repeats", type=int, default=5, help="number of runs per scenario")
     parser.add_argument("--warm-cache", action="store_true", help="measure repeated hot-cache calls instead of cold calls")
+    parser.add_argument("--score-value-mode", default=None, help="solver score value mode, for example value_optimal")
+    parser.add_argument("--value-table", default=None, help="path to an endgame/full-game value table")
+    parser.add_argument("--output", default=None, help="optional JSON report path")
     args = parser.parse_args()
 
     mode_label = "warm-cache" if args.warm_cache else "cold-cache"
-    print(f"Benchmarking {len(SCENARIOS)} AI scenarios, repeats={args.repeats}, mode={mode_label}")
+    print(
+        f"Benchmarking {len(SCENARIOS)} AI scenarios, repeats={args.repeats}, mode={mode_label}, "
+        f"score_value_mode={args.score_value_mode or 'heuristic'}"
+    )
+    results = []
     for case in SCENARIOS:
-        best, avg, worst, message = run_case(case, args.repeats, args.warm_cache)
+        result = run_case(case, args.repeats, args.warm_cache, args.score_value_mode, args.value_table)
+        results.append(result)
         print(
             f"- {case['name']}: mode={case['mode']} rolls={case['rolls_left']} "
-            f"min={best:.2f}ms avg={avg:.2f}ms max={worst:.2f}ms"
+            f"min={result['min_ms']:.2f}ms avg={result['avg_ms']:.2f}ms max={result['max_ms']:.2f}ms"
         )
-        print(f"  recommendation: {message}")
+        print(f"  recommendation: {result['message']}")
+
+    if args.output:
+        payload = {
+            "repeats": args.repeats,
+            "warm_cache": args.warm_cache,
+            "score_value_mode": args.score_value_mode or "heuristic",
+            "value_table": args.value_table,
+            "scenarios": results,
+        }
+        output_path = Path(args.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"Wrote {output_path}")
 
 
 if __name__ == "__main__":
