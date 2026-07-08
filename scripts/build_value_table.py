@@ -56,6 +56,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--upper-total", type=int, default=0, help="starting capped upper total")
     parser.add_argument("--yacht-bonus", action="store_true", help="start with Yacht bonus available")
     parser.add_argument("--output", default="", help="optional JSON artifact path")
+    parser.add_argument(
+        "--output-format",
+        choices=("auto", "json", "npz"),
+        default="auto",
+        help="batch output format; auto uses .npz suffix for dense numpy artifacts",
+    )
     parser.add_argument("--sample-states", type=int, default=20, help="number of computed states to store in JSON")
     parser.add_argument(
         "--batch-open-count",
@@ -357,18 +363,20 @@ def encode_state(state: tuple[int, int, bool]) -> str:
     return f"{mask}:{upper_total}:{1 if yacht_bonus_available else 0}"
 
 
-def build_batch_payload(args: argparse.Namespace, started: float) -> dict:
-    batch_open_count = max(0, min(len(CATEGORY_NAMES), int(args.batch_open_count)))
-    values = build_exact_endgame_batch_table(
-        batch_open_count,
-        args.max_states,
-        progress_every=max(0, args.progress_every),
-    )
+def dense_values_from_cache(values: dict[tuple[int, int, bool], float]) -> np.ndarray:
+    dense = np.full((1 << len(CATEGORY_NAMES), 64, 2), np.nan, dtype=np.float32)
+    for (mask, upper_total, yacht_bonus_available), value in values.items():
+        dense[int(mask), max(0, min(63, int(upper_total))), 1 if yacht_bonus_available else 0] = float(value)
+    return dense
+
+
+def batch_metadata(
+    args: argparse.Namespace,
+    started: float,
+    values: dict[tuple[int, int, bool], float],
+    batch_open_count: int,
+) -> dict:
     elapsed_s = time.perf_counter() - started
-    encoded_values = {
-        encode_state(state): round(value, 6)
-        for state, value in sorted(values.items())
-    }
     return {
         "status": "ok",
         "table_type": "endgame_exact_value_table",
@@ -383,8 +391,46 @@ def build_batch_payload(args: argparse.Namespace, started: float) -> dict:
         "upper_total_cap": 63,
         "category_names": CATEGORY_NAMES,
         "open_count_counts": summarize_open_counts(values),
-        "values": encoded_values,
     }
+
+
+def build_batch_payload(args: argparse.Namespace, started: float) -> tuple[dict, dict[tuple[int, int, bool], float]]:
+    batch_open_count = max(0, min(len(CATEGORY_NAMES), int(args.batch_open_count)))
+    values = build_exact_endgame_batch_table(
+        batch_open_count,
+        args.max_states,
+        progress_every=max(0, args.progress_every),
+    )
+    payload = batch_metadata(args, started, values, batch_open_count)
+    encoded_values = {
+        encode_state(state): round(value, 6)
+        for state, value in sorted(values.items())
+    }
+    payload["values"] = encoded_values
+    return payload, values
+
+
+def resolve_batch_output(args: argparse.Namespace, payload: dict) -> tuple[Path, str]:
+    default_suffix = "npz" if args.output_format == "npz" else "json"
+    default_output = f"artifacts/value/endgame-value-table-open{payload['batch_open_count']}.{default_suffix}"
+    output_path = Path(args.output or default_output)
+    output_format = args.output_format
+    if output_format == "auto":
+        output_format = "npz" if output_path.suffix == ".npz" else "json"
+    return output_path, output_format
+
+
+def write_batch_npz(output_path: Path, payload: dict, values: dict[tuple[int, int, bool], float]) -> None:
+    metadata = dict(payload)
+    metadata.pop("values", None)
+    dense_values = dense_values_from_cache(values)
+    np.savez_compressed(
+        output_path,
+        values=dense_values,
+        max_open_count=np.asarray(payload["batch_open_count"], dtype=np.int16),
+        metadata_json=np.asarray(json.dumps(metadata, ensure_ascii=False)),
+        category_names_json=np.asarray(json.dumps(CATEGORY_NAMES, ensure_ascii=False)),
+    )
 
 
 def main() -> None:
@@ -392,8 +438,9 @@ def main() -> None:
     started = time.perf_counter()
 
     if args.batch_open_count is not None:
+        values = {}
         try:
-            payload = build_batch_payload(args, started)
+            payload, values = build_batch_payload(args, started)
         except StateLimitReached as exc:
             payload = {
                 "status": "state_limit_reached",
@@ -407,9 +454,12 @@ def main() -> None:
             preview["values"] = f"<{len(payload['values'])} encoded states>"
         print(json.dumps(preview, ensure_ascii=False, indent=2))
 
-        output_path = Path(args.output or f"artifacts/value/endgame-value-table-open{payload['batch_open_count']}.json")
+        output_path, output_format = resolve_batch_output(args, payload)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        if payload["status"] == "ok" and output_format == "npz":
+            write_batch_npz(output_path, payload, values)
+        else:
+            output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(f"[value-table] wrote {payload.get('computed_states', 0)} states to {output_path}")
         if payload["status"] != "ok":
             raise SystemExit(2)

@@ -3,14 +3,17 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import numpy as np
+
 from yacht_ai.advice import build_score_stage_advice
 from yacht_ai.constants import CATS
-from yacht_ai.endgame_value import EndgameValueTable, state_key_from_scorecard
+from yacht_ai.endgame_value import EndgameValueTable, load_endgame_value_table, state_key_from_scorecard
 from yacht_ai.learned_value import LinearScorecardValueModel
 from yacht_ai.solver import solve_best_move
 from yacht_ai.value_model import VALUE_FEATURE_NAMES
 from scripts.build_value_table import (
     build_exact_endgame_batch_table,
+    dense_values_from_cache,
     build_value_table_from_state,
     mask_from_open_arg,
 )
@@ -33,6 +36,29 @@ class EndgameValueTableTests(unittest.TestCase):
         )
 
         self.assertAlmostEqual(batch_values[(mask, 40, False)], recursive_value, places=6)
+
+    def test_npz_value_table_lookup_matches_dense_state(self):
+        mask = mask_from_open_arg("Yacht")
+        batch_values = build_exact_endgame_batch_table(
+            max_open_count=1,
+            max_states=3000,
+        )
+        dense_values = dense_values_from_cache(batch_values)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            table_path = Path(tmpdir) / "value-table-open1.npz"
+            np.savez_compressed(
+                table_path,
+                values=dense_values,
+                max_open_count=np.asarray(1, dtype=np.int16),
+            )
+            table = load_endgame_value_table(str(table_path))
+
+        self.assertAlmostEqual(
+            table.lookup_state(mask, 40, False),
+            batch_values[(mask, 40, False)],
+            places=5,
+        )
 
     def test_score_stage_value_mode_uses_next_state_table(self):
         dice = [6, 6, 6, 6, 6]
