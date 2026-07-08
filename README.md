@@ -183,15 +183,22 @@ YACHT_ENDGAME_VALUE_TABLE=artifacts/value/endgame-value-table-open4.json \
 python3 server.py
 ```
 
-다음 단계는 이 value table 모드를 full-game simulation으로 기존 휴리스틱과 비교하는 실험입니다.
+더 좁은 실험으로 `value_score_only`도 있다. 이 모드는 roll/keep 판단은 기존 휴리스틱으로 유지하고, 실제 점수 기록 단계에서만 exact V를 쓴다.
+
+```bash
+YACHT_SCORE_STAGE_MODE=value_score_only \
+YACHT_ENDGAME_VALUE_TABLE=artifacts/value/endgame-value-table-open4.json \
+python3 server.py
+```
 
 200게임 paired simulation focused 결과:
 
 - heuristic: 평균 177.635, 표준편차 44.5676, Upper Bonus 34.5%, Yacht bonus 평균 0.030
 - value mode: 평균 178.440, 표준편차 47.9419, Upper Bonus 40.5%, Yacht bonus 평균 0.035
 - paired delta: 평균 +0.805점, win/loss/tie 30.5% / 37.0% / 32.5%, 범위 -72~+193
+- value_score_only: 평균 177.650, 표준편차 44.7589, Upper Bonus 39.0%, paired delta 평균 +0.015점, 범위 -77~+104
 
-평균과 Upper Bonus는 좋아졌지만 손실 케이스도 더 많아졌으므로, 아직 운영 기본값으로 승격하지 않고 guard/학습 value fallback 실험 대상으로 둡니다. 자세한 결과는 [docs/score-value-mode-focused-200.md](./docs/score-value-mode-focused-200.md)에 있습니다.
+전체 value mode는 평균과 Upper Bonus가 좋아졌지만 roll/keep 선택까지 바뀌면서 손실 케이스도 커진다. `value_score_only`는 더 보수적이고 Upper Bonus 페이스만 개선하지만 평균 개선은 거의 없다. 둘 다 아직 운영 기본값으로 승격하지 않고 opt-in 실험으로 둔다. 자세한 결과는 [docs/score-value-mode-focused-200.md](./docs/score-value-mode-focused-200.md), [docs/score-value-score-only-focused-200.md](./docs/score-value-score-only-focused-200.md)에 있습니다.
 
 초반 상태용 learned value 실험도 진행했지만, 현재 선형 baseline은 보류입니다. 256 self-play games / 3,072 samples로 재학습한 `scorecard-value-linear-v1`은 validation MAE 24.4397이고 전체 eval MAE 22.9456입니다. 그러나 `exact table → learned model → heuristic fallback` hybrid 모드는 200게임에서 평균 168.895점으로 heuristic 대비 -8.740점이었습니다. 따라서 learned value는 더 강한 uncertainty/turn별 guard 또는 비선형 모델 전까지 score-stage 기본 판단에 연결하지 않습니다.
 

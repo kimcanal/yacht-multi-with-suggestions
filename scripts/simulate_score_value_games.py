@@ -29,7 +29,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--learned-model", default="")
     parser.add_argument("--learned-max-mae", type=float, default=25.0)
     parser.add_argument("--learned-min-turns", type=int, default=5)
-    parser.add_argument("--policies", default="heuristic,value", help="comma-separated score policies: heuristic,value,hybrid")
+    parser.add_argument(
+        "--policies",
+        default="heuristic,value",
+        help="comma-separated score policies: heuristic,value,value_score_only,hybrid",
+    )
+    parser.add_argument("--case-limit", type=int, default=5, help="worst/best paired games to keep per policy")
     parser.add_argument("--output", default="")
     parser.add_argument("--markdown-output", default="")
     parser.add_argument("--report-every", type=int, default=25)
@@ -74,14 +79,15 @@ def solve_move(
     learned_min_turns: int,
 ) -> dict:
     open_categories = [idx for idx, value in enumerate(scorecard) if value is None]
-    if score_mode in ("value", "hybrid"):
+    if score_mode in ("value", "value_score_only", "hybrid"):
+        solver_score_mode = "value" if score_mode == "value_score_only" else score_mode
         return yacht_engine.solve_best_move(
             dice,
             rolls_left,
             open_categories,
             mode,
             scorecard,
-            score_value_mode=score_mode,
+            score_value_mode=solver_score_mode,
             endgame_value_table_path=value_table,
             learned_value_model_path=learned_model,
             learned_value_max_mae=learned_max_mae,
@@ -149,12 +155,13 @@ def play_game(
         dice = [rng.randint(1, 6) for _ in range(5)]
         rolls_left = 2
         while rolls_left > 0:
+            roll_score_mode = "heuristic" if score_mode == "value_score_only" else score_mode
             result = solve_move(
                 dice,
                 rolls_left,
                 scorecard,
                 mode,
-                score_mode,
+                roll_score_mode,
                 value_table,
                 learned_model,
                 learned_max_mae,
@@ -182,7 +189,7 @@ def play_game(
             value_score_hits += 1
         elif "Learned V" in row_names:
             learned_value_score_hits += 1
-        elif score_mode in ("value", "hybrid"):
+        elif score_mode in ("value", "value_score_only", "hybrid"):
             value_score_fallbacks += 1
         score_decisions.append({
             "turn": len(score_decisions) + 1,
@@ -242,6 +249,41 @@ def summarize(label: str, games: list[dict], baseline_games: list[dict] | None =
     }
 
 
+def compact_game(game: dict) -> dict:
+    return {
+        "total_score": game["total_score"],
+        "upper_score": game["upper_score"],
+        "upper_bonus": game["upper_bonus"],
+        "yacht_score": game["yacht_score"],
+        "yacht_bonus_count": game["yacht_bonus_count"],
+        "zero_categories": game["zero_categories"],
+        "scorecard": game["scorecard"],
+        "value_score_hits": game["value_score_hits"],
+        "learned_value_score_hits": game["learned_value_score_hits"],
+        "value_score_fallbacks": game["value_score_fallbacks"],
+        "score_decisions": game["score_decisions"],
+    }
+
+
+def paired_case_report(label: str, games: list[dict], baseline_games: list[dict], seeds: list[int], limit: int) -> dict:
+    cases = []
+    for index, (game, baseline) in enumerate(zip(games, baseline_games)):
+        cases.append({
+            "game_index": index,
+            "seed": seeds[index],
+            "policy": label,
+            "delta_vs_heuristic": game["total_score"] - baseline["total_score"],
+            "heuristic": compact_game(baseline),
+            label: compact_game(game),
+        })
+    ordered = sorted(cases, key=lambda row: row["delta_vs_heuristic"])
+    bounded = max(0, limit)
+    return {
+        "worst": ordered[:bounded],
+        "best": list(reversed(ordered[-bounded:])) if bounded else [],
+    }
+
+
 def render_markdown(report: dict) -> str:
     lines = [
         "# Score Value Mode Full-game A/B",
@@ -250,12 +292,15 @@ def render_markdown(report: dict) -> str:
         f"- Games: `{report['games']}` paired seeds",
         f"- Seed: `{report['seed']}`",
         f"- Value table: `{report['value_table']}`",
-        f"- Learned model: `{report['learned_model'] or '-'}`",
-        f"- Learned guard: validation MAE <= `{report['learned_max_mae']}`, next turns >= `{report['learned_min_turns']}`",
         "",
         "## Summary",
         "",
     ]
+    if report.get("learned_model"):
+        lines[6:6] = [
+            f"- Learned model: `{report['learned_model']}`",
+            f"- Learned guard: validation MAE <= `{report['learned_max_mae']}`, next turns >= `{report['learned_min_turns']}`",
+        ]
     for row in report["policies"]:
         lines.append(
             f"- {row['label']}: avg {row['avg_total']}, stdev {row['stdev_total']}, "
@@ -274,6 +319,29 @@ def render_markdown(report: dict) -> str:
             f"- Avg score-stage fallback turns per game: {value_row['avg_value_score_fallbacks']}",
             f"- Delta range: {value_row['min_delta_vs_heuristic']} to {value_row['max_delta_vs_heuristic']}",
         ])
+        paired_cases = report.get("paired_cases", {}).get(value_row["label"], {})
+        worst_cases = paired_cases.get("worst", [])[:3]
+        best_cases = paired_cases.get("best", [])[:3]
+        if worst_cases:
+            lines.extend(["", "### Worst Paired Games", ""])
+            for case in worst_cases:
+                policy_game = case[value_row["label"]]
+                heuristic_game = case["heuristic"]
+                lines.append(
+                    f"- seed {case['seed']}: delta {case['delta_vs_heuristic']:+}, "
+                    f"heuristic {heuristic_game['total_score']} vs {value_row['label']} {policy_game['total_score']}, "
+                    f"{value_row['label']} scorecard `{policy_game['scorecard']}`"
+                )
+        if best_cases:
+            lines.extend(["", "### Best Paired Games", ""])
+            for case in best_cases:
+                policy_game = case[value_row["label"]]
+                heuristic_game = case["heuristic"]
+                lines.append(
+                    f"- seed {case['seed']}: delta {case['delta_vs_heuristic']:+}, "
+                    f"heuristic {heuristic_game['total_score']} vs {value_row['label']} {policy_game['total_score']}, "
+                    f"{value_row['label']} scorecard `{policy_game['scorecard']}`"
+                )
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -281,13 +349,14 @@ def main() -> None:
     args = parse_args()
     seeds = [args.seed + idx * 1009 for idx in range(args.games)]
     policies = [name.strip() for name in args.policies.split(",") if name.strip()]
-    unknown = [name for name in policies if name not in ("heuristic", "value", "hybrid")]
+    unknown = [name for name in policies if name not in ("heuristic", "value", "value_score_only", "hybrid")]
     if unknown:
         raise SystemExit(f"unknown policies: {', '.join(unknown)}")
     if "heuristic" not in policies:
         raise SystemExit("--policies must include heuristic as the baseline")
     raw_results = {}
     summaries = []
+    paired_cases = {}
 
     for label in policies:
         games = []
@@ -308,6 +377,8 @@ def main() -> None:
         raw_results[label] = games
         baseline = raw_results.get("heuristic") if label != "heuristic" else None
         summaries.append(summarize(label, games, baseline))
+        if baseline is not None:
+            paired_cases[label] = paired_case_report(label, games, baseline, seeds, args.case_limit)
 
     report = {
         "mode": args.mode,
@@ -318,6 +389,7 @@ def main() -> None:
         "learned_max_mae": args.learned_max_mae,
         "learned_min_turns": args.learned_min_turns,
         "policies": summaries,
+        "paired_cases": paired_cases,
     }
     print("[score-value-sim] summary")
     for row in summaries:

@@ -510,6 +510,8 @@ def _format_keep_tuple(dice, kept_tuple):
 def _normalize_score_value_mode(score_value_mode):
     if score_value_mode in ("hybrid", "learned_value"):
         return "hybrid"
+    if score_value_mode in ("value_score_only", "score_only", "endgame_value_score_only"):
+        return "value_score_only"
     if score_value_mode in ("value", "endgame_value"):
         return "value"
     return "heuristic"
@@ -527,9 +529,9 @@ def _resolve_score_value_options(
         requested_mode = os.environ.get("YACHT_SCORE_STAGE_MODE", "heuristic")
     resolved_mode = _normalize_score_value_mode(requested_mode)
     resolved_path = endgame_value_table_path or os.environ.get("YACHT_ENDGAME_VALUE_TABLE", "")
-    if resolved_mode in ("value", "hybrid") and not resolved_path:
+    if resolved_mode in ("value", "value_score_only", "hybrid") and not resolved_path:
         resolved_path = DEFAULT_ENDGAME_VALUE_TABLE_PATH
-    if resolved_mode not in ("value", "hybrid"):
+    if resolved_mode not in ("value", "value_score_only", "hybrid"):
         resolved_path = ""
     resolved_model_path = learned_value_model_path or os.environ.get("YACHT_LEARNED_VALUE_MODEL", "")
     if resolved_mode != "hybrid":
@@ -552,7 +554,7 @@ def _resolve_score_value_options(
 
 
 def _load_score_value_table(score_value_mode, endgame_value_table_path):
-    if score_value_mode not in ("value", "hybrid") or not endgame_value_table_path:
+    if score_value_mode not in ("value", "value_score_only", "hybrid") or not endgame_value_table_path:
         return None
     try:
         return load_endgame_value_table(endgame_value_table_path)
@@ -589,6 +591,8 @@ def _solve_best_move_cached(
     yacht_bonus_available = has_yacht_bonus(scorecard)
     endgame_value_table = _load_score_value_table(score_value_mode, endgame_value_table_path)
     learned_value_model = _load_learned_value_model(score_value_mode, learned_value_model_path)
+    terminal_score_value_mode = "heuristic" if score_value_mode == "value_score_only" else score_value_mode
+    direct_score_value_mode = "value" if score_value_mode == "value_score_only" else score_value_mode
 
     if rolls_left == 0:
         return build_score_stage_advice(
@@ -596,7 +600,7 @@ def _solve_best_move_cached(
             scorecard,
             open_categories,
             mode,
-            score_value_mode=score_value_mode,
+            score_value_mode=direct_score_value_mode,
             endgame_value_table=endgame_value_table,
             learned_value_model=learned_value_model,
             learned_value_max_mae=learned_value_max_mae,
@@ -621,7 +625,7 @@ def _solve_best_move_cached(
                 scorecard,
                 category_idx,
                 mode,
-                score_value_mode=score_value_mode,
+                score_value_mode=terminal_score_value_mode,
                 endgame_value_table=endgame_value_table,
                 learned_value_model=learned_value_model,
                 learned_value_max_mae=learned_value_max_mae,
@@ -902,7 +906,7 @@ def _solve_best_move_cached(
         dice, scorecard, open_categories, mode,
         keep_action_values, best_keep_tuple, chosen_ev,
         explaining_row, straight_upgrade, all_dice_kept,
-        score_value_mode=score_value_mode,
+        score_value_mode=terminal_score_value_mode,
         endgame_value_table=endgame_value_table,
         learned_value_model=learned_value_model,
         learned_value_max_mae=learned_value_max_mae,

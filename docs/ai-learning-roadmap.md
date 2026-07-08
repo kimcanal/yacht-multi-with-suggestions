@@ -173,6 +173,14 @@ YACHT_ENDGAME_VALUE_TABLE=artifacts/value/endgame-value-table-open4.json \
 python3 server.py
 ```
 
+roll/keep 판단은 유지하고 실제 점수 기록 순간만 exact V를 쓰는 좁은 모드는 `value_score_only`다.
+
+```bash
+YACHT_SCORE_STAGE_MODE=value_score_only \
+YACHT_ENDGAME_VALUE_TABLE=artifacts/value/endgame-value-table-open4.json \
+python3 server.py
+```
+
 table에 있는 후반 next state는 exact V를 쓰고, 아직 커버하지 못하는 초반 상태는 기존 휴리스틱으로 fallback한다. 이 단계에서는 learned value model을 연결하지 않는다.
 
 기존 `scripts/check_ai_golden.py`는 운영 기본값인 휴리스틱 추천을 고정하는 회귀 테스트다. value mode는 score-stage 결정을 의도적으로 바꿀 수 있으므로 별도 full-game A/B로 평가한다.
@@ -183,8 +191,10 @@ table에 있는 후반 next state는 exact V를 쓰고, 아직 커버하지 못�
 - value mode: 평균 178.440, 표준편차 47.9419, Upper Bonus 40.5%, Yacht bonus 평균 0.035
 - paired delta: 평균 +0.805점, median 0점, win/loss/tie 30.5% / 37.0% / 32.5%, 범위 -72~+193
 - value mode는 게임당 평균 5.0 score-stage turns에서 endgame table을 hit했고, 나머지 7.0 turns는 초반 fallback이었다.
+- value_score_only: 평균 177.650, 표준편차 44.7589, Upper Bonus 39.0%, paired delta 평균 +0.015점, win/loss/tie 21.0% / 28.0% / 51.0%, 범위 -77~+104
+- value_score_only도 게임당 평균 5.0 score-stage turns에서 endgame table을 hit했고, roll/keep 판단은 휴리스틱으로 유지했다.
 
-결론: exact endgame V는 평균과 Upper Bonus 페이스를 올리지만 손실 꼬리도 크다. 운영 기본값은 유지하고, 다음 실험은 learned early value나 guard 조건으로 큰 음수 delta를 줄이는 방향이 맞다.
+결론: exact endgame V는 Upper Bonus 페이스를 올리지만 손실 꼬리도 남는다. full value mode는 평균 개선이 있지만 roll/keep 선택까지 흔들어 분산이 커지고, value_score_only는 더 보수적이지만 평균 개선이 거의 없다. 운영 기본값은 유지하고, 다음 실험은 큰 음수 delta를 줄이는 guard 조건을 먼저 찾는 방향이 맞다.
 
 ## Learned Early Value Hybrid
 

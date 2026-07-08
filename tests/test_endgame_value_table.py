@@ -103,6 +103,58 @@ class EndgameValueTableTests(unittest.TestCase):
         self.assertEqual(result["primary_target"], "Ones")
         self.assertEqual(result["expected_value"], 160.0)
 
+    def test_solver_value_score_only_keeps_roll_policy_heuristic(self):
+        dice = [6, 6, 6, 6, 6]
+        scorecard = [None, 6, 9, 12, 15, 18, None, 20, 25, 15, 30, 50]
+        score_ones = list(scorecard)
+        score_ones[CATS["Ones"]] = 0
+        score_choice = list(scorecard)
+        score_choice[CATS["Choice"]] = 30
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            table_path = Path(tmpdir) / "value-table.json"
+            table_path.write_text(
+                json.dumps({
+                    "batch_open_count": 1,
+                    "values": {
+                        state_key_from_scorecard(score_ones): 160.0,
+                        state_key_from_scorecard(score_choice): 0.0,
+                    },
+                }),
+                encoding="utf-8",
+            )
+
+            score_stage = solve_best_move(
+                dice,
+                0,
+                [CATS["Ones"], CATS["Choice"]],
+                "focused",
+                scorecard,
+                score_value_mode="value_score_only",
+                endgame_value_table_path=str(table_path),
+            )
+            heuristic_roll = solve_best_move(
+                dice,
+                1,
+                [CATS["Ones"], CATS["Choice"]],
+                "focused",
+                scorecard,
+            )
+            score_only_roll = solve_best_move(
+                dice,
+                1,
+                [CATS["Ones"], CATS["Choice"]],
+                "focused",
+                scorecard,
+                score_value_mode="value_score_only",
+                endgame_value_table_path=str(table_path),
+            )
+
+        self.assertEqual(score_stage["primary_target"], "Ones")
+        self.assertEqual(score_stage["expected_value"], 160.0)
+        self.assertEqual(score_only_roll["keep_indices"], heuristic_roll["keep_indices"])
+        self.assertEqual(score_only_roll["expected_value"], heuristic_roll["expected_value"])
+
     def test_hybrid_mode_uses_guarded_learned_value_fallback(self):
         dice = [1, 2, 3, 4, 6]
         scorecard = [None] * 12
