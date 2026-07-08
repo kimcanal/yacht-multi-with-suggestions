@@ -117,13 +117,41 @@ def case_group_summary(cases: list[dict[str, Any]], policy_label: str) -> dict[s
     }
 
 
+def paired_delta_stats(policy_row: dict[str, Any]) -> dict[str, Any]:
+    deltas = policy_row.get("paired_delta_vs_heuristic") or []
+    if not deltas:
+        return {
+            "count": 0,
+            "mean": 0.0,
+            "sample_stdev": 0.0,
+            "stderr": 0.0,
+            "normal_ci95_low": 0.0,
+            "normal_ci95_high": 0.0,
+        }
+    count = len(deltas)
+    mean = statistics.fmean(deltas)
+    sample_stdev = statistics.stdev(deltas) if count > 1 else 0.0
+    stderr = sample_stdev / (count ** 0.5) if count > 1 else 0.0
+    ci_radius = 1.96 * stderr
+    return {
+        "count": count,
+        "mean": round(mean, 4),
+        "sample_stdev": round(sample_stdev, 4),
+        "stderr": round(stderr, 4),
+        "normal_ci95_low": round(mean - ci_radius, 4),
+        "normal_ci95_high": round(mean + ci_radius, 4),
+    }
+
+
 def analyze_report(report: dict[str, Any], source_report: str) -> dict[str, Any]:
     policy_rows = {row["label"]: row for row in report.get("policies", [])}
     analyses: dict[str, Any] = {}
     for policy_label, paired in report.get("paired_cases", {}).items():
+        policy_row = policy_rows.get(policy_label, {})
         analyses[policy_label] = {
             "baseline_summary": policy_rows.get("heuristic", {}),
-            "summary": policy_rows.get(policy_label, {}),
+            "summary": policy_row,
+            "paired_delta_stats": paired_delta_stats(policy_row),
             "worst": case_group_summary(paired.get("worst", []), policy_label),
             "best": case_group_summary(paired.get("best", []), policy_label),
         }
@@ -176,6 +204,7 @@ def render_markdown(analysis: dict[str, Any]) -> str:
     for policy_label, policy_analysis in analysis["analyses"].items():
         baseline = policy_analysis["baseline_summary"]
         summary = policy_analysis["summary"]
+        delta_stats = policy_analysis["paired_delta_stats"]
         lines.extend([
             f"## {policy_label}",
             "",
@@ -186,6 +215,11 @@ def render_markdown(analysis: dict[str, Any]) -> str:
                 f"win/loss/tie: {summary.get('win_rate_vs_heuristic', 0.0)} / "
                 f"{summary.get('loss_rate_vs_heuristic', 0.0)} / "
                 f"{round(1.0 - summary.get('win_rate_vs_heuristic', 0.0) - summary.get('loss_rate_vs_heuristic', 0.0), 6)}"
+            ),
+            (
+                f"- Paired delta uncertainty: n={delta_stats['count']}, "
+                f"sample stdev {delta_stats['sample_stdev']}, stderr {delta_stats['stderr']}, "
+                f"normal 95% CI [{delta_stats['normal_ci95_low']}, {delta_stats['normal_ci95_high']}]"
             ),
             (
                 f"- Upper bonus rate: heuristic {baseline.get('upper_bonus_rate', 0.0)} vs "

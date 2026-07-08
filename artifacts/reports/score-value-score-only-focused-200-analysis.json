@@ -657,6 +657,14 @@
           0
         ]
       },
+      "paired_delta_stats": {
+        "count": 200,
+        "mean": 0.015,
+        "sample_stdev": 14.9463,
+        "stderr": 1.0569,
+        "normal_ci95_low": -2.0565,
+        "normal_ci95_high": 2.0865
+      },
       "worst": {
         "cases": [
           {
