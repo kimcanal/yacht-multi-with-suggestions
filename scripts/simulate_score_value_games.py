@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--policies",
         default="heuristic,value",
-        help="comma-separated score policies: heuristic,value,value_score_only,hybrid",
+        help="comma-separated score policies: heuristic,value,value_optimal,value_score_only,hybrid",
     )
     parser.add_argument("--case-limit", type=int, default=5, help="worst/best paired games to keep per policy")
     parser.add_argument(
@@ -122,7 +122,7 @@ def solve_move(
     learned_min_turns: int,
 ) -> dict:
     open_categories = [idx for idx, value in enumerate(scorecard) if value is None]
-    if score_mode in ("value", "value_score_only", "hybrid"):
+    if score_mode in ("value", "value_optimal", "value_score_only", "hybrid"):
         solver_score_mode = "value" if score_mode == "value_score_only" else score_mode
         return yacht_engine.solve_best_move(
             dice,
@@ -242,7 +242,7 @@ def play_game(
             value_score_hits += 1
         elif "Learned V" in row_names:
             learned_value_score_hits += 1
-        elif score_mode in ("value", "value_score_only", "hybrid"):
+        elif score_mode in ("value", "value_optimal", "value_score_only", "hybrid"):
             value_score_fallbacks += 1
         score_decisions.append({
             "turn": len(score_decisions) + 1,
@@ -404,7 +404,7 @@ def main() -> None:
     args = parse_args()
     seeds = [args.seed + idx * 1009 for idx in range(args.games)]
     policies = [name.strip() for name in args.policies.split(",") if name.strip()]
-    unknown = [name for name in policies if name not in ("heuristic", "value", "value_score_only", "hybrid")]
+    unknown = [name for name in policies if name not in ("heuristic", "value", "value_optimal", "value_score_only", "hybrid")]
     if unknown:
         raise SystemExit(f"unknown policies: {', '.join(unknown)}")
     if "heuristic" not in policies:

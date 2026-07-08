@@ -181,6 +181,38 @@ class EndgameValueTableTests(unittest.TestCase):
         self.assertEqual(score_only_roll["keep_indices"], heuristic_roll["keep_indices"])
         self.assertEqual(score_only_roll["expected_value"], heuristic_roll["expected_value"])
 
+    def test_solver_value_optimal_bypasses_focused_hand_override(self):
+        table_path = Path("artifacts/value/endgame-value-table-open12.npz")
+        if not table_path.exists():
+            self.skipTest("full value table artifact is not available")
+
+        dice = [1, 1, 2, 2, 3]
+        scorecard = [None] * 12
+        open_categories = list(range(12))
+
+        focused_value = solve_best_move(
+            dice,
+            2,
+            open_categories,
+            "focused",
+            scorecard,
+            score_value_mode="value",
+            endgame_value_table_path=str(table_path),
+        )
+        optimal_value = solve_best_move(
+            dice,
+            2,
+            open_categories,
+            "focused",
+            scorecard,
+            score_value_mode="value_optimal",
+            endgame_value_table_path=str(table_path),
+        )
+
+        self.assertEqual(focused_value["keep_indices"], [0, 1, 2, 3])
+        self.assertEqual(optimal_value["keep_indices"], [2, 3])
+        self.assertGreater(optimal_value["expected_value"], focused_value["expected_value"])
+
     def test_hybrid_mode_uses_guarded_learned_value_fallback(self):
         dice = [1, 2, 3, 4, 6]
         scorecard = [None] * 12

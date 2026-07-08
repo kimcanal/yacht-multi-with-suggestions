@@ -512,6 +512,8 @@ def _normalize_score_value_mode(score_value_mode):
         return "hybrid"
     if score_value_mode in ("value_score_only", "score_only", "endgame_value_score_only"):
         return "value_score_only"
+    if score_value_mode in ("value_optimal", "optimal_value", "endgame_value_optimal", "ev_optimal"):
+        return "value_optimal"
     if score_value_mode in ("value", "endgame_value"):
         return "value"
     return "heuristic"
@@ -529,9 +531,9 @@ def _resolve_score_value_options(
         requested_mode = os.environ.get("YACHT_SCORE_STAGE_MODE", "heuristic")
     resolved_mode = _normalize_score_value_mode(requested_mode)
     resolved_path = endgame_value_table_path or os.environ.get("YACHT_ENDGAME_VALUE_TABLE", "")
-    if resolved_mode in ("value", "value_score_only", "hybrid") and not resolved_path:
+    if resolved_mode in ("value", "value_score_only", "value_optimal", "hybrid") and not resolved_path:
         resolved_path = DEFAULT_ENDGAME_VALUE_TABLE_PATH
-    if resolved_mode not in ("value", "value_score_only", "hybrid"):
+    if resolved_mode not in ("value", "value_score_only", "value_optimal", "hybrid"):
         resolved_path = ""
     resolved_model_path = learned_value_model_path or os.environ.get("YACHT_LEARNED_VALUE_MODEL", "")
     if resolved_mode != "hybrid":
@@ -554,7 +556,7 @@ def _resolve_score_value_options(
 
 
 def _load_score_value_table(score_value_mode, endgame_value_table_path):
-    if score_value_mode not in ("value", "value_score_only", "hybrid") or not endgame_value_table_path:
+    if score_value_mode not in ("value", "value_score_only", "value_optimal", "hybrid") or not endgame_value_table_path:
         return None
     try:
         return load_endgame_value_table(endgame_value_table_path)
@@ -591,8 +593,9 @@ def _solve_best_move_cached(
     yacht_bonus_available = has_yacht_bonus(scorecard)
     endgame_value_table = _load_score_value_table(score_value_mode, endgame_value_table_path)
     learned_value_model = _load_learned_value_model(score_value_mode, learned_value_model_path)
-    terminal_score_value_mode = "heuristic" if score_value_mode == "value_score_only" else score_value_mode
-    direct_score_value_mode = "value" if score_value_mode == "value_score_only" else score_value_mode
+    ev_optimal_mode = score_value_mode == "value_optimal"
+    terminal_score_value_mode = "heuristic" if score_value_mode == "value_score_only" else ("value" if ev_optimal_mode else score_value_mode)
+    direct_score_value_mode = "value" if score_value_mode in ("value_score_only", "value_optimal") else score_value_mode
 
     if rolls_left == 0:
         return build_score_stage_advice(
@@ -706,7 +709,7 @@ def _solve_best_move_cached(
     )
 
     # --- Cover 모드: 별도 함수에서 처리 후 바로 반환 ---
-    if mode == "cover" and hand_targets:
+    if mode == "cover" and hand_targets and not ev_optimal_mode:
         return _build_cover_mode_result(
             dice, dice_tuple, rolls_left, hand_targets, keep_ev_map,
             evaluate_keep_transition, target_success_value, terminal_target_hit,
@@ -723,7 +726,9 @@ def _solve_best_move_cached(
     upper_focus_override = False
     focus_ev_guard = None
 
-    if best_hand_moves:
+    if ev_optimal_mode:
+        best_keep_tuple = best_general_keep_tuple
+    elif best_hand_moves:
         best_focus_move = max(best_hand_moves, key=lambda m: mode_rank(m, mode))
         focus_keep_tuple = best_focus_move["kept_tuple"]
         focus_ev = keep_ev_map.get(focus_keep_tuple, float("-inf"))
@@ -885,7 +890,7 @@ def _solve_best_move_cached(
             elif explaining_row and explaining_row.get("name") and not cover_fallback:
                 rec_msg += f" ({explaining_row['name']} 노리기)"
 
-    style_label = "집중 공략" if mode != "cover" else "커버 플레이"
+    style_label = "기대점수 최적" if ev_optimal_mode else ("집중 공략" if mode != "cover" else "커버 플레이")
     if cover_fallback and best_keep_indices:
         summary = f"{style_label}: 커버 대상이 없어 일반 추천으로 전환, [{', '.join(kept_vals)}] keep, 평가값 {chosen_ev:.2f}"
     elif cover_fallback:
