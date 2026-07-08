@@ -8,7 +8,9 @@ const AI_PANEL_EXPANDED_KEY = 'yacht_ai_panel_expanded';
 const AI_PANEL_CACHE = {};
 
 function normalizeAiMode(mode) {
-    return mode === 'cover' ? 'cover' : 'focused';
+    if (mode === 'cover' || mode === 'optimal') return mode;
+    if (mode === 'value_optimal' || mode === 'ev_optimal') return 'optimal';
+    return 'focused';
 }
 
 function getAiMode() {
@@ -63,6 +65,7 @@ function bindAiModeControls(onChange) {
 
 function getAiPanelTitle(aiRec) {
     if (aiRec?.stage === 'score') return '점수 기록 추천';
+    if (aiRec?.strategy_mode === 'optimal') return '기대점수 최적 추천';
     return aiRec?.strategy_mode === 'cover' ? '커버 플레이 추천' : '집중 공략 추천';
 }
 
@@ -88,6 +91,7 @@ function getAiStageLabel(aiRec) {
 }
 
 function getAiModeLabel(aiRec) {
+    if (aiRec?.strategy_mode === 'optimal') return '기대점수 최적';
     return aiRec?.strategy_mode === 'cover' ? '커버 플레이' : '집중 공략';
 }
 
@@ -138,7 +142,8 @@ function renderDecisionReport(report, expanded) {
     const methodChip = method.label
         ? `<span class="ai-report-chip">${escapeHtml(method.label)}</span>`
         : '';
-    const confidenceLabel = method.source === 'exact'
+    const isExactSource = method.source === 'exact' || method.source === 'exact_value_optimal';
+    const confidenceLabel = isExactSource
         ? method.confidence_text
         : `확신 ${method.confidence_text}`;
     const confidenceChip = method.confidence_text

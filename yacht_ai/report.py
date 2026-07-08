@@ -52,6 +52,8 @@ def _tradeoff_lines(rows, limit=2):
 def _source_label(policy_source):
     if policy_source == "learned_roll_policy":
         return "학습 정책 모델"
+    if policy_source == "exact_value_optimal":
+        return "Full-game exact V"
     return "Exact solver"
 
 
@@ -61,6 +63,8 @@ def _method_note(policy_source, stage):
             "이번 굴림 선택은 exact solver가 만든 teacher 데이터를 학습한 정책 모델이 먼저 냈고, "
             "confidence 기준을 넘은 경우에만 채택됩니다."
         )
+    if policy_source == "exact_value_optimal":
+        return "즉시 점수와 전체 12칸 value table의 V(next_state)를 합산해 기대 최종점수가 가장 큰 선택을 고릅니다."
     if stage == "score":
         return "점수 기록 단계는 현재 점수와 남은 칸의 장기 가치를 utility로 비교한 계산 결과입니다."
     return "현재 Yacht 상태공간은 작아서 모든 합리적 keep 후보를 동적계획법으로 직접 비교할 수 있습니다."
@@ -71,6 +75,11 @@ def _learning_note(policy_source):
         return (
             "모델은 스스로 결정을 흉내 내는 실행 정책이고, 낮은 확신이나 위험한 상태에서는 exact solver로 돌아갑니다. "
             "다음 단계의 self-learning은 self-play 데이터를 더 쌓아 win-rate/value model을 붙이는 방식이 좋습니다."
+        )
+    if policy_source == "exact_value_optimal":
+        return (
+            "이 모드는 학습 모델 없이 full-game exact value table을 직접 조회합니다. "
+            "현재 목표는 승률이 아니라 기대 최종점수 최대화입니다."
         )
     return (
         "이 결정에는 ML/DL 모델이 꼭 필요하지 않습니다. 지금 게임처럼 상태공간이 작으면 exact solver가 teacher 역할을 하며, "
@@ -83,7 +92,9 @@ def build_decision_report(result, dice, rolls_left, strategy_mode, scorecard, op
     stage = result.get("stage") or ("score" if rolls_left == 0 else "roll")
     policy_source = result.get("policy_source", "exact")
     confidence = result.get("policy_confidence")
-    confidence_text = _as_percent(confidence) if confidence is not None else ("계산 확정" if policy_source == "exact" else None)
+    confidence_text = _as_percent(confidence) if confidence is not None else (
+        "계산 확정" if policy_source in ("exact", "exact_value_optimal") else None
+    )
     primary_target = result.get("primary_target") or result.get("message") or "추천 없음"
     summary = result.get("summary") or result.get("message") or "추천을 계산했습니다."
 

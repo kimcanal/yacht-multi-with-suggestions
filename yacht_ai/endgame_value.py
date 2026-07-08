@@ -12,7 +12,7 @@ import numpy as np
 from .constants import CATS, CATEGORY_NAMES
 
 
-DEFAULT_ENDGAME_VALUE_TABLE_PATH = "artifacts/value/endgame-value-table-open4.json"
+DEFAULT_ENDGAME_VALUE_TABLE_PATH = "artifacts/value/endgame-value-table-open12.npz"
 
 
 def encode_endgame_state(mask: int, upper_total: int, yacht_bonus_available: bool) -> str:

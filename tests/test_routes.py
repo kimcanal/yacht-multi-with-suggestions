@@ -101,6 +101,28 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(response_cached.headers["X-AI-Request-Cache"], "hit")
         self.assertIn("decision_report", response_cached.get_json())
 
+    def test_recommend_optimal_strategy_uses_exact_value_mode(self):
+        response = self.client.post(
+            "/api/recommend",
+            json={
+                "dice": [1, 2, 3, 4, 6],
+                "rolls_left": 1,
+                "scorecard": [None] * 12,
+                "strategy_mode": "optimal",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload["stage"], "roll")
+        self.assertEqual(payload["strategy_mode"], "optimal")
+        self.assertEqual(payload["score_value_mode"], "value_optimal")
+        self.assertEqual(payload["policy_source"], "exact_value_optimal")
+        self.assertEqual(response.headers["X-AI-Policy-Source"], "exact_value_optimal")
+        self.assertIn("기대", payload["summary"])
+        self.assertEqual(payload["decision_report"]["method"]["source"], "exact_value_optimal")
+        self.assertEqual(payload["decision_report"]["method"]["label"], "Full-game exact V")
+
     def test_request_id_header_is_propagated(self):
         response = self.client.get("/health", headers={"X-Request-ID": "route-test-123"})
         self.assertEqual(response.status_code, 200)

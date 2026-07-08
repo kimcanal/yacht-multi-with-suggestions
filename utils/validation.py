@@ -110,7 +110,9 @@ def normalize_scorecard(scorecard):
 
 def normalize_strategy_mode(value):
     mode = (value or "focused")
-    if mode not in ("focused", "cover"):
+    if mode in ("value_optimal", "ev_optimal", "optimal_value"):
+        return "optimal"
+    if mode not in ("focused", "cover", "optimal"):
         return None
     return mode
 

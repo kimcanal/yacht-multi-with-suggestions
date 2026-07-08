@@ -331,6 +331,7 @@
                     <div class="ai-mode-row" id="ai-mode-row">
                         <button class="ai-mode-btn" data-ai-mode="focused">집중 공략</button>
                         <button class="ai-mode-btn" data-ai-mode="cover">커버 플레이</button>
+                        <button class="ai-mode-btn" data-ai-mode="optimal">기대 최적</button>
                     </div>
                     <div class="ai-mode-guide" aria-label="AI 모드 설명">
                         <div class="ai-mode-card" data-ai-mode-desc="focused">
@@ -341,9 +342,13 @@
                             <strong><span class="ai-mode-chip">커버</span> 하나 이상 성공을 노립니다</strong>
                             <p>열린 하단 족보를 묶어서 하나라도 먹을 확률을 키웁니다. 동시에 전부 실패할 확률도 함께 보여줍니다.</p>
                         </div>
+                        <div class="ai-mode-card" data-ai-mode-desc="optimal">
+                            <strong><span class="ai-mode-chip">최적</span> 기대 최종점수를 봅니다</strong>
+                            <p>full-game exact V 기준으로 즉시 점수와 남은 점수판 가치를 합산해 가장 높은 기대값을 고릅니다.</p>
+                        </div>
                     </div>
                     <div id="ai-info-tip" style="margin-top: 8px; padding: 8px 12px; background: rgba(0, 255, 204, 0.1); border-left: 3px solid #00ffcc; border-radius: 5px; font-size: 0.75em; color: #aaa; line-height: 1.4; display: none;">
-                        💡 모드 차이는 굴림 단계에서 가장 크게 드러납니다. 집중 공략은 한 족보의 성공과 업그레이드를, 커버 플레이는 여러 하단 족보 중 하나 이상 성공할 확률과 전부 실패 확률을 함께 봅니다.<br>이미 Yacht를 확보했다면 Yacht Bonus +100 가치도 추천에 반영됩니다.
+                        💡 모드 차이는 굴림 단계에서 가장 크게 드러납니다. 집중 공략은 한 족보의 성공과 업그레이드를, 커버 플레이는 여러 하단 족보 중 하나 이상 성공할 확률과 전부 실패 확률을 함께 봅니다. 기대 최적은 full-game exact V로 기대 최종점수를 최대화합니다.<br>이미 Yacht를 확보했다면 Yacht Bonus +100 가치도 추천에 반영됩니다.
                     </div>
                     <div id="ai-breakdown" class="ai-breakdown"></div>
                     <div id="win-prob-panel" class="winprob-panel"></div>

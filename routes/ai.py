@@ -44,6 +44,12 @@ def _set_cached_recommendation(cache_key, result):
         _RECOMMEND_RESULT_CACHE.popitem(last=False)
 
 
+def _solver_options_for_strategy(strategy_mode):
+    if strategy_mode == "optimal":
+        return "focused", "value_optimal", "exact_value_optimal"
+    return strategy_mode, None, None
+
+
 @ai_bp.route("/api/recommend", methods=["POST"])
 def recommend():
     try:
@@ -62,9 +68,11 @@ def recommend():
         if scorecard is None:
             return jsonify({"error": "scorecard는 길이 12의 점수/None 배열이어야 합니다"}), 400
         if strategy_mode is None:
-            return jsonify({"error": "strategy_mode는 focused 또는 cover만 허용됩니다"}), 400
+            return jsonify({"error": "strategy_mode는 focused, cover, optimal만 허용됩니다"}), 400
         if normalized_rolls_left is None or normalized_rolls_left < 0 or normalized_rolls_left > 2:
             return jsonify({"error": "rolls_left는 0~2 정수여야 합니다"}), 400
+
+        solver_strategy_mode, score_value_mode, forced_policy_source = _solver_options_for_strategy(strategy_mode)
 
         open_categories = [i for i, score in enumerate(scorecard) if score is None]
         if not open_categories:
@@ -79,6 +87,9 @@ def recommend():
                 "summary": "남은 열린 칸이 없어 추천할 수 없습니다.",
                 "policy_source": "exact",
             }
+            if score_value_mode:
+                result["score_value_mode"] = score_value_mode
+                result["policy_source"] = forced_policy_source
             result["decision_report"] = build_decision_report(
                 result, dice, normalized_rolls_left, strategy_mode, scorecard, open_categories
             )
@@ -88,7 +99,7 @@ def recommend():
         result = _get_cached_recommendation(cache_key)
         request_cache_hit = result is not None
 
-        if result is None and ai_metrics.policy_model and normalized_rolls_left > 0:
+        if result is None and not score_value_mode and ai_metrics.policy_model and normalized_rolls_left > 0:
             result = ai_metrics.policy_model.recommend_roll(
                 dice, normalized_rolls_left, strategy_mode, scorecard,
                 min_confidence=AI_POLICY_MIN_CONFIDENCE,
@@ -96,8 +107,19 @@ def recommend():
 
         if result is None:
             result = yacht_engine.solve_best_move(
-                dice, normalized_rolls_left, open_categories, strategy_mode, scorecard
+                dice,
+                normalized_rolls_left,
+                open_categories,
+                solver_strategy_mode,
+                scorecard,
+                score_value_mode=score_value_mode,
             )
+            result.setdefault("policy_source", "exact")
+
+        if score_value_mode:
+            result["strategy_mode"] = strategy_mode
+            result["score_value_mode"] = score_value_mode
+            result["policy_source"] = forced_policy_source
 
         result["decision_report"] = build_decision_report(
             result, dice, normalized_rolls_left, strategy_mode, scorecard, open_categories

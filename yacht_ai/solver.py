@@ -598,7 +598,7 @@ def _solve_best_move_cached(
     direct_score_value_mode = "value" if score_value_mode in ("value_score_only", "value_optimal") else score_value_mode
 
     if rolls_left == 0:
-        return build_score_stage_advice(
+        result = build_score_stage_advice(
             dice,
             scorecard,
             open_categories,
@@ -609,6 +609,14 @@ def _solve_best_move_cached(
             learned_value_max_mae=learned_value_max_mae,
             learned_value_min_turns=learned_value_min_turns,
         )
+        if ev_optimal_mode:
+            result = dict(result)
+            result["strategy_mode"] = "optimal"
+            result["score_value_mode"] = "value_optimal"
+            result["policy_source"] = "exact_value_optimal"
+        else:
+            result.setdefault("policy_source", "exact")
+        return result
 
     # --- 클로저 DP 함수 (per-call lru_cache) ---
 
@@ -756,6 +764,13 @@ def _solve_best_move_cached(
 
     chosen_ev = keep_ev_map.get(best_keep_tuple, best_ev)
     best_keep_indices = kept_tuple_to_indices(dice, best_keep_tuple)
+    alternative_actions = sorted(
+        ((kt, v) for kt, v in keep_action_values if kt != best_keep_tuple),
+        key=lambda item: (item[1], len(item[0]), keep_values_desc(item[0])),
+        reverse=True,
+    )
+    best_alternative = alternative_actions[0] if alternative_actions else None
+    alternative_gap = chosen_ev - best_alternative[1] if best_alternative else None
 
     # --- Focused breakdown 빌드 (분리된 함수) ---
     breakdown = _build_focused_breakdown_rows(
@@ -878,7 +893,15 @@ def _solve_best_move_cached(
 
     # 메시지 / 요약 작성
     rec_msg = "모두 굴리기"
-    if best_keep_indices:
+    optimal_action_label = _format_keep_tuple(dice, best_keep_tuple)
+    if ev_optimal_mode:
+        if all_dice_kept:
+            rec_msg = "지금 기록 추천 (기대점수 최적)"
+        elif best_keep_indices:
+            rec_msg = f"[{', '.join(kept_vals)}] Keep (기대점수 최적)"
+        else:
+            rec_msg = "모두 굴리기 (기대점수 최적)"
+    elif best_keep_indices:
         if all_dice_kept:
             rec_msg = "지금 기록 추천"
             if explaining_row and explaining_row.get("name"):
@@ -891,7 +914,15 @@ def _solve_best_move_cached(
                 rec_msg += f" ({explaining_row['name']} 노리기)"
 
     style_label = "기대점수 최적" if ev_optimal_mode else ("집중 공략" if mode != "cover" else "커버 플레이")
-    if cover_fallback and best_keep_indices:
+    if ev_optimal_mode:
+        if alternative_gap is None:
+            gap_text = ""
+        elif alternative_gap <= EPS:
+            gap_text = ", 차선책과 거의 동률"
+        else:
+            gap_text = f", 차선 대비 +{alternative_gap:.2f}점"
+        summary = f"{style_label} 추천: {optimal_action_label}, 기대 최종점수 {chosen_ev:.2f}점{gap_text}"
+    elif cover_fallback and best_keep_indices:
         summary = f"{style_label}: 커버 대상이 없어 일반 추천으로 전환, [{', '.join(kept_vals)}] keep, 평가값 {chosen_ev:.2f}"
     elif cover_fallback:
         summary = f"{style_label}: 커버 대상이 없어 일반 추천으로 전환, 평가값 {chosen_ev:.2f}"
@@ -918,7 +949,30 @@ def _solve_best_move_cached(
         learned_value_min_turns=learned_value_min_turns,
     )
 
-    recommendation_context_row = build_recommendation_context_row(
+    if ev_optimal_mode:
+        if best_alternative:
+            alt_label = _format_keep_tuple(dice, best_alternative[0])
+            if alternative_gap <= EPS:
+                alt_reason = f"차선책({alt_label})도 거의 같은 기대값입니다."
+            else:
+                alt_reason = f"차선책({alt_label})보다 기대 최종점수가 {alternative_gap:.2f}점 높습니다."
+        else:
+            alt_reason = "비교할 다른 keep 후보가 없는 확정 상태입니다."
+        breakdown = [{
+            "name": "기대 최종점수",
+            "prob": 0.0,
+            "meter": min(1.0, max(0.15, chosen_ev / 240.0)),
+            "val_str": f"EV {chosen_ev:.2f}",
+            "type": "decision",
+            "keep_str": f"{optimal_action_label} 선택",
+            "keep_indices": best_keep_indices,
+            "reason": (
+                "즉시 기록 점수와 full-game exact V(next_state)를 합산한 기준입니다. "
+                f"{alt_reason}"
+            ),
+        }] + breakdown
+
+    recommendation_context_row = None if ev_optimal_mode else build_recommendation_context_row(
         mode, chosen_ev, explaining_row, straight_upgrade,
         best_keep_indices,
         stop_now_advice.get("primary_target") or stop_now_advice.get("message"),
@@ -935,9 +989,21 @@ def _solve_best_move_cached(
         breakdown = breakdown[:3] + decision_rows[:2] + breakdown[3:]
 
     if all_dice_kept:
-        summary = stop_now_advice.get("summary", summary)
+        if not ev_optimal_mode:
+            summary = stop_now_advice.get("summary", summary)
         score_breakdown = stop_now_advice.get("breakdown", [])
         breakdown = score_breakdown[:3] + decision_rows[:2] + score_breakdown[3:]
+        if ev_optimal_mode:
+            breakdown = [{
+                "name": "기대 최종점수",
+                "prob": 0.0,
+                "meter": min(1.0, max(0.15, chosen_ev / 240.0)),
+                "val_str": f"EV {chosen_ev:.2f}",
+                "type": "decision",
+                "keep_str": f"{optimal_action_label} 선택",
+                "keep_indices": best_keep_indices,
+                "reason": "지금 기록하는 선택이 full-game exact V 기준으로 가장 높은 기대 최종점수입니다.",
+            }] + breakdown
         if stop_now_advice.get("primary_target"):
             explaining_row = {"name": stop_now_advice["primary_target"]}
 
@@ -952,10 +1018,11 @@ def _solve_best_move_cached(
         "dice_recommendations": dice_recommendations,
         "message": rec_msg,
         "breakdown": breakdown,
-        "strategy_mode": mode,
-        "primary_target": explaining_row["name"] if explaining_row else None,
+        "strategy_mode": "optimal" if ev_optimal_mode else mode,
+        "primary_target": "기대점수 최적" if ev_optimal_mode else (explaining_row["name"] if explaining_row else None),
         "summary": summary,
         "stage": "roll",
+        "policy_source": "exact_value_optimal" if ev_optimal_mode else "exact",
     }
 
 
