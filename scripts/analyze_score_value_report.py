@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import statistics
 import sys
 from collections import Counter
@@ -117,6 +118,19 @@ def case_group_summary(cases: list[dict[str, Any]], policy_label: str) -> dict[s
     }
 
 
+def binomial_tail_at_least(successes: int, trials: int, probability: float = 0.5) -> float:
+    if trials <= 0:
+        return 1.0
+    if successes <= 0:
+        return 1.0
+    if successes > trials:
+        return 0.0
+    return sum(
+        math.comb(trials, value) * (probability ** value) * ((1.0 - probability) ** (trials - value))
+        for value in range(successes, trials + 1)
+    )
+
+
 def paired_delta_stats(policy_row: dict[str, Any]) -> dict[str, Any]:
     deltas = policy_row.get("paired_delta_vs_heuristic") or []
     if not deltas:
@@ -127,12 +141,31 @@ def paired_delta_stats(policy_row: dict[str, Any]) -> dict[str, Any]:
             "stderr": 0.0,
             "normal_ci95_low": 0.0,
             "normal_ci95_high": 0.0,
+            "z_score": 0.0,
+            "normal_p_value_greater": 1.0,
+            "normal_p_value_two_sided": 1.0,
+            "standardized_effect_dz": 0.0,
+            "positive_count": 0,
+            "negative_count": 0,
+            "tie_count": 0,
+            "sign_test_p_value_greater": 1.0,
+            "sign_test_p_value_two_sided": 1.0,
         }
     count = len(deltas)
     mean = statistics.fmean(deltas)
     sample_stdev = statistics.stdev(deltas) if count > 1 else 0.0
     stderr = sample_stdev / (count ** 0.5) if count > 1 else 0.0
     ci_radius = 1.96 * stderr
+    z_score = mean / stderr if stderr > 0.0 else 0.0
+    positive_count = sum(1 for delta in deltas if delta > 0)
+    negative_count = sum(1 for delta in deltas if delta < 0)
+    tie_count = count - positive_count - negative_count
+    non_tie_count = positive_count + negative_count
+    sign_one_sided = binomial_tail_at_least(positive_count, non_tie_count)
+    sign_two_sided = min(1.0, 2.0 * min(
+        sign_one_sided,
+        binomial_tail_at_least(negative_count, non_tie_count),
+    ))
     return {
         "count": count,
         "mean": round(mean, 4),
@@ -140,6 +173,15 @@ def paired_delta_stats(policy_row: dict[str, Any]) -> dict[str, Any]:
         "stderr": round(stderr, 4),
         "normal_ci95_low": round(mean - ci_radius, 4),
         "normal_ci95_high": round(mean + ci_radius, 4),
+        "z_score": round(z_score, 4),
+        "normal_p_value_greater": round(0.5 * math.erfc(z_score / math.sqrt(2.0)), 8),
+        "normal_p_value_two_sided": round(math.erfc(abs(z_score) / math.sqrt(2.0)), 8),
+        "standardized_effect_dz": round(mean / sample_stdev, 4) if sample_stdev > 0.0 else 0.0,
+        "positive_count": positive_count,
+        "negative_count": negative_count,
+        "tie_count": tie_count,
+        "sign_test_p_value_greater": round(sign_one_sided, 8),
+        "sign_test_p_value_two_sided": round(sign_two_sided, 8),
     }
 
 
@@ -171,6 +213,12 @@ def render_pair_counts(title: str, counts: dict[str, int]) -> list[str]:
     if not counts:
         return [f"- {title}: none"]
     return [f"- {title}: " + ", ".join(f"{key} ({value})" for key, value in counts.items())]
+
+
+def p_value_text(value: float) -> str:
+    if value < 0.0001:
+        return f"{value:.2e}"
+    return f"{value:.6f}".rstrip("0").rstrip(".")
 
 
 def render_case_line(case: dict[str, Any], policy_label: str) -> str:
@@ -222,6 +270,18 @@ def render_markdown(analysis: dict[str, Any]) -> str:
                 f"- Paired delta uncertainty: n={delta_stats['count']}, "
                 f"sample stdev {delta_stats['sample_stdev']}, stderr {delta_stats['stderr']}, "
                 f"normal 95% CI [{delta_stats['normal_ci95_low']}, {delta_stats['normal_ci95_high']}]"
+            ),
+            (
+                f"- Objective tests: z={delta_stats['z_score']}, one-sided normal p="
+                f"{p_value_text(delta_stats['normal_p_value_greater'])}, two-sided normal p="
+                f"{p_value_text(delta_stats['normal_p_value_two_sided'])}, "
+                f"effect dz={delta_stats['standardized_effect_dz']}"
+            ),
+            (
+                f"- Sign test: win/loss/tie counts {delta_stats['positive_count']} / "
+                f"{delta_stats['negative_count']} / {delta_stats['tie_count']}; one-sided p="
+                f"{p_value_text(delta_stats['sign_test_p_value_greater'])}, two-sided p="
+                f"{p_value_text(delta_stats['sign_test_p_value_two_sided'])}"
             ),
             (
                 f"- Upper bonus rate: heuristic {baseline.get('upper_bonus_rate', 0.0)} vs "

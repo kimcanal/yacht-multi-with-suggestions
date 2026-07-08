@@ -664,7 +664,16 @@
         "sample_stdev": 14.9463,
         "stderr": 1.0569,
         "normal_ci95_low": -2.0565,
-        "normal_ci95_high": 2.0865
+        "normal_ci95_high": 2.0865,
+        "z_score": 0.0142,
+        "normal_p_value_greater": 0.49433802,
+        "normal_p_value_two_sided": 0.98867604,
+        "standardized_effect_dz": 0.001,
+        "positive_count": 42,
+        "negative_count": 56,
+        "tie_count": 102,
+        "sign_test_p_value_greater": 0.93535371,
+        "sign_test_p_value_two_sided": 0.18884672
       },
       "worst": {
         "cases": [

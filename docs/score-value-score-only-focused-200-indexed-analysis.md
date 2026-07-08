@@ -11,6 +11,8 @@
 
 - Full-run average: heuristic 168.195 vs value_score_only 170.57 (+2.3750); win/loss/tie: 0.305 / 0.255 / 0.44
 - Paired delta uncertainty: n=200, sample stdev 14.9308, stderr 1.0558, normal 95% CI [0.3057, 4.4443]
+- Objective tests: z=2.2495, one-sided normal p=0.012239, two-sided normal p=0.024478, effect dz=0.1591
+- Sign test: win/loss/tie counts 61 / 51 / 88; one-sided p=0.197597, two-sided p=0.395193
 - Upper bonus rate: heuristic 0.235 vs value_score_only 0.305; avg exact table hits per game 5.0
 
 ### Saved Worst Cases

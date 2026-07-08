@@ -199,7 +199,7 @@ python3 server.py
 - value_score_only: 평균 177.650, 표준편차 44.7589, Upper Bonus 39.0%, paired delta 평균 +0.015점, 범위 -77~+104
 - open3-only score mode: 평균 177.155, Upper Bonus 35.5%, paired delta 평균 -0.480점
 
-기존 stream RNG 비교에서 `value_score_only`의 paired delta 95% 구간은 -2.0565~+2.0865라서 평균 +0.015점은 안정적 개선으로 보기 어렵다. 다만 정책별 RNG 소비 순서 차이를 줄이는 `--random-source indexed` 500게임 비교에서는 heuristic 171.032 vs `value_score_only` 174.346, paired delta +3.314점, 95% 구간 +1.9155~+4.7125, Upper Bonus 25.0% → 33.8%였다.
+기존 stream RNG 비교에서 `value_score_only`의 paired delta 95% 구간은 -2.0565~+2.0865, one-sided normal p=0.494338이라 평균 +0.015점은 안정적 개선으로 보기 어렵다. 다만 정책별 RNG 소비 순서 차이를 줄이는 `--random-source indexed` 500게임 비교에서는 heuristic 171.032 vs `value_score_only` 174.346, paired delta +3.314점, 95% 구간 +1.9155~+4.7125, one-sided normal p=1.70e-06, effect dz=0.2077, Upper Bonus 25.0% → 33.8%였다. 즉 객관 수치상 평균 기대점수는 개선 신호가 있지만, win/loss/tie count는 139/127/234로 많은 무승부 때문에 sign test는 유의하지 않다.
 
 전체 value mode는 평균과 Upper Bonus가 좋아졌지만 roll/keep 선택까지 바뀌면서 손실 케이스도 커진다. `value_score_only`는 더 보수적이고 indexed 비교에서는 유망하지만, 아직 guard 검토가 부족해서 운영 기본값으로 승격하지 않고 opt-in 실험으로 둔다. 자세한 결과는 [docs/score-value-mode-focused-200.md](./docs/score-value-mode-focused-200.md), [docs/score-value-score-only-focused-200.md](./docs/score-value-score-only-focused-200.md), [docs/score-value-score-only-focused-200-analysis.md](./docs/score-value-score-only-focused-200-analysis.md), [docs/score-value-score-only-focused-500-indexed.md](./docs/score-value-score-only-focused-500-indexed.md), [docs/score-value-score-only-focused-500-indexed-analysis.md](./docs/score-value-score-only-focused-500-indexed-analysis.md)에 있습니다.
 
