@@ -27,6 +27,8 @@ artifacts/value/*
 !artifacts/reports/score-value-mode-focused-200.json
 !artifacts/reports/score-value-score-only-focused-200.json
 !artifacts/reports/score-value-score-only-focused-200-analysis.json
+!artifacts/reports/score-value-score-only-focused-200-indexed.json
+!artifacts/reports/score-value-score-only-focused-200-indexed-analysis.json
 !artifacts/reports/score-value-score-only-open3-focused-200.json
 !artifacts/reports/self-play-value-focused-256.summary.json
 !artifacts/reports/scorecard-value-linear-v1.eval.json

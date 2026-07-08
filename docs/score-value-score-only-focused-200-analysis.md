@@ -5,6 +5,7 @@
 - Games: `200` paired seeds
 - Seed: `20260708`
 - Value table: `artifacts/value/endgame-value-table-open4.json`
+- Random source: `stream`
 
 ## value_score_only
 

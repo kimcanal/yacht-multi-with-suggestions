@@ -19,6 +19,8 @@ from yacht_ai.constants import CATS
 from yacht_ai.endgame_value import DEFAULT_ENDGAME_VALUE_TABLE_PATH
 from yacht_ai.scoring import calc_score
 
+UINT64_MASK = (1 << 64) - 1
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run paired full-game simulations for score-stage value mode.")
@@ -35,6 +37,12 @@ def parse_args() -> argparse.Namespace:
         help="comma-separated score policies: heuristic,value,value_score_only,hybrid",
     )
     parser.add_argument("--case-limit", type=int, default=5, help="worst/best paired games to keep per policy")
+    parser.add_argument(
+        "--random-source",
+        choices=("stream", "indexed"),
+        default="stream",
+        help="stream preserves legacy RNG consumption; indexed fixes dice slots by turn/roll/die to reduce paired noise",
+    )
     parser.add_argument("--output", default="")
     parser.add_argument("--markdown-output", default="")
     parser.add_argument("--report-every", type=int, default=25)
@@ -62,8 +70,43 @@ def score_metrics(scorecard: list[int | None]) -> dict:
     }
 
 
-def reroll_from_keep(rng: random.Random, dice: list[int], keep_indices: list[int]) -> list[int]:
+def splitmix64(value: int) -> int:
+    value = (value + 0x9E3779B97F4A7C15) & UINT64_MASK
+    value = ((value ^ (value >> 30)) * 0xBF58476D1CE4E5B9) & UINT64_MASK
+    value = ((value ^ (value >> 27)) * 0x94D049BB133111EB) & UINT64_MASK
+    return (value ^ (value >> 31)) & UINT64_MASK
+
+
+def indexed_die(seed: int, turn_index: int, roll_step: int, die_index: int) -> int:
+    mixed = int(seed) & UINT64_MASK
+    mixed ^= ((turn_index + 1) * 0x9E3779B97F4A7C15) & UINT64_MASK
+    mixed ^= ((roll_step + 1) * 0xBF58476D1CE4E5B9) & UINT64_MASK
+    mixed ^= ((die_index + 1) * 0x94D049BB133111EB) & UINT64_MASK
+    return int(splitmix64(mixed) % 6) + 1
+
+
+def initial_dice(rng: random.Random, seed: int, turn_index: int, random_source: str) -> list[int]:
+    if random_source == "indexed":
+        return [indexed_die(seed, turn_index, 0, idx) for idx in range(5)]
+    return [rng.randint(1, 6) for _ in range(5)]
+
+
+def reroll_from_keep(
+    rng: random.Random,
+    dice: list[int],
+    keep_indices: list[int],
+    *,
+    seed: int,
+    turn_index: int,
+    roll_step: int,
+    random_source: str,
+) -> list[int]:
     keep = set(keep_indices)
+    if random_source == "indexed":
+        return [
+            value if idx in keep else indexed_die(seed, turn_index, roll_step, idx)
+            for idx, value in enumerate(dice)
+        ]
     return [value if idx in keep else rng.randint(1, 6) for idx, value in enumerate(dice)]
 
 
@@ -142,6 +185,7 @@ def play_game(
     learned_model: str,
     learned_max_mae: float,
     learned_min_turns: int,
+    random_source: str,
 ) -> dict:
     rng = random.Random(seed)
     scorecard: list[int | None] = [None] * 12
@@ -151,8 +195,9 @@ def play_game(
     learned_value_score_hits = 0
     value_score_fallbacks = 0
 
+    turn_index = 0
     while any(value is None for value in scorecard):
-        dice = [rng.randint(1, 6) for _ in range(5)]
+        dice = initial_dice(rng, seed, turn_index, random_source)
         rolls_left = 2
         while rolls_left > 0:
             roll_score_mode = "heuristic" if score_mode == "value_score_only" else score_mode
@@ -171,7 +216,15 @@ def play_game(
             roll_decisions += 1
             if len(keep_indices) == 5:
                 break
-            dice = reroll_from_keep(rng, dice, keep_indices)
+            dice = reroll_from_keep(
+                rng,
+                dice,
+                keep_indices,
+                seed=seed,
+                turn_index=turn_index,
+                roll_step=3 - rolls_left,
+                random_source=random_source,
+            )
             rolls_left -= 1
 
         category_idx, score_result = choose_score_category(
@@ -199,6 +252,7 @@ def play_game(
             "expected_value": score_result.get("expected_value"),
         })
         apply_score(dice, scorecard, category_idx)
+        turn_index += 1
 
     metrics = score_metrics(scorecard)
     metrics["roll_decisions"] = roll_decisions
@@ -292,6 +346,7 @@ def render_markdown(report: dict) -> str:
         f"- Games: `{report['games']}` paired seeds",
         f"- Seed: `{report['seed']}`",
         f"- Value table: `{report['value_table']}`",
+        f"- Random source: `{report.get('random_source', 'stream')}`",
         "",
         "## Summary",
         "",
@@ -370,6 +425,7 @@ def main() -> None:
                     args.learned_model,
                     args.learned_max_mae,
                     args.learned_min_turns,
+                    args.random_source,
                 )
             )
             if args.report_every and (idx % args.report_every == 0 or idx == args.games):
@@ -388,6 +444,7 @@ def main() -> None:
         "learned_model": args.learned_model,
         "learned_max_mae": args.learned_max_mae,
         "learned_min_turns": args.learned_min_turns,
+        "random_source": args.random_source,
         "policies": summaries,
         "paired_cases": paired_cases,
     }

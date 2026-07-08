@@ -4,6 +4,7 @@
   "games": 200,
   "seed": 20260708,
   "value_table": "artifacts/value/endgame-value-table-open4.json",
+  "random_source": "stream",
   "analyses": {
     "value_score_only": {
       "baseline_summary": {

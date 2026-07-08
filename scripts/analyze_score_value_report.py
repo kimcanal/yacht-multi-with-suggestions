@@ -162,6 +162,7 @@ def analyze_report(report: dict[str, Any], source_report: str) -> dict[str, Any]
         "games": report.get("games"),
         "seed": report.get("seed"),
         "value_table": report.get("value_table"),
+        "random_source": report.get("random_source", "stream"),
         "analyses": analyses,
     }
 
@@ -198,6 +199,7 @@ def render_markdown(analysis: dict[str, Any]) -> str:
         f"- Games: `{analysis['games']}` paired seeds",
         f"- Seed: `{analysis['seed']}`",
         f"- Value table: `{analysis['value_table']}`",
+        f"- Random source: `{analysis['random_source']}`",
         "",
     ]
 
