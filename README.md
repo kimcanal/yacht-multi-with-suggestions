@@ -197,6 +197,7 @@ python3 server.py
 - value mode: 평균 178.440, 표준편차 47.9419, Upper Bonus 40.5%, Yacht bonus 평균 0.035
 - paired delta: 평균 +0.805점, win/loss/tie 30.5% / 37.0% / 32.5%, 범위 -72~+193
 - value_score_only: 평균 177.650, 표준편차 44.7589, Upper Bonus 39.0%, paired delta 평균 +0.015점, 범위 -77~+104
+- open3-only score mode: 평균 177.155, Upper Bonus 35.5%, paired delta 평균 -0.480점
 
 전체 value mode는 평균과 Upper Bonus가 좋아졌지만 roll/keep 선택까지 바뀌면서 손실 케이스도 커진다. `value_score_only`는 더 보수적이고 Upper Bonus 페이스만 개선하지만 평균 개선은 거의 없다. 둘 다 아직 운영 기본값으로 승격하지 않고 opt-in 실험으로 둔다. 자세한 결과는 [docs/score-value-mode-focused-200.md](./docs/score-value-mode-focused-200.md), [docs/score-value-score-only-focused-200.md](./docs/score-value-score-only-focused-200.md)에 있습니다.
 

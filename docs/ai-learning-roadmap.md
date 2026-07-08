@@ -193,6 +193,7 @@ table에 있는 후반 next state는 exact V를 쓰고, 아직 커버하지 못�
 - value mode는 게임당 평균 5.0 score-stage turns에서 endgame table을 hit했고, 나머지 7.0 turns는 초반 fallback이었다.
 - value_score_only: 평균 177.650, 표준편차 44.7589, Upper Bonus 39.0%, paired delta 평균 +0.015점, win/loss/tie 21.0% / 28.0% / 51.0%, 범위 -77~+104
 - value_score_only도 게임당 평균 5.0 score-stage turns에서 endgame table을 hit했고, roll/keep 판단은 휴리스틱으로 유지했다.
+- 더 보수적인 open3-only score mode는 평균 177.155, Upper Bonus 35.5%, paired delta 평균 -0.480점이었다. table 적용을 너무 늦추면 손실 꼬리는 줄지만 이득도 거의 사라진다.
 
 결론: exact endgame V는 Upper Bonus 페이스를 올리지만 손실 꼬리도 남는다. full value mode는 평균 개선이 있지만 roll/keep 선택까지 흔들어 분산이 커지고, value_score_only는 더 보수적이지만 평균 개선이 거의 없다. 운영 기본값은 유지하고, 다음 실험은 큰 음수 delta를 줄이는 guard 조건을 먼저 찾는 방향이 맞다.
 
