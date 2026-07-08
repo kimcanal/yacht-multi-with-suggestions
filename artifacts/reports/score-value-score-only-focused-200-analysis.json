@@ -666,14 +666,14 @@
         "normal_ci95_low": -2.0565,
         "normal_ci95_high": 2.0865,
         "z_score": 0.0142,
-        "normal_p_value_greater": 0.49433802,
-        "normal_p_value_two_sided": 0.98867604,
+        "normal_p_value_greater": 0.49433802179958064,
+        "normal_p_value_two_sided": 0.9886760435991613,
         "standardized_effect_dz": 0.001,
         "positive_count": 42,
         "negative_count": 56,
         "tie_count": 102,
-        "sign_test_p_value_greater": 0.93535371,
-        "sign_test_p_value_two_sided": 0.18884672
+        "sign_test_p_value_greater": 0.9353537080232134,
+        "sign_test_p_value_two_sided": 0.18884671980890244
       },
       "worst": {
         "cases": [

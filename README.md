@@ -166,6 +166,12 @@ python3 scripts/build_value_table.py \
   --batch-open-count 4 \
   --output artifacts/value/endgame-value-table-open4.json \
   --max-states 110000
+
+python3 scripts/build_value_table.py \
+  --batch-open-count 12 \
+  --output artifacts/value/endgame-value-table-open12.npz \
+  --output-format npz \
+  --max-states 600000
 ```
 
 상태는 닫힌 점수칸 bitmask, 63점으로 cap한 상단 합계, Yacht Bonus 가능 여부로 압축합니다. 후반 1~3칸 exact endgame은 빠르게 계산되지만, 전체 12턴 full DP를 운영 요청마다 직접 계산하는 방식은 맞지 않습니다.
@@ -174,12 +180,21 @@ python3 scripts/build_value_table.py \
 
 - `artifacts/value/endgame-value-table-open3.json`: 열린 칸 3개 이하 38,272 states, 81.881초
 - `artifacts/value/endgame-value-table-open4.json`: 열린 칸 4개 이하 101,632 states, 245.353초
+- `artifacts/value/endgame-value-table-open12.npz`: 전체 12턴 524,288 states, 1,568.853초, 약 1.1MB, 초기 상태 EV 198.358185
 
 score stage value 모드는 운영 기본값이 아니라 opt-in 실험이다. 기본은 기존 휴리스틱이며, 아래처럼 켜면 table에 있는 후반 상태에서만 `즉시 점수 + V(next_state)`를 쓰고 초반 미커버 상태는 휴리스틱으로 fallback한다.
 
 ```bash
 YACHT_SCORE_STAGE_MODE=value \
 YACHT_ENDGAME_VALUE_TABLE=artifacts/value/endgame-value-table-open4.json \
+python3 server.py
+```
+
+전체 테이블을 쓰는 경우 `value`는 기존 Focused/Cover 설명 UX를 유지하면서 terminal utility만 exact V로 바꾼다. 순수 기대점수 최적 정책을 보려면 `value_optimal`을 쓴다.
+
+```bash
+YACHT_SCORE_STAGE_MODE=value_optimal \
+YACHT_ENDGAME_VALUE_TABLE=artifacts/value/endgame-value-table-open12.npz \
 python3 server.py
 ```
 
@@ -201,7 +216,9 @@ python3 server.py
 
 기존 stream RNG 비교에서 `value_score_only`의 paired delta 95% 구간은 -2.0565~+2.0865, one-sided normal p=0.494338이라 평균 +0.015점은 안정적 개선으로 보기 어렵다. 다만 정책별 RNG 소비 순서 차이를 줄이는 `--random-source indexed` 500게임 비교에서는 heuristic 171.032 vs `value_score_only` 174.346, paired delta +3.314점, 95% 구간 +1.9155~+4.7125, one-sided normal p=1.70e-06, effect dz=0.2077, Upper Bonus 25.0% → 33.8%였다. 즉 객관 수치상 평균 기대점수는 개선 신호가 있지만, win/loss/tie count는 139/127/234로 많은 무승부 때문에 sign test는 유의하지 않다.
 
-전체 value mode는 평균과 Upper Bonus가 좋아졌지만 roll/keep 선택까지 바뀌면서 손실 케이스도 커진다. `value_score_only`는 더 보수적이고 indexed 비교에서는 유망하지만, 아직 guard 검토가 부족해서 운영 기본값으로 승격하지 않고 opt-in 실험으로 둔다. 자세한 결과는 [docs/score-value-mode-focused-200.md](./docs/score-value-mode-focused-200.md), [docs/score-value-score-only-focused-200.md](./docs/score-value-score-only-focused-200.md), [docs/score-value-score-only-focused-200-analysis.md](./docs/score-value-score-only-focused-200-analysis.md), [docs/score-value-score-only-focused-500-indexed.md](./docs/score-value-score-only-focused-500-indexed.md), [docs/score-value-score-only-focused-500-indexed-analysis.md](./docs/score-value-score-only-focused-500-indexed-analysis.md)에 있습니다.
+full open12 table indexed 200게임 비교에서는 full-table `value`가 평균 182.600점, heuristic 대비 +14.405점, 95% 구간 +8.4994~+20.3106, one-sided p=8.73e-07이었다. 순수 EV 정책 `value_optimal`은 평균 198.645점으로 초기 상태 exact EV 198.358185와 거의 맞고, heuristic 대비 +30.450점, 95% 구간 +24.3329~+36.5671, one-sided p=8.64e-23, Upper Bonus 23.5% → 66.0%였다.
+
+전체 value mode는 평균과 Upper Bonus가 좋아졌지만 roll/keep 선택까지 바뀌면서 손실 케이스도 커진다. `value_optimal`은 객관 기대점수 benchmark로는 가장 강하지만 기존 Focused/Cover UX와 추천 성격이 크게 달라지므로 운영 기본값은 아직 유지하고 opt-in 실험으로 둔다. 자세한 결과는 [docs/score-value-mode-focused-200.md](./docs/score-value-mode-focused-200.md), [docs/score-value-score-only-focused-200.md](./docs/score-value-score-only-focused-200.md), [docs/score-value-score-only-focused-200-analysis.md](./docs/score-value-score-only-focused-200-analysis.md), [docs/score-value-score-only-focused-500-indexed.md](./docs/score-value-score-only-focused-500-indexed.md), [docs/score-value-score-only-focused-500-indexed-analysis.md](./docs/score-value-score-only-focused-500-indexed-analysis.md), [docs/score-value-full-table-optimal-focused-200-indexed.md](./docs/score-value-full-table-optimal-focused-200-indexed.md), [docs/score-value-full-table-optimal-focused-200-indexed-analysis.md](./docs/score-value-full-table-optimal-focused-200-indexed-analysis.md)에 있습니다.
 
 초반 상태용 learned value 실험도 진행했지만, 현재 선형 baseline은 보류입니다. 256 self-play games / 3,072 samples로 재학습한 `scorecard-value-linear-v1`은 validation MAE 24.4397이고 전체 eval MAE 22.9456입니다. 그러나 `exact table → learned model → heuristic fallback` hybrid 모드는 200게임에서 평균 168.895점으로 heuristic 대비 -8.740점이었습니다. 따라서 learned value는 더 강한 uncertainty/turn별 guard 또는 비선형 모델 전까지 score-stage 기본 판단에 연결하지 않습니다.
 

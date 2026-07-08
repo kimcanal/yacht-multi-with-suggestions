@@ -162,14 +162,23 @@ python3 scripts/build_value_table.py \
 
 - open3: 38,272 states, 81.881초, artifact 약 1.0MB
 - open4: 101,632 states, 245.353초, artifact 약 2.7MB
+- open12: 524,288 states, 1,568.853초, `npz` artifact 약 1.1MB, 초기 상태 exact EV 198.358185
 
-N=4는 실시간 요청 중 계산할 대상은 아니지만, 오프라인으로 만들어두고 score stage의 `즉시 점수 + V(next_state)` 실험에 쓰기에는 현실적인 크기다.
+N=12도 실시간 요청 중 계산할 대상은 아니지만, 오프라인 artifact로 만들면 런타임에서는 dense table lookup만 하면 된다.
 
 score stage value mode는 운영 기본값을 바꾸지 않는 opt-in 경로다.
 
 ```bash
 YACHT_SCORE_STAGE_MODE=value \
 YACHT_ENDGAME_VALUE_TABLE=artifacts/value/endgame-value-table-open4.json \
+python3 server.py
+```
+
+full table에서 Focused/Cover 설명 UX를 걷어내고 순수 기대점수 최적 keep을 보려면 `value_optimal`을 쓴다.
+
+```bash
+YACHT_SCORE_STAGE_MODE=value_optimal \
+YACHT_ENDGAME_VALUE_TABLE=artifacts/value/endgame-value-table-open12.npz \
 python3 server.py
 ```
 
@@ -195,7 +204,13 @@ table에 있는 후반 next state는 exact V를 쓰고, 아직 커버하지 못�
 - value_score_only도 게임당 평균 5.0 score-stage turns에서 endgame table을 hit했고, roll/keep 판단은 휴리스틱으로 유지했다.
 - 더 보수적인 open3-only score mode는 평균 177.155, Upper Bonus 35.5%, paired delta 평균 -0.480점이었다. table 적용을 너무 늦추면 손실 꼬리는 줄지만 이득도 거의 사라진다.
 
-결론: exact endgame V는 Upper Bonus 페이스를 올리지만 손실 꼬리도 남는다. full value mode는 평균 개선이 있지만 roll/keep 선택까지 흔들어 분산이 커지고, value_score_only는 더 보수적이지만 평균 개선이 거의 없다. 운영 기본값은 유지하고, 다음 실험은 큰 음수 delta를 줄이는 guard 조건을 먼저 찾는 방향이 맞다.
+full open12 table indexed 200게임 결과:
+
+- full-table `value`: 평균 182.600, heuristic 대비 +14.405, 95% CI +8.4994~+20.3106, one-sided p=8.73e-07, Upper Bonus 43.0%
+- `value_optimal`: 평균 198.645, heuristic 대비 +30.450, 95% CI +24.3329~+36.5671, one-sided p=8.64e-23, Upper Bonus 66.0%
+- `value_optimal` 평균은 full table 초기 상태 EV 198.358185와 거의 일치한다. 즉 full table이 기대점수 기준선 역할을 제대로 한다.
+
+결론: full-game exact V는 기존 휴리스틱 대비 명확한 기대점수 개선이다. 다만 `value_optimal`은 기존 Focused/Cover UX와 추천 성격이 크게 달라지므로 운영 기본값은 유지하고, UI 설명/전략 모드 재설계를 별도 단계로 둔다.
 
 ## Learned Early Value Hybrid
 

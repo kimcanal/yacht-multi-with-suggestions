@@ -174,14 +174,14 @@ def paired_delta_stats(policy_row: dict[str, Any]) -> dict[str, Any]:
         "normal_ci95_low": round(mean - ci_radius, 4),
         "normal_ci95_high": round(mean + ci_radius, 4),
         "z_score": round(z_score, 4),
-        "normal_p_value_greater": round(0.5 * math.erfc(z_score / math.sqrt(2.0)), 8),
-        "normal_p_value_two_sided": round(math.erfc(abs(z_score) / math.sqrt(2.0)), 8),
+        "normal_p_value_greater": 0.5 * math.erfc(z_score / math.sqrt(2.0)),
+        "normal_p_value_two_sided": math.erfc(abs(z_score) / math.sqrt(2.0)),
         "standardized_effect_dz": round(mean / sample_stdev, 4) if sample_stdev > 0.0 else 0.0,
         "positive_count": positive_count,
         "negative_count": negative_count,
         "tie_count": tie_count,
-        "sign_test_p_value_greater": round(sign_one_sided, 8),
-        "sign_test_p_value_two_sided": round(sign_two_sided, 8),
+        "sign_test_p_value_greater": sign_one_sided,
+        "sign_test_p_value_two_sided": sign_two_sided,
     }
 
 
