@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎲 Yacht - Multiplayer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260708-3') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260709-1') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -337,14 +337,17 @@
                         <div class="ai-mode-card" data-ai-mode-desc="focused">
                             <strong><span class="ai-mode-chip">집중</span> 한 족보를 깊게 밉니다</strong>
                             <p>지금 손패에서 가장 유망한 한 족보를 끝까지 노립니다. Small Straight가 이미 잡혀 있으면 Large Straight 업그레이드도 같이 봅니다.</p>
+                            <span class="ai-mode-metric">목표 지향 설명형 · 최적 대비 평균 -19점</span>
                         </div>
                         <div class="ai-mode-card" data-ai-mode-desc="cover">
                             <strong><span class="ai-mode-chip">커버</span> 하나 이상 성공을 노립니다</strong>
                             <p>열린 하단 족보를 묶어서 하나라도 먹을 확률을 키웁니다. 동시에 전부 실패할 확률도 함께 보여줍니다.</p>
+                            <span class="ai-mode-metric">하단 커버 안전형 · 최적 대비 평균 -38점</span>
                         </div>
                         <div class="ai-mode-card" data-ai-mode-desc="optimal">
                             <strong><span class="ai-mode-chip">최적</span> 기대 최종점수를 봅니다</strong>
                             <p>full-game exact V 기준으로 즉시 점수와 남은 점수판 가치를 합산해 가장 높은 기대값을 고릅니다.</p>
+                            <span class="ai-mode-metric">이론 최적 플레이 · 평균 198점</span>
                         </div>
                     </div>
                     <div id="ai-info-tip" style="margin-top: 8px; padding: 8px 12px; background: rgba(0, 255, 204, 0.1); border-left: 3px solid #00ffcc; border-radius: 5px; font-size: 0.75em; color: #aaa; line-height: 1.4; display: none;">
@@ -373,7 +376,7 @@
     <script src="{{ url_for('static', filename='js/score_utils.js', v='20260708-3') }}"></script>
     <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260521-1') }}"></script>
     <script src="{{ url_for('static', filename='js/winprob.js', v='20260406-5') }}"></script>
-    <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260406-5') }}"></script>
+    <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260709-1') }}"></script>
     <script>
         // --- [전역 변수 설정] ---
         // 멀티플레이 전용이므로 관련 변수를 간소화합니다.
@@ -1203,21 +1206,15 @@
                         keepBtn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
                     }
 
-                    let aiInfo = '';
                     keepBtn.style.boxShadow = 'none';
 
-                    if (aiRec?.dice_recommendations) {
-                        const r = aiRec.dice_recommendations[i];
-                        if (r && r.action === 'keep' && !kept[i]) {
-                            keepBtn.style.borderColor = '#00ffcc';
-                            keepBtn.style.boxShadow = '0 0 10px rgba(0, 255, 204, 0.8)';
-                        }
-                    }
-                    keepText.innerHTML = (kept[i] ? '✓ KEEP' : 'KEEP') + aiInfo;
+                    keepText.innerHTML = kept[i] ? '✓ KEEP' : 'KEEP';
                 }
                 const lbl = document.getElementById(`lock-${i}`);
                 if (lbl) lbl.innerText = '';
             }
+            const boardAiRec = GameState.getAiRec ? GameState.getAiRec() : aiRec;
+            applyAiDiceHints(boardAiRec, { enabled: !isObserver && isMyTurn() && !gameOver });
             document.getElementById('rolls-left').innerText = GameState.getRollsLeft();
             const waitingForOpponent = !opponentName || roomPlayers.length < 2;
             document.getElementById('roll-btn').disabled = GameState.getRollsLeft() <= 0 || GameState.isGameOver() || isRolling || !isMyTurn() || waitingForOpponent;
@@ -1472,6 +1469,7 @@ function applyRemoteState(state) {
             GameState.setAiRec(null);
             renderAiStatus('ai-breakdown', '🎲 계산 중...');
             updateDice(); 
+            updateScorecard();
 
             for (let i = 0; i < 5; i++) {
                 if (!kept[i]) document.getElementById(`die-${i}`).classList.add('rolling');
@@ -1561,6 +1559,7 @@ function applyRemoteState(state) {
                 aiRec = payload;
                 GameState.setAiRec(aiRec);
                 refreshInsightPanels();
+                updateScorecard();
                 updateDice();
             } catch (e) {
                 console.error(e);
@@ -1603,6 +1602,8 @@ function updateScorecard() {
             previewIds: true,
         });
     }
+    const boardAiRec = GameState.getAiRec ? GameState.getAiRec() : aiRec;
+    applyAiScoreHints(boardAiRec, { enabled: !isObserver && isMyTurn() && !gameOver });
 }
 
 // 게임 중(게임오버 전)에 페이지를 떠나려 할 때 경고창 띄우기

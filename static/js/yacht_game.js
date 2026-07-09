@@ -87,3 +87,96 @@ function renderDice() {
     
     updateDice();
 }
+
+function removeAiHintBadges(root, selector) {
+    root.querySelectorAll(selector).forEach((badge) => badge.remove());
+}
+
+function clearAiDiceHints() {
+    for (let i = 0; i < 5; i++) {
+        const itemEl = document.getElementById(`dice-item-${i}`);
+        const containerEl = document.getElementById(`die-container-${i}`);
+        const keepBtn = document.getElementById(`keep-${i}`);
+        if (itemEl) {
+            itemEl.classList.remove('ai-keep-recommended');
+            removeAiHintBadges(itemEl, '.ai-dice-badge');
+        }
+        if (containerEl) containerEl.classList.remove('ai-keep-recommended');
+        if (keepBtn) keepBtn.classList.remove('ai-keep-recommended');
+    }
+}
+
+function clearAiScoreHints() {
+    document.querySelectorAll('[data-score-flash]').forEach((el) => {
+        el.classList.remove('ai-score-recommended', 'ai-score-sacrifice');
+        removeAiHintBadges(el, '.ai-score-badge');
+    });
+}
+
+function getAiScoreTarget(aiRec) {
+    if (!aiRec || typeof aiRec !== 'object') return null;
+    const breakdown = Array.isArray(aiRec.breakdown) ? aiRec.breakdown : [];
+    const targetName = aiRec.primary_target || (
+        aiRec.stage === 'score' && breakdown[0] ? breakdown[0].name : null
+    );
+    if (!targetName || typeof CATS === 'undefined') return null;
+    const categoryIndex = CATS.indexOf(targetName);
+    if (categoryIndex < 0) return null;
+    const targetRow = breakdown.find((row) => row && row.name === targetName) || breakdown[0] || {};
+    return {
+        categoryIndex,
+        isSacrifice: targetRow.type === 'sacrifice' || Number(targetRow.score) === 0 || String(targetRow.val_str || '').includes('0점'),
+    };
+}
+
+function isAiScoreHintStage(aiRec) {
+    if (!aiRec || typeof aiRec !== 'object') return false;
+    if (aiRec.stage === 'score') return true;
+    const recs = Array.isArray(aiRec.dice_recommendations) ? aiRec.dice_recommendations : [];
+    return recs.length >= 5 && recs.every((rec) => rec && rec.action === 'keep');
+}
+
+function applyAiDiceHints(aiRec, options = {}) {
+    clearAiDiceHints();
+    if (!options.enabled || !aiRec || aiRec.stage === 'score') return;
+    const recs = Array.isArray(aiRec.dice_recommendations) ? aiRec.dice_recommendations : [];
+    recs.forEach((rec, fallbackIndex) => {
+        if (!rec || rec.action !== 'keep') return;
+        const index = Number.isInteger(rec.index) ? rec.index : fallbackIndex;
+        const itemEl = document.getElementById(`dice-item-${index}`);
+        const containerEl = document.getElementById(`die-container-${index}`);
+        const keepBtn = document.getElementById(`keep-${index}`);
+        if (!itemEl || !containerEl) return;
+        itemEl.classList.add('ai-keep-recommended');
+        containerEl.classList.add('ai-keep-recommended');
+        if (keepBtn) keepBtn.classList.add('ai-keep-recommended');
+        if (!itemEl.querySelector('.ai-dice-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'ai-dice-badge';
+            badge.textContent = 'AI KEEP';
+            itemEl.appendChild(badge);
+        }
+    });
+}
+
+function applyAiScoreHints(aiRec, options = {}) {
+    clearAiScoreHints();
+    if (!options.enabled || !isAiScoreHintStage(aiRec)) return;
+    const target = getAiScoreTarget(aiRec);
+    if (!target) return;
+    document.querySelectorAll(`[data-score-flash="${target.categoryIndex}"]`).forEach((el) => {
+        el.classList.add(target.isSacrifice ? 'ai-score-sacrifice' : 'ai-score-recommended');
+        if (!el.querySelector('.ai-score-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'ai-score-badge';
+            badge.textContent = target.isSacrifice ? '희생' : '추천';
+            el.appendChild(badge);
+        }
+    });
+}
+
+function applyAiBoardHints(aiRec, options = {}) {
+    const enabled = Boolean(options.enabled);
+    applyAiDiceHints(aiRec, { enabled });
+    applyAiScoreHints(aiRec, { enabled });
+}
