@@ -441,6 +441,58 @@ class RouteIntegrationTests(unittest.TestCase):
             self.skipTest("deterministic roll happened to match the forged score")
         self.assertEqual(forged.status_code, 400)
 
+    def test_sync_cannot_overwrite_server_dice_before_scoring(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        code = created.get_json()["code"]
+        host_token = created.get_json()["player_token"]
+        joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
+        self.assertEqual(joined.status_code, 200)
+
+        rolled = self.client.post(
+            f"/api/rooms/{code}/roll",
+            json={"username": "host1", "player_token": host_token, "kept": [0, 0, 0, 0, 0]},
+        )
+        self.assertEqual(rolled.status_code, 200)
+        server_dice = rolled.get_json()["dice"]
+        self.assertNotEqual(rolled.get_json()["rolls_left"], 0)
+
+        forged_sync = self.client.post(
+            f"/api/rooms/{code}/sync",
+            json={
+                "username": "host1",
+                "player_token": host_token,
+                "dice": [6, 6, 6, 6, 6],
+                "kept": [1, 1, 1, 1, 1],
+                "rolls_left": 0,
+                "scores": {"host1": [None] * 12, "guest1": [None] * 12},
+                "turn": "host1",
+                "game_over": False,
+            },
+        )
+        self.assertEqual(forged_sync.status_code, 200)
+        forged_state = forged_sync.get_json()["state"]
+        self.assertEqual(forged_state["dice"], server_dice)
+        self.assertEqual(forged_state["rolls_left"], rolled.get_json()["rolls_left"])
+
+        forged_card = [None] * 12
+        forged_card[CATS["Yacht"]] = 50
+        forged_score = self.client.post(
+            f"/api/rooms/{code}/sync",
+            json={
+                "username": "host1",
+                "player_token": host_token,
+                "dice": [6, 6, 6, 6, 6],
+                "kept": [1, 1, 1, 1, 1],
+                "rolls_left": 0,
+                "scores": {"host1": forged_card, "guest1": [None] * 12},
+                "turn": "guest1",
+                "game_over": False,
+            },
+        )
+        if calc_score(server_dice, CATS["Yacht"]) == 50:
+            self.skipTest("deterministic roll happened to be Yacht")
+        self.assertEqual(forged_score.status_code, 400)
+
     def test_multiplayer_zero_score_sacrifice_resets_next_turn_state(self):
         created = self.client.post("/api/rooms", json={"username": "host1"})
         self.assertEqual(created.status_code, 200)

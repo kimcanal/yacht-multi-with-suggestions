@@ -504,14 +504,20 @@ def sync_room(code):
         if state.get("turn") and state["turn"] != username and not data.get("game_over"):
             return jsonify({"error": "상대 턴"}), 403
 
-        dice = normalize_dice(data.get("dice", state["dice"]))
-        kept = normalize_kept(data.get("kept", state["kept"]))
-        if dice is None or kept is None:
+        requested_dice = normalize_dice(data.get("dice", state["dice"]))
+        requested_kept = normalize_kept(data.get("kept", state["kept"]))
+        if requested_dice is None or requested_kept is None:
             return jsonify({"error": "잘못된 주사위 데이터"}), 400
 
-        rolls_left = normalize_rolls_left(data.get("rolls_left", state["rolls_left"]), 0, 3)
-        if rolls_left is None:
+        requested_rolls_left = normalize_rolls_left(data.get("rolls_left", state["rolls_left"]), 0, 3)
+        if requested_rolls_left is None:
             return jsonify({"error": "rolls_left는 0~3 정수여야 합니다"}), 400
+
+        dice = normalize_dice(state.get("dice", [1, 1, 1, 1, 1]))
+        kept = normalize_kept(state.get("kept", [0, 0, 0, 0, 0]))
+        rolls_left = normalize_rolls_left(state.get("rolls_left", 3), 0, 3)
+        if dice is None or kept is None or rolls_left is None:
+            return jsonify({"error": "서버 주사위 상태가 올바르지 않습니다"}), 500
 
         scores_payload = data.get("scores", state["scores"])
         normalized_scores = normalize_scores_by_players(scores_payload, room["players"])
