@@ -1,0 +1,349 @@
+{
+  "games": 100,
+  "seed": 20260709,
+  "random_source": "indexed",
+  "value_table": "artifacts/value/endgame-value-table-open12.npz",
+  "policies": [
+    {
+      "label": "focused",
+      "games": 100,
+      "avg_total_score": 177.77,
+      "avg_game_regret": 19.4909,
+      "median_game_regret": 18.7215,
+      "roll": {
+        "decisions": 2377,
+        "avg_regret": 0.4386,
+        "match_rate": 0.7009,
+        "avg_mistake_size": 1.4664,
+        "max_regret": 9.9884
+      },
+      "score": {
+        "decisions": 1200,
+        "avg_regret": 0.7554,
+        "match_rate": 0.81,
+        "avg_mistake_size": 3.9756,
+        "max_regret": 13.5912
+      },
+      "regret_by_turn": {
+        "1": 0.9026,
+        "2": 0.9687,
+        "3": 0.7972,
+        "4": 0.7676,
+        "5": 0.6335,
+        "6": 0.5914,
+        "7": 0.4658,
+        "8": 0.573,
+        "9": 0.3836,
+        "10": 0.2489,
+        "11": 0.1742,
+        "12": 0.0295
+      },
+      "worst_decisions": [
+        {
+          "stage": "score",
+          "turn": 8,
+          "rolls_left": 0,
+          "dice": [
+            5,
+            2,
+            5,
+            5,
+            5
+          ],
+          "scorecard": [
+            null,
+            null,
+            12,
+            12,
+            20,
+            18,
+            21,
+            null,
+            null,
+            15,
+            null,
+            50
+          ],
+          "chosen": 1,
+          "chosen_label": "Twos",
+          "chosen_value": 86.9775,
+          "best_value": 100.5687,
+          "optimal_actions": [
+            {
+              "category_idx": 7,
+              "label": "4 of a Kind",
+              "value": 100.5687
+            }
+          ],
+          "regret": 13.5912
+        },
+        {
+          "stage": "score",
+          "turn": 6,
+          "rolls_left": 0,
+          "dice": [
+            6,
+            6,
+            5,
+            5,
+            6
+          ],
+          "scorecard": [
+            null,
+            null,
+            3,
+            null,
+            15,
+            null,
+            24,
+            null,
+            null,
+            15,
+            30,
+            null
+          ],
+          "chosen": 5,
+          "chosen_label": "Sixes",
+          "chosen_value": 76.2122,
+          "best_value": 89.6829,
+          "optimal_actions": [
+            {
+              "category_idx": 8,
+              "label": "Full House",
+              "value": 89.6829
+            }
+          ],
+          "regret": 13.4707
+        },
+        {
+          "stage": "score",
+          "turn": 10,
+          "rolls_left": 0,
+          "dice": [
+            2,
+            6,
+            3,
+            1,
+            3
+          ],
+          "scorecard": [
+            2,
+            2,
+            null,
+            8,
+            20,
+            24,
+            22,
+            null,
+            22,
+            15,
+            30,
+            null
+          ],
+          "chosen": 2,
+          "chosen_label": "Threes",
+          "chosen_value": 17.8953,
+          "best_value": 31.2769,
+          "optimal_actions": [
+            {
+              "category_idx": 11,
+              "label": "Yacht",
+              "value": 31.2769
+            }
+          ],
+          "regret": 13.3815
+        },
+        {
+          "stage": "score",
+          "turn": 3,
+          "rolls_left": 0,
+          "dice": [
+            6,
+            6,
+            5,
+            5,
+            6
+          ],
+          "scorecard": [
+            null,
+            null,
+            null,
+            null,
+            15,
+            null,
+            15,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "chosen": 5,
+          "chosen_label": "Sixes",
+          "chosen_value": 139.8354,
+          "best_value": 152.9089,
+          "optimal_actions": [
+            {
+              "category_idx": 8,
+              "label": "Full House",
+              "value": 152.9089
+            }
+          ],
+          "regret": 13.0735
+        },
+        {
+          "stage": "score",
+          "turn": 3,
+          "rolls_left": 0,
+          "dice": [
+            5,
+            6,
+            6,
+            6,
+            5
+          ],
+          "scorecard": [
+            2,
+            null,
+            null,
+            null,
+            15,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "chosen": 5,
+          "chosen_label": "Sixes",
+          "chosen_value": 160.4644,
+          "best_value": 173.3474,
+          "optimal_actions": [
+            {
+              "category_idx": 8,
+              "label": "Full House",
+              "value": 173.3474
+            }
+          ],
+          "regret": 12.883
+        },
+        {
+          "stage": "score",
+          "turn": 2,
+          "rolls_left": 0,
+          "dice": [
+            5,
+            6,
+            6,
+            5,
+            6
+          ],
+          "scorecard": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            17,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "chosen": 5,
+          "chosen_label": "Sixes",
+          "chosen_value": 159.3639,
+          "best_value": 172.0251,
+          "optimal_actions": [
+            {
+              "category_idx": 8,
+              "label": "Full House",
+              "value": 172.0251
+            }
+          ],
+          "regret": 12.6612
+        },
+        {
+          "stage": "score",
+          "turn": 2,
+          "rolls_left": 0,
+          "dice": [
+            6,
+            5,
+            6,
+            6,
+            5
+          ],
+          "scorecard": [
+            null,
+            null,
+            null,
+            null,
+            15,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "chosen": 5,
+          "chosen_label": "Sixes",
+          "chosen_value": 173.9983,
+          "best_value": 186.1153,
+          "optimal_actions": [
+            {
+              "category_idx": 8,
+              "label": "Full House",
+              "value": 186.1153
+            }
+          ],
+          "regret": 12.117
+        },
+        {
+          "stage": "score",
+          "turn": 1,
+          "rolls_left": 0,
+          "dice": [
+            6,
+            5,
+            5,
+            6,
+            6
+          ],
+          "scorecard": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "chosen": 5,
+          "chosen_label": "Sixes",
+          "chosen_value": 193.8325,
+          "best_value": 205.5512,
+          "optimal_actions": [
+            {
+              "category_idx": 8,
+              "label": "Full House",
+              "value": 205.5512
+            }
+          ],
+          "regret": 11.7188
+        }
+      ]
+    }
+  ]
+}

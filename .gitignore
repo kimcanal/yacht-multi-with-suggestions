@@ -43,6 +43,7 @@ artifacts/value/*
 !artifacts/reports/decision-regret-100.json
 !artifacts/reports/decision-regret-100-focused-v2.json
 !artifacts/reports/decision-regret-100-focused-v3.json
+!artifacts/reports/decision-regret-100-focused-v4.json
 !artifacts/value/endgame-value-table-open3.json
 !artifacts/value/endgame-value-table-open4.json
 !artifacts/value/endgame-value-table-open12.npz

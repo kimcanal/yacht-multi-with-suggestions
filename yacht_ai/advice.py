@@ -51,6 +51,11 @@ from .constants import (
     SCORE_STAGE_LOW_POSITIVE_SACRIFICE_MAX_SCORE,
     SCORE_STAGE_PRESSURE_RELIEF,
     SCORE_STAGE_QUALITY_WEIGHT,
+    SCORE_STAGE_UPPER_DUMP_MAX_COST,
+    SCORE_STAGE_UPPER_DUMP_MIN_FACE,
+    SCORE_STAGE_UPPER_DUMP_SACRIFICE_COST,
+    SCORE_STAGE_UPPER_DUMP_SPECIALTY_MARGIN,
+    SCORE_STAGE_UPPER_DUMP_TARGET_COUNT,
     SMALL_STRAIGHT_UTILITY_BONUS,
     STRAIGHT_UTILITY_PENALTY,
     UPPER_BONUS_FACE2_MULT_COVER,
@@ -705,6 +710,86 @@ def _low_positive_sacrifice_override(positive_rows, sacrifice_rows):
     return best_sacrifice
 
 
+def _is_low_high_upper_score(row):
+    category_idx = row.get("category_idx")
+    if category_idx is None or category_idx >= 6:
+        return False
+    face = category_idx + 1
+    if face < SCORE_STAGE_UPPER_DUMP_MIN_FACE or row["score"] <= 0:
+        return False
+    if row.get("immediate_gain", row["score"]) > row["score"]:
+        return False
+    if row.get("bonus_prob_drop", 0.0) < SACRIFICE_BONUS_DROP_THRESHOLD:
+        return False
+    return (row["score"] / face) < SCORE_STAGE_UPPER_DUMP_TARGET_COUNT
+
+
+def _is_cheap_positive_dump(row):
+    category_idx = row.get("category_idx")
+    return category_idx is not None and category_idx <= CATS["Threes"] and row["score"] > 0
+
+
+def _score_stage_dump_cost(row):
+    cost = row.get("future_pressure", 0.0) + (
+        UPPER_BONUS_VALUE * row.get("bonus_prob_drop", 0.0)
+    ) - row["score"]
+    if row["score"] <= 0:
+        cost += SCORE_STAGE_UPPER_DUMP_SACRIFICE_COST
+    return cost
+
+
+def _has_competing_specialty_score(rows, low_upper_row):
+    specialty_thresholds = {
+        CATS["4 of a Kind"]: 18,
+        CATS["Full House"]: 16,
+        CATS["Small Straight"]: 15,
+        CATS["Large Straight"]: 30,
+        CATS["Yacht"]: 50,
+    }
+    protected_utility = low_upper_row["utility"] - SCORE_STAGE_UPPER_DUMP_SPECIALTY_MARGIN
+    return any(
+        row["category_idx"] in specialty_thresholds
+        and row["score"] >= specialty_thresholds[row["category_idx"]]
+        and row["utility"] >= protected_utility
+        for row in rows
+    )
+
+
+def _low_high_upper_dump_override(positive_rows, sacrifice_rows):
+    if not positive_rows:
+        return None
+
+    low_upper_row = positive_rows[0]
+    if not _is_low_high_upper_score(low_upper_row):
+        return None
+    if _has_competing_specialty_score(positive_rows, low_upper_row):
+        return None
+
+    candidates = [
+        row
+        for row in positive_rows[1:]
+        if _is_cheap_positive_dump(row)
+    ] + list(sacrifice_rows)
+    if not candidates:
+        return None
+
+    dump_row = min(
+        candidates,
+        key=lambda row: (
+            _score_stage_dump_cost(row),
+            SACRIFICE_PRIORITY.get(row["name"], 99),
+        ),
+    )
+    if _score_stage_dump_cost(dump_row) > SCORE_STAGE_UPPER_DUMP_MAX_COST:
+        return None
+
+    dump_row["reason"] = (
+        f"{dump_row['reason']} {low_upper_row['name']} {low_upper_row['score']}점은 아직 낮은 기록이라 "
+        "더 싼 칸으로 턴을 정리해 고가치 상단 칸을 남깁니다"
+    )
+    return dump_row
+
+
 def build_score_stage_advice(
     dice,
     scorecard,
@@ -745,11 +830,18 @@ def build_score_stage_advice(
     else:
         sacrifice_rows.sort(key=_score_stage_sacrifice_key)
 
-    sacrifice_override = None if value_hits else _low_positive_sacrifice_override(positive_rows, sacrifice_rows)
+    dump_override = None if value_hits else _low_high_upper_dump_override(positive_rows, sacrifice_rows)
+    sacrifice_override = None
+    if not value_hits and not dump_override:
+        sacrifice_override = _low_positive_sacrifice_override(positive_rows, sacrifice_rows)
 
     display_rows = []
     if value_hits:
         score_display_rows = ranked_rows[:3]
+    elif dump_override:
+        score_display_rows = [dump_override] + [
+            row for row in positive_rows[:2] if row is not dump_override
+        ]
     elif sacrifice_override:
         score_display_rows = [sacrifice_override] + positive_rows[:2]
     else:
@@ -783,6 +875,8 @@ def build_score_stage_advice(
 
     if value_hits:
         best_row = ranked_rows[0] if ranked_rows else None
+    elif dump_override:
+        best_row = dump_override
     elif sacrifice_override:
         best_row = sacrifice_override
     elif positive_rows:

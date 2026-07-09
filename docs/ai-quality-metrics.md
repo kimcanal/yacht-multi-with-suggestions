@@ -86,3 +86,15 @@ Yacht 50 / Large Straight 30 같은 확정 고득점 족보가 상단 보너스 
 - 평균 점수: 176.01 -> 176.38
 
 희생 후보 정렬을 `future_pressure + 35 * bonus_prob_drop` 기준으로 바꿔, 상단 보너스가 아직 살아 있는 칸을 0점으로 닫는 선택에 비용을 부여했다. 남은 worst 사례는 낮은 점수를 Sixes에 쓰는 패턴이라 별도 작업으로 분리한다.
+
+## Focused Low Upper Score Guard v4
+
+`docs/decision-regret-100-focused-v4.md`는 고가치 상단 칸(Fives/Sixes)에 낮은 점수를 낭비하는 패턴을 완화한 재측정이다.
+
+- Regret/게임: 20.56점 -> 19.49점
+- Score 결정 최적 일치율: 79.83% -> 81.00%
+- Score avg regret: 0.8986 -> 0.7554
+- Roll 결정 최적 일치율: 70.58% -> 70.09%
+- 평균 점수: 176.38 -> 177.77
+
+상수안 단독은 regret/game 20.02까지 내려갔지만 지목한 Sixes/Fives 낭비 재현 케이스를 직접 고치지 못했다. 가드 단독은 재현 케이스는 고쳤으나 regret/game 21.02로 악화됐다. 최종 v4는 품질 페널티를 강화하고, Upper Bonus 확률을 의미 있게 깎는 Fives/Sixes 저점 기록에서만 싼 dump 후보(Ones/Twos/Threes 또는 0점 희생)를 선택하도록 좁힌 조합이다. roll match는 소폭 낮아졌으므로 다음 개선은 Full House/4 of a Kind 고정 고득점 보호 쪽으로 분리한다.

@@ -70,6 +70,51 @@ class AiSolverRecommendationTests(unittest.TestCase):
         self.assertEqual(result["breakdown"][0]["name"], "4 of a Kind")
         self.assertNotEqual(result["breakdown"][0]["name"], "Threes")
 
+    def test_score_stage_dumps_ones_instead_of_low_sixes_early(self):
+        scorecard = [None, None, None, None, None, None, 24, None, None, None, None, None]
+        open_categories = [idx for idx, value in enumerate(scorecard) if value is None]
+
+        result = solve_best_move(
+            [1, 4, 5, 1, 6],
+            0,
+            open_categories,
+            "focused",
+            scorecard,
+        )
+
+        self.assertEqual(result["primary_target"], "Ones")
+        self.assertEqual(result["breakdown"][0]["name"], "Ones")
+
+    def test_score_stage_dumps_ones_instead_of_two_sixes(self):
+        scorecard = [None, None, None, 16, 15, None, 21, None, None, None, None, None]
+        open_categories = [idx for idx, value in enumerate(scorecard) if value is None]
+
+        result = solve_best_move(
+            [6, 5, 3, 6, 1],
+            0,
+            open_categories,
+            "focused",
+            scorecard,
+        )
+
+        self.assertEqual(result["primary_target"], "Ones")
+        self.assertEqual(result["breakdown"][0]["name"], "Ones")
+
+    def test_score_stage_sacrifices_yacht_instead_of_low_fives(self):
+        scorecard = [None, None, 12, 12, None, 18, 20, 10, None, 15, None, None]
+        open_categories = [idx for idx, value in enumerate(scorecard) if value is None]
+
+        result = solve_best_move(
+            [1, 5, 5, 6, 3],
+            0,
+            open_categories,
+            "focused",
+            scorecard,
+        )
+
+        self.assertEqual(result["primary_target"], "Yacht")
+        self.assertEqual(result["breakdown"][0]["name"], "Yacht")
+
 
 if __name__ == "__main__":
     unittest.main()
