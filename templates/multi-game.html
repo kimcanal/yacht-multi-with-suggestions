@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎲 Yacht - Multiplayer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260709-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260709-2') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -322,12 +322,23 @@
                 <button class="btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
             </div>
             <div class="dice-area">
-                <div class="dice-grid" id="dice-grid"></div>
                 <div class="info-bar">
-                    <div id="timer-bar" style="font-size:1.1em; color:#ff6b6b; margin:2px 0 0 0; font-weight:bold; display:none; line-height:2;">⏳<span id="timer-count">30</span>초 남았습니다</div>
-                    <div class="rolls-remaining">남은 Roll: <span id="rolls-left">3</span>/3</div>
-                    <div id="game-status" style="margin-top: 10px; color: #00ffcc; font-size: 0.9em; text-align: center; min-height: 24px;"></div>
-                    <div id="turn-progress" style="margin-top: 6px; color: #b8fff0; font-size: 0.85em; text-align: center;">턴 진행: 대기 중 (0/24)</div>
+                    <div class="game-status-grid">
+                        <div class="game-status-card">
+                            <span class="game-status-label">Roll</span>
+                            <strong class="game-status-roll"><span id="rolls-left">3</span>/3</strong>
+                        </div>
+                        <div class="game-status-card">
+                            <span class="game-status-label">Status</span>
+                            <div id="game-status">⏳ 상대방 입장 대기 중...</div>
+                        </div>
+                        <div class="game-status-card">
+                            <span class="game-status-label">Progress</span>
+                            <div id="turn-progress">턴 진행: 대기 중 (0/24)</div>
+                        </div>
+                        <div id="timer-bar" class="game-timer-card">⏳<span id="timer-count">30</span>초 남았습니다</div>
+                    </div>
+                    <div class="dice-grid" id="dice-grid"></div>
                     <div class="ai-mode-row" id="ai-mode-row">
                         <button class="ai-mode-btn" data-ai-mode="focused">집중 공략</button>
                         <button class="ai-mode-btn" data-ai-mode="cover">커버 플레이</button>

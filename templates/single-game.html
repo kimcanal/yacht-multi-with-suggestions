@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎲 Yacht - Single Player</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260709-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260709-2') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -241,12 +241,23 @@
                 <button class="btn btn-danger btn-large" onclick="leaveRoom()">🚪 나가기</button>
             </div>
             <div class="dice-area">
-                <div class="dice-grid" id="dice-grid"></div>
                 <div class="info-bar">
-                    <div class="rolls-remaining" style="font-size:1.5em; margin-bottom:2px; line-height:1.1;">남은 Roll: <span id="rolls-left">3</span>/3</div>
-                    <div id="timer-bar" style="font-size:1.1em; color:#ff6b6b; margin:2px 0 0 0; font-weight:bold; display:none; line-height:2;">⏳<span id="timer-count">30</span>초 남았습니다</div>
-                    <div id="game-status" style="color:#00ffcc; font-size:0.95em; text-align:center; min-height:24px;"></div>
-                    <div id="turn-progress" style="margin-top:6px; color:#b8fff0; font-size:0.88em; text-align:center;">턴 진행: 1/12</div>
+                    <div class="game-status-grid">
+                        <div class="game-status-card">
+                            <span class="game-status-label">Roll</span>
+                            <strong class="game-status-roll"><span id="rolls-left">3</span>/3</strong>
+                        </div>
+                        <div class="game-status-card">
+                            <span class="game-status-label">Status</span>
+                            <div id="game-status">🎲 주사위를 굴려 주세요</div>
+                        </div>
+                        <div class="game-status-card">
+                            <span class="game-status-label">Progress</span>
+                            <div id="turn-progress">턴 진행: 1/12</div>
+                        </div>
+                        <div id="timer-bar" class="game-timer-card">⏳<span id="timer-count">30</span>초 남았습니다</div>
+                    </div>
+                    <div class="dice-grid" id="dice-grid"></div>
                     <div class="ai-mode-row" style="display:none;">
                         <span class="ai-mode-row-label">추천 방식</span>
                         <button class="ai-mode-btn" data-ai-mode="focused">집중 공략</button>

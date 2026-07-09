@@ -981,6 +981,70 @@ button {
     margin-top: var(--space-3);
 }
 
+.game-status-grid {
+    display: grid;
+    grid-template-columns: minmax(92px, 0.7fr) minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 10px;
+    margin-bottom: var(--space-3);
+    text-align: left;
+}
+
+.game-status-card,
+.game-timer-card {
+    min-width: 0;
+    min-height: 68px;
+    padding: 10px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: var(--radius-sm);
+    background: rgba(15, 23, 42, 0.76);
+}
+
+.game-status-label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-muted-mid);
+    font-size: 0.68rem;
+    font-weight: 900;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.game-status-card #game-status,
+.game-status-card #turn-progress,
+.game-timer-card {
+    color: var(--text-panel);
+    font-size: 0.95rem;
+    font-weight: 900;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.game-status-roll {
+    color: var(--mint-strong);
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+.game-status-card #game-status,
+.game-status-card #turn-progress {
+    min-height: 0 !important;
+    margin: 0 !important;
+    text-align: left !important;
+}
+
+.game-timer-card {
+    display: none;
+    grid-column: 1 / -1;
+    min-height: 44px;
+    color: var(--gold-warm) !important;
+    text-align: center;
+}
+
+.game-status-grid + .dice-grid {
+    margin-top: 16px;
+}
+
 .score-help {
     margin: 0 0 var(--space-3) 0 !important;
     border: 1px solid rgba(126, 243, 203, 0.16);
@@ -1397,6 +1461,21 @@ button {
     .ai-mode-guide,
     .ai-breakdown-grid {
         grid-template-columns: 1fr;
+    }
+
+    .game-status-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .game-status-card,
+    .game-timer-card {
+        min-height: 62px;
+        padding: 9px 10px;
+    }
+
+    .game-status-roll {
+        font-size: 1.55rem;
     }
 
     .ai-panel-head,

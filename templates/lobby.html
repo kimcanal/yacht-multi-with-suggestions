@@ -6,7 +6,7 @@
     <title>🎲 Yacht - 로비</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260708-3') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260709-2') }}">
     
     <style>
         /* [기본 스타일] */
@@ -55,6 +55,40 @@
         .quick-actions .btn-mini { min-width: 0; }
         .room-code-row { display:grid; grid-template-columns:minmax(0, 1fr) auto auto; gap:10px; align-items:center; min-width:0; }
         .quick-hint { margin-top:8px; color:var(--muted-2); font-size:0.78rem; line-height:1.35; }
+        .lobby-glance {
+            flex: 0 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .glance-card {
+            min-width: 0;
+            padding: 12px 14px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 14px;
+            background: rgba(15, 23, 42, 0.72);
+        }
+        .glance-label {
+            display: block;
+            color: var(--muted-2);
+            font-size: 0.72rem;
+            font-weight: 800;
+            line-height: 1.1;
+            text-transform: uppercase;
+        }
+        .glance-value {
+            display: block;
+            margin-top: 6px;
+            color: var(--text-panel);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.65rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .glance-card.primary .glance-value { color: var(--mint-strong); }
+        .glance-card.waiting .glance-value { color: var(--gold-warm); }
+        .glance-card.playing .glance-value { color: var(--sky); }
 
         /* 패널 공통 */
         .main-content-grid {
@@ -235,6 +269,7 @@
             writing-mode: horizontal-tb; word-break: keep-all; overflow-wrap: normal;
         }
         .lobby-user-status { margin-left: auto; flex: 0 1 auto; min-width: 0; }
+        body > footer { z-index: 5; }
 
         /* 로그인 오버레이 */
         #login-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10, 10, 20, 0.85); backdrop-filter: blur(12px); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
@@ -263,7 +298,7 @@
             .panel { height: 350px; flex: none; }
         }
         @media (max-width: 768px) {
-            body { height: auto; min-height: 100vh; align-items: flex-start; overflow-y: auto; }
+            body { height: auto; min-height: 100vh; flex-direction: column; align-items: stretch; justify-content: flex-start; overflow-y: auto; }
             .lobby-container { width: 100%; max-width: none; border-radius: 0; min-height: 100vh; height: auto; padding: 16px 12px 32px; }
             .title { font-size: 2rem; text-align: center; }
             .control-bar { justify-content: stretch; gap: 10px; }
@@ -277,12 +312,16 @@
             .quick-hint { font-size:0.72rem; }
             .quick-card .btn-mini { padding:10px 6px; font-size:0.82rem; }
             .quick-card .input-mini { padding:10px 8px; font-size:0.9rem; }
+            .lobby-glance { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+            .glance-card { padding: 10px 12px; }
+            .glance-value { font-size: 1.45rem; }
             .btn-mini, .input-mini { width: 100%; min-width: 0; }
             .panel { height: 300px; }
             .room-item { flex-direction: column; align-items: stretch; }
             .room-players { white-space: normal; }
             .room-action .btn-mini { width: 100%; }
             .lobby-user-row { align-items: flex-start; }
+            body > footer { position: static !important; width: 100% !important; padding: 12px 0 16px; }
             .login-box { width: min(92vw, 420px); padding: 28px 20px; border-radius: 20px; }
             .login-title { font-size: 2.3rem; margin-bottom: 20px; }
             .login-input, .login-btn { padding: 14px 16px; font-size: 1rem; }
@@ -333,6 +372,25 @@
                     <button class="btn-mini btn-i" onclick="refreshLobbyNow()">새로고침</button>
                 </div>
                 <div class="quick-hint">대기실 목록에서 참가/관전을 바로 눌러도 됩니다.</div>
+            </div>
+        </div>
+
+        <div class="lobby-glance" aria-label="로비 현황 요약">
+            <div class="glance-card primary">
+                <span class="glance-label">Online</span>
+                <strong class="glance-value" id="glance-online-count">-</strong>
+            </div>
+            <div class="glance-card">
+                <span class="glance-label">Rooms</span>
+                <strong class="glance-value" id="glance-active-rooms">-</strong>
+            </div>
+            <div class="glance-card waiting">
+                <span class="glance-label">Waiting</span>
+                <strong class="glance-value" id="glance-waiting-rooms">-</strong>
+            </div>
+            <div class="glance-card playing">
+                <span class="glance-label">Playing</span>
+                <strong class="glance-value" id="glance-playing-rooms">-</strong>
             </div>
         </div>
 
@@ -691,6 +749,12 @@
         function loadRoomList() {
             fetch('/api/rooms', {cache:'no-store'}).then(r=>r.json()).then(rooms=>{
                 const list = document.getElementById('room-list');
+                const waitingCount = rooms.filter((room) => (room.room_phase || (room.players.length >= 2 ? 'playing' : 'waiting')) === 'waiting').length;
+                const playingCount = rooms.filter((room) => (room.room_phase || (room.players.length >= 2 ? 'playing' : 'waiting')) === 'playing').length;
+                const waitingEl = document.getElementById('glance-waiting-rooms');
+                const playingEl = document.getElementById('glance-playing-rooms');
+                if (waitingEl) waitingEl.textContent = waitingCount;
+                if (playingEl) playingEl.textContent = playingCount;
                 if(!rooms.length) { 
                     list.innerHTML='<div class="empty-state"><div class="empty-icon">🎲</div><div class="empty-text">대기 중인 방 없음<br>새로운 방을 생성해보세요!</div></div>'; 
                     return; 
@@ -849,6 +913,10 @@
             fetch('/api/system-status').then(r=>r.json()).then(data=>{
                 document.getElementById('online-count').textContent=data.online_count;
                 document.getElementById('active-rooms').textContent=data.active_rooms;
+                const glanceOnline = document.getElementById('glance-online-count');
+                const glanceRooms = document.getElementById('glance-active-rooms');
+                if (glanceOnline) glanceOnline.textContent = data.online_count;
+                if (glanceRooms) glanceRooms.textContent = data.active_rooms;
                 document.getElementById('cpu-bar').style.width=data.cpu_percent+'%';
                 document.getElementById('memory-bar').style.width=data.memory_percent+'%';
                 
