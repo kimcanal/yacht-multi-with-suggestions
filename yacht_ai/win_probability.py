@@ -40,6 +40,7 @@ def _optimal_move(dice, rolls_left, scorecard, open_categories):
     return yacht_engine.solve_best_move(
         dice, rolls_left, open_categories, _OPTIMAL_MODE, scorecard,
         score_value_mode=_OPTIMAL_SCORE_VALUE_MODE,
+        explain=False,
     )
 
 

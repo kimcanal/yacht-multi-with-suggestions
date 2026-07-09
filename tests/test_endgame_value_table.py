@@ -213,6 +213,86 @@ class EndgameValueTableTests(unittest.TestCase):
         self.assertEqual(optimal_value["keep_indices"], [2, 3])
         self.assertGreater(optimal_value["expected_value"], focused_value["expected_value"])
 
+    def test_solver_value_optimal_fast_score_path_matches_explained_result(self):
+        dice = [6, 6, 6, 6, 6]
+        scorecard = [None, 6, 9, 12, 15, 18, None, 20, 25, 15, 30, 50]
+        score_ones = list(scorecard)
+        score_ones[CATS["Ones"]] = 0
+        score_choice = list(scorecard)
+        score_choice[CATS["Choice"]] = 30
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            table_path = Path(tmpdir) / "value-table.json"
+            table_path.write_text(
+                json.dumps({
+                    "batch_open_count": 1,
+                    "values": {
+                        state_key_from_scorecard(score_ones): 160.0,
+                        state_key_from_scorecard(score_choice): 0.0,
+                    },
+                }),
+                encoding="utf-8",
+            )
+
+            explained = solve_best_move(
+                dice,
+                0,
+                [CATS["Ones"], CATS["Choice"]],
+                "focused",
+                scorecard,
+                score_value_mode="value_optimal",
+                endgame_value_table_path=str(table_path),
+            )
+            fast = solve_best_move(
+                dice,
+                0,
+                [CATS["Ones"], CATS["Choice"]],
+                "focused",
+                scorecard,
+                score_value_mode="value_optimal",
+                endgame_value_table_path=str(table_path),
+                explain=False,
+            )
+
+        self.assertEqual(fast["primary_target"], explained["primary_target"])
+        self.assertEqual(fast["expected_value"], explained["expected_value"])
+        self.assertEqual(fast["policy_source"], "exact_value_optimal")
+        self.assertEqual(fast["breakdown"], [])
+
+    def test_solver_value_optimal_fast_roll_path_matches_explained_result(self):
+        table_path = Path("artifacts/value/endgame-value-table-open12.npz")
+        if not table_path.exists():
+            self.skipTest("full value table artifact is not available")
+
+        dice = [1, 1, 2, 2, 3]
+        scorecard = [None] * 12
+        open_categories = list(range(12))
+
+        explained = solve_best_move(
+            dice,
+            2,
+            open_categories,
+            "focused",
+            scorecard,
+            score_value_mode="value_optimal",
+            endgame_value_table_path=str(table_path),
+        )
+        fast = solve_best_move(
+            dice,
+            2,
+            open_categories,
+            "focused",
+            scorecard,
+            score_value_mode="value_optimal",
+            endgame_value_table_path=str(table_path),
+            explain=False,
+        )
+
+        self.assertEqual(fast["keep_indices"], explained["keep_indices"])
+        self.assertEqual(fast["expected_value"], explained["expected_value"])
+        self.assertEqual(fast["policy_source"], "exact_value_optimal")
+        self.assertEqual(fast["breakdown"], [])
+
     def test_hybrid_mode_uses_guarded_learned_value_fallback(self):
         dice = [1, 2, 3, 4, 6]
         scorecard = [None] * 12

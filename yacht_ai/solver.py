@@ -17,7 +17,15 @@ from .advice import (
     score_stage_category_advice,
     scorecard_to_tuple,
 )
-from .constants import CATS, EPS, FOCUSED_EV_GUARD_POINTS, SACRIFICE_PRIORITY
+from .constants import (
+    CATS,
+    CATEGORY_NAMES,
+    EPS,
+    FOCUSED_EV_GUARD_POINTS,
+    SACRIFICE_PRIORITY,
+    UPPER_BONUS_VALUE,
+    YACHT_BONUS_CASH_IN,
+)
 from .endgame_value import DEFAULT_ENDGAME_VALUE_TABLE_PATH, load_endgame_value_table
 from .learned_value import load_linear_value_model
 from .scoring import (
@@ -579,6 +587,163 @@ def _load_learned_value_model(score_value_mode, learned_value_model_path):
         return None
 
 
+def _exact_value_score_row_from_state(
+    state_dice,
+    category_idx,
+    base_closed_mask,
+    base_upper_total,
+    base_yacht_bonus_available,
+    endgame_value_table,
+):
+    if endgame_value_table is None:
+        return None
+
+    score = calc_score(state_dice, category_idx)
+    next_mask = base_closed_mask | (1 << category_idx)
+    next_upper_total = base_upper_total + score if category_idx < 6 else base_upper_total
+    next_yacht_bonus_available = (
+        base_yacht_bonus_available
+        or (category_idx == CATS["Yacht"] and score >= 50)
+    )
+    next_state_value = endgame_value_table.lookup_state(
+        next_mask,
+        next_upper_total,
+        next_yacht_bonus_available,
+    )
+    if next_state_value is None:
+        return None
+
+    immediate_gain = float(score)
+    if category_idx < 6 and base_upper_total < 63 <= base_upper_total + score:
+        immediate_gain += UPPER_BONUS_VALUE
+    yacht_bonus_active = (
+        category_idx != CATS["Yacht"]
+        and score > 0
+        and base_yacht_bonus_available
+        and calc_score(state_dice, CATS["Yacht"]) == 50
+    )
+    if yacht_bonus_active:
+        immediate_gain += YACHT_BONUS_CASH_IN
+
+    return {
+        "name": CATEGORY_NAMES[category_idx],
+        "category_idx": category_idx,
+        "score": score,
+        "utility": immediate_gain + next_state_value,
+        "immediate_gain": immediate_gain,
+        "exact_next_state_value": next_state_value,
+        "utility_mode": "endgame_value",
+    }
+
+
+def _value_table_for_cached_optimal(table_path):
+    try:
+        return load_endgame_value_table(table_path)
+    except OSError:
+        return None
+
+
+@lru_cache(maxsize=262144)
+def _value_optimal_terminal_utility_cached(
+    state_dice,
+    open_categories,
+    base_closed_mask,
+    base_upper_total,
+    base_yacht_bonus_available,
+    endgame_value_table_path,
+):
+    table = _value_table_for_cached_optimal(endgame_value_table_path)
+    if table is None:
+        return None
+
+    best_key = None
+    best_utility = float("-inf")
+    for category_idx in open_categories:
+        row = _exact_value_score_row_from_state(
+            state_dice,
+            category_idx,
+            base_closed_mask,
+            base_upper_total,
+            base_yacht_bonus_available,
+            table,
+        )
+        if row is None:
+            return None
+        row_key = (row["utility"], row["score"], -SACRIFICE_PRIORITY.get(row["name"], 99))
+        if best_key is None or row_key > best_key:
+            best_key = row_key
+            best_utility = row["utility"]
+    return best_utility
+
+
+@lru_cache(maxsize=262144)
+def _value_optimal_keep_transition_cached(
+    kept_tuple,
+    rerolls_remaining,
+    open_categories,
+    base_closed_mask,
+    base_upper_total,
+    base_yacht_bonus_available,
+    endgame_value_table_path,
+):
+    total = 0.0
+    for next_dice, prob in get_transition_distribution(kept_tuple):
+        next_value = _value_optimal_turn_value_cached(
+            next_dice,
+            rerolls_remaining - 1,
+            open_categories,
+            base_closed_mask,
+            base_upper_total,
+            base_yacht_bonus_available,
+            endgame_value_table_path,
+        )
+        if next_value is None:
+            return None
+        total += prob * next_value
+    return total
+
+
+@lru_cache(maxsize=262144)
+def _value_optimal_turn_value_cached(
+    state_dice,
+    rerolls_remaining,
+    open_categories,
+    base_closed_mask,
+    base_upper_total,
+    base_yacht_bonus_available,
+    endgame_value_table_path,
+):
+    stop_value = _value_optimal_terminal_utility_cached(
+        state_dice,
+        open_categories,
+        base_closed_mask,
+        base_upper_total,
+        base_yacht_bonus_available,
+        endgame_value_table_path,
+    )
+    if stop_value is None:
+        return None
+    if rerolls_remaining == 0:
+        return stop_value
+
+    best_value = stop_value
+    for kept_tuple in get_keep_options(state_dice):
+        value = _value_optimal_keep_transition_cached(
+            kept_tuple,
+            rerolls_remaining,
+            open_categories,
+            base_closed_mask,
+            base_upper_total,
+            base_yacht_bonus_available,
+            endgame_value_table_path,
+        )
+        if value is None:
+            return None
+        if value > best_value:
+            best_value = value
+    return best_value
+
+
 @lru_cache(maxsize=4096)
 def _solve_best_move_cached(
     dice_key,
@@ -591,6 +756,7 @@ def _solve_best_move_cached(
     learned_value_model_path,
     learned_value_max_mae,
     learned_value_min_turns,
+    explain,
 ):
     dice = list(dice_key)
     scorecard = list(scorecard_tuple)
@@ -602,8 +768,39 @@ def _solve_best_move_cached(
     ev_optimal_mode = score_value_mode == "value_optimal"
     terminal_score_value_mode = "heuristic" if score_value_mode == "value_score_only" else ("value" if ev_optimal_mode else score_value_mode)
     direct_score_value_mode = "value" if score_value_mode in ("value_score_only", "value_optimal") else score_value_mode
+    base_closed_mask = sum(1 << idx for idx, value in enumerate(scorecard[:len(CATEGORY_NAMES)]) if value is not None)
+    base_upper_total = sum((value or 0) for value in scorecard[:6])
+    base_yacht_bonus_available = has_yacht_bonus(scorecard)
+
+    def exact_value_score_row(state_dice, category_idx):
+        return _exact_value_score_row_from_state(
+            state_dice,
+            category_idx,
+            base_closed_mask,
+            base_upper_total,
+            base_yacht_bonus_available,
+            endgame_value_table,
+        )
 
     if rolls_left == 0:
+        if ev_optimal_mode and not explain:
+            rows = [exact_value_score_row(tuple(dice), idx) for idx in open_categories]
+            if rows and all(row is not None for row in rows):
+                best_row = max(rows, key=lambda row: (row["utility"], row["score"]))
+                return {
+                    "keep_indices": [],
+                    "expected_value": round(best_row["utility"], 2),
+                    "dice_recommendations": [],
+                    "message": best_row["name"],
+                    "breakdown": [],
+                    "strategy_mode": "optimal",
+                    "score_value_mode": "value_optimal",
+                    "primary_target": best_row["name"],
+                    "summary": "",
+                    "stage": "score",
+                    "policy_source": "exact_value_optimal",
+                }
+
         result = build_score_stage_advice(
             dice,
             scorecard,
@@ -648,6 +845,24 @@ def _solve_best_move_cached(
     # --- 클로저 DP 함수 (per-call lru_cache) ---
 
     def evaluate_keep_transition(kept_tuple, rerolls_remaining, state_solver):
+        if (
+            ev_optimal_mode
+            and endgame_value_table is not None
+            and endgame_value_table_path
+            and state_solver is exact_turn_value
+        ):
+            cached_value = _value_optimal_keep_transition_cached(
+                kept_tuple,
+                rerolls_remaining,
+                open_categories,
+                base_closed_mask,
+                base_upper_total,
+                base_yacht_bonus_available,
+                endgame_value_table_path,
+            )
+            if cached_value is not None:
+                return cached_value
+
         total = 0.0
         for next_dice, prob in get_transition_distribution(kept_tuple):
             total += prob * state_solver(next_dice, rerolls_remaining - 1)
@@ -658,17 +873,19 @@ def _solve_best_move_cached(
         best_key = None
         best_utility = float("-inf")
         for category_idx in open_categories:
-            row = score_stage_category_advice(
-                list(state_dice),
-                scorecard,
-                category_idx,
-                mode,
-                score_value_mode=terminal_score_value_mode,
-                endgame_value_table=endgame_value_table,
-                learned_value_model=learned_value_model,
-                learned_value_max_mae=learned_value_max_mae,
-                learned_value_min_turns=learned_value_min_turns,
-            )
+            row = exact_value_score_row(state_dice, category_idx) if ev_optimal_mode else None
+            if row is None:
+                row = score_stage_category_advice(
+                    list(state_dice),
+                    scorecard,
+                    category_idx,
+                    mode,
+                    score_value_mode=terminal_score_value_mode,
+                    endgame_value_table=endgame_value_table,
+                    learned_value_model=learned_value_model,
+                    learned_value_max_mae=learned_value_max_mae,
+                    learned_value_min_turns=learned_value_min_turns,
+                )
             row_key = (row["utility"], row["score"], -SACRIFICE_PRIORITY.get(row["name"], 99))
             if best_key is None or row_key > best_key:
                 best_key = row_key
@@ -677,6 +894,19 @@ def _solve_best_move_cached(
 
     @lru_cache(maxsize=None)
     def exact_turn_value(state_dice, rerolls_remaining):
+        if ev_optimal_mode and endgame_value_table is not None and endgame_value_table_path:
+            cached_value = _value_optimal_turn_value_cached(
+                state_dice,
+                rerolls_remaining,
+                open_categories,
+                base_closed_mask,
+                base_upper_total,
+                base_yacht_bonus_available,
+                endgame_value_table_path,
+            )
+            if cached_value is not None:
+                return cached_value
+
         stop_value = terminal_best_utility(state_dice)
         if rerolls_remaining == 0:
             return stop_value
@@ -734,6 +964,31 @@ def _solve_best_move_cached(
         if value > best_ev:
             best_ev = value
 
+    best_general_keeps = [kt for kt, v in keep_action_values if abs(v - best_ev) <= EPS]
+    best_general_keep_tuple = choose_general_keep(best_general_keeps)
+
+    if ev_optimal_mode and not explain:
+        best_keep_tuple = best_general_keep_tuple
+        chosen_ev = keep_ev_map.get(best_keep_tuple, best_ev)
+        best_keep_indices = kept_tuple_to_indices(dice, best_keep_tuple)
+        dice_recommendations = [
+            {"index": i, "value": dice[i], "action": "keep" if i in best_keep_indices else "reroll", "confidence": 100}
+            for i in range(5)
+        ]
+        return {
+            "keep_indices": best_keep_indices,
+            "expected_value": round(chosen_ev, 2),
+            "dice_recommendations": dice_recommendations,
+            "message": "",
+            "breakdown": [],
+            "strategy_mode": "optimal",
+            "score_value_mode": "value_optimal",
+            "primary_target": "기대점수 최적",
+            "summary": "",
+            "stage": "roll",
+            "policy_source": "exact_value_optimal",
+        }
+
     hand_cats = ["Yacht", "4 of a Kind", "Full House", "Large Straight", "Small Straight"]
     hand_priority = {"Yacht": 5, "Large Straight": 4, "Full House": 3, "4 of a Kind": 2, "Small Straight": 1}
 
@@ -754,8 +1009,6 @@ def _solve_best_move_cached(
 
     # --- Focused 모드 keep 선택 ---
     current_upper = sum((v or 0) for v in scorecard[:6])
-    best_general_keeps = [kt for kt, v in keep_action_values if abs(v - best_ev) <= EPS]
-    best_general_keep_tuple = choose_general_keep(best_general_keeps)
     upper_rows = build_upper_roll_rows(dice, scorecard, open_categories, mode, keep_ev_map)
     best_upper_row = upper_rows[0] if upper_rows else None
     upper_focus_override = False
@@ -1077,6 +1330,7 @@ def solve_best_move(
     learned_value_model_path=None,
     learned_value_max_mae=None,
     learned_value_min_turns=None,
+    explain=True,
 ):
     mode = normalize_strategy_mode(strategy_mode)
     (
@@ -1118,6 +1372,7 @@ def solve_best_move(
         resolved_learned_value_model_path,
         resolved_learned_value_max_mae,
         resolved_learned_value_min_turns,
+        bool(explain),
     )
     return deepcopy(result)
 
@@ -1128,3 +1383,6 @@ def get_solver_cache_info():
 
 def clear_solver_cache():
     _solve_best_move_cached.cache_clear()
+    _value_optimal_terminal_utility_cached.cache_clear()
+    _value_optimal_keep_transition_cached.cache_clear()
+    _value_optimal_turn_value_cached.cache_clear()
