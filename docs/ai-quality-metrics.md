@@ -99,4 +99,17 @@ Yacht 50 / Large Straight 30 같은 확정 고득점 족보가 상단 보너스 
 
 상수안 단독은 regret/game 20.02까지 내려갔지만 지목한 Sixes/Fives 낭비 재현 케이스를 직접 고치지 못했다. 가드 단독은 재현 케이스는 고쳤으나 regret/game 21.02로 악화됐다. 최종 v4는 품질 페널티를 강화하고, Upper Bonus 확률을 의미 있게 깎는 Fives/Sixes 저점 기록에서만 싼 dump 후보(Ones/Twos/Threes 또는 0점 희생)를 선택하도록 좁힌 조합이다. roll match는 소폭 낮아졌으므로 다음 개선은 Full House/4 of a Kind 고정 고득점 보호 쪽으로 분리한다.
 
+## Score-only Exact Value 재검증 (open12)
+
+`docs/decision-regret-100-value-score-only.md`와 `docs/score-value-score-only-open12-focused-200-analysis.md`는 full-game open12 value table 기준으로 `value_score_only`를 다시 측정한 결과다.
+
+- Decision regret: focused 19.49점/게임 -> value_score_only 10.39점/게임
+- Score 단계 regret: 0.7554 -> 0.0000, score match 81.0% -> 100.0%
+- Roll 단계는 focused와 거의 동일: roll match 70.09% -> 70.11%
+- 200게임 paired A/B: heuristic 175.52점 vs value_score_only 184.56점, 평균 delta +9.04점
+- 95% CI: +3.43 ~ +14.65점, two-sided normal p=0.001587
+- Score-stage exact table hit: 12.0턴/게임, fallback 0.0턴/게임
+
+해석: open4 시절의 `value_score_only` 결과는 exact hit가 부족해 결론을 내리기 어려웠지만, open12 테이블에서는 점수 기록 순간의 손실이 완전히 사라진다. 기본값 승격은 별도 작업으로 두되, 다음 후보는 focused의 score 단계 기본을 `value_score_only`로 올리고 설명 문구를 exact V 기반으로 다듬는 것이다.
+
 프론트의 AI 모드 설명 카드에 노출하는 평균 점수/최적 대비 손실 수치는 이 문서와 regret 리포트를 기준으로 하며, 새 regret 리포트를 채택할 때 함께 갱신한다.

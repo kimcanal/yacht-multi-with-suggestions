@@ -34,6 +34,7 @@ YACHT_IDX = CATS["Yacht"]
 POLICY_SPECS = {
     "focused": {"mode": "focused", "score_mode": "heuristic"},
     "cover": {"mode": "cover", "score_mode": "heuristic"},
+    "value_score_only": {"mode": "focused", "score_mode": "value_score_only"},
     "optimal": {"mode": "focused", "score_mode": "value_optimal"},
 }
 
@@ -182,8 +183,9 @@ def play_game_with_regret(seed, policy_label, spec, value_table_path, evaluator,
 
         while rolls_left > 0:
             dice_tuple = tuple(sorted(dice))
+            roll_score_mode = "heuristic" if spec["score_mode"] == "value_score_only" else spec["score_mode"]
             result = base_sim.solve_move(
-                dice, rolls_left, scorecard, spec["mode"], spec["score_mode"],
+                dice, rolls_left, scorecard, spec["mode"], roll_score_mode,
                 value_table_path, "", 25.0, 5,
             )
             keep_indices = list(result.get("keep_indices", []))

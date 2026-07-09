@@ -33,6 +33,8 @@ artifacts/value/*
 !artifacts/reports/score-value-score-only-focused-500-indexed-analysis.json
 !artifacts/reports/score-value-full-table-optimal-focused-200-indexed.json
 !artifacts/reports/score-value-full-table-optimal-focused-200-indexed-analysis.json
+!artifacts/reports/score-value-score-only-open12-focused-200.json
+!artifacts/reports/score-value-score-only-open12-focused-200-analysis.json
 !artifacts/reports/score-value-score-only-open3-focused-200.json
 !artifacts/reports/self-play-value-focused-256.summary.json
 !artifacts/reports/scorecard-value-linear-v1.eval.json
@@ -44,6 +46,7 @@ artifacts/value/*
 !artifacts/reports/decision-regret-100-focused-v2.json
 !artifacts/reports/decision-regret-100-focused-v3.json
 !artifacts/reports/decision-regret-100-focused-v4.json
+!artifacts/reports/decision-regret-100-value-score-only.json
 !artifacts/value/endgame-value-table-open3.json
 !artifacts/value/endgame-value-table-open4.json
 !artifacts/value/endgame-value-table-open12.npz
