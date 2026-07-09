@@ -40,6 +40,7 @@ artifacts/value/*
 !artifacts/reports/ai-runtime-heuristic-cold.json
 !artifacts/reports/ai-runtime-value-optimal-cold.json
 !artifacts/reports/ai-runtime-value-optimal-warm.json
+!artifacts/reports/decision-regret-100.json
 !artifacts/value/endgame-value-table-open3.json
 !artifacts/value/endgame-value-table-open4.json
 !artifacts/value/endgame-value-table-open12.npz
