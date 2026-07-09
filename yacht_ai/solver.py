@@ -519,6 +519,12 @@ def _normalize_score_value_mode(score_value_mode):
     return "heuristic"
 
 
+def _banked_score_total(scorecard):
+    scorecard = scorecard_to_tuple(scorecard)
+    upper_total = sum((value or 0) for value in scorecard[:6])
+    return int(sum((value or 0) for value in scorecard)) + (35 if upper_total >= 63 else 0)
+
+
 def _resolve_score_value_options(
     score_value_mode=None,
     endgame_value_table_path=None,
@@ -611,6 +617,27 @@ def _solve_best_move_cached(
         )
         if ev_optimal_mode:
             result = dict(result)
+            banked_total = _banked_score_total(scorecard)
+            remaining_ev = float(result.get("expected_value", 0.0))
+            expected_final = banked_total + remaining_ev
+            target = result.get("primary_target") or result.get("message") or "점수 기록"
+            result["summary"] = (
+                f"점수 기록 추천: {target}, 기대 최종점수 {expected_final:.2f}점 "
+                f"(확정 {banked_total}점 + 남은 기대 {remaining_ev:.2f}점)"
+            )
+            result["breakdown"] = [{
+                "name": "기대 최종점수",
+                "prob": 0.0,
+                "meter": min(1.0, max(0.15, expected_final / 240.0)),
+                "val_str": f"EV {expected_final:.2f}",
+                "type": "decision",
+                "keep_str": f"{target} 기록 선택",
+                "keep_indices": [],
+                "reason": (
+                    f"확정 {banked_total}점에 이번 기록부터 남은 기대점수 "
+                    f"{remaining_ev:.2f}점을 더한 full-game exact V 기준입니다."
+                ),
+            }] + list(result.get("breakdown") or [])
             result["strategy_mode"] = "optimal"
             result["score_value_mode"] = "value_optimal"
             result["policy_source"] = "exact_value_optimal"
@@ -894,6 +921,8 @@ def _solve_best_move_cached(
     # 메시지 / 요약 작성
     rec_msg = "모두 굴리기"
     optimal_action_label = _format_keep_tuple(dice, best_keep_tuple)
+    banked_total = _banked_score_total(scorecard)
+    expected_final = banked_total + chosen_ev
     if ev_optimal_mode:
         if all_dice_kept:
             rec_msg = "지금 기록 추천 (기대점수 최적)"
@@ -921,7 +950,10 @@ def _solve_best_move_cached(
             gap_text = ", 차선책과 거의 동률"
         else:
             gap_text = f", 차선 대비 +{alternative_gap:.2f}점"
-        summary = f"{style_label} 추천: {optimal_action_label}, 기대 최종점수 {chosen_ev:.2f}점{gap_text}"
+        summary = (
+            f"{style_label} 추천: {optimal_action_label}, 기대 최종점수 {expected_final:.2f}점 "
+            f"(확정 {banked_total}점 + 남은 기대 {chosen_ev:.2f}점){gap_text}"
+        )
     elif cover_fallback and best_keep_indices:
         summary = f"{style_label}: 커버 대상이 없어 일반 추천으로 전환, [{', '.join(kept_vals)}] keep, 평가값 {chosen_ev:.2f}"
     elif cover_fallback:
@@ -961,13 +993,14 @@ def _solve_best_move_cached(
         breakdown = [{
             "name": "기대 최종점수",
             "prob": 0.0,
-            "meter": min(1.0, max(0.15, chosen_ev / 240.0)),
-            "val_str": f"EV {chosen_ev:.2f}",
+            "meter": min(1.0, max(0.15, expected_final / 240.0)),
+            "val_str": f"EV {expected_final:.2f}",
             "type": "decision",
             "keep_str": f"{optimal_action_label} 선택",
             "keep_indices": best_keep_indices,
             "reason": (
-                "즉시 기록 점수와 full-game exact V(next_state)를 합산한 기준입니다. "
+                f"확정 {banked_total}점에 남은 기대점수 {chosen_ev:.2f}점"
+                "(즉시 기록 점수 + full-game exact V)을 합산한 기준입니다. "
                 f"{alt_reason}"
             ),
         }] + breakdown
@@ -997,12 +1030,15 @@ def _solve_best_move_cached(
             breakdown = [{
                 "name": "기대 최종점수",
                 "prob": 0.0,
-                "meter": min(1.0, max(0.15, chosen_ev / 240.0)),
-                "val_str": f"EV {chosen_ev:.2f}",
+                "meter": min(1.0, max(0.15, expected_final / 240.0)),
+                "val_str": f"EV {expected_final:.2f}",
                 "type": "decision",
                 "keep_str": f"{optimal_action_label} 선택",
                 "keep_indices": best_keep_indices,
-                "reason": "지금 기록하는 선택이 full-game exact V 기준으로 가장 높은 기대 최종점수입니다.",
+                "reason": (
+                    f"확정 {banked_total}점 + 남은 기대 {chosen_ev:.2f}점 기준으로, "
+                    "지금 기록하는 선택이 full-game exact V에서 가장 높은 기대 최종점수입니다."
+                ),
             }] + breakdown
         if stop_now_advice.get("primary_target"):
             explaining_row = {"name": stop_now_advice["primary_target"]}
