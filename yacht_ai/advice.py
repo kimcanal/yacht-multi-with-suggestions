@@ -625,9 +625,12 @@ def score_stage_category_advice(
 
 
 def _score_stage_sacrifice_key(row):
+    sacrifice_pressure = row.get("future_pressure", 0.0) + (
+        UPPER_BONUS_VALUE * row.get("bonus_prob_drop", 0.0)
+    )
     return (
         row["score"],
-        row.get("future_pressure", 0.0),
+        sacrifice_pressure,
         SACRIFICE_PRIORITY.get(row["name"], 99),
     )
 

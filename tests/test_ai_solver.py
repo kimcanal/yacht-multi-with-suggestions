@@ -55,6 +55,21 @@ class AiSolverRecommendationTests(unittest.TestCase):
         self.assertEqual(result["message"], "Yacht")
         self.assertIn("0점", result["summary"])
 
+    def test_score_stage_sacrifice_preserves_upper_bonus_survival(self):
+        scorecard = [2, 6, None, 16, 15, 18, 22, None, 24, 15, None, 0]
+        open_categories = [idx for idx, value in enumerate(scorecard) if value is None]
+
+        result = solve_best_move(
+            [6, 6, 5, 5, 6],
+            0,
+            open_categories,
+            "focused",
+            scorecard,
+        )
+
+        self.assertEqual(result["breakdown"][0]["name"], "4 of a Kind")
+        self.assertNotEqual(result["breakdown"][0]["name"], "Threes")
+
 
 if __name__ == "__main__":
     unittest.main()

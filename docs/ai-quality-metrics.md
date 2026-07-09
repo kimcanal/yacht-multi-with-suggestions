@@ -75,3 +75,14 @@ focused/cover는 "설명 가능한 목표 지향 플레이"가 목적이므로 r
 - 평균 점수: 175.12 -> 176.01
 
 Yacht 50 / Large Straight 30 같은 확정 고득점 족보가 상단 보너스 push에 밀리지 않도록 막고, 아주 낮은 양수 점수보다 0점 희생이 명백히 나은 경우를 허용했다. 4 of a Kind / Full House까지 강하게 보호하면 반대로 상단 선택을 막는 오판이 생겨 제외했다.
+
+## Focused Sacrifice Upper-Bonus Guard v3
+
+`docs/decision-regret-100-focused-v3.md`는 0점 희생 후보 정렬에서 Upper Bonus 생존성을 반영한 focused 재측정이다.
+
+- Regret/게임: 20.89점 -> 20.56점
+- Score 결정 최적 일치율: 79.75% -> 79.83%
+- Score avg regret: 0.9234 -> 0.8986
+- 평균 점수: 176.01 -> 176.38
+
+희생 후보 정렬을 `future_pressure + 35 * bonus_prob_drop` 기준으로 바꿔, 상단 보너스가 아직 살아 있는 칸을 0점으로 닫는 선택에 비용을 부여했다. 남은 worst 사례는 낮은 점수를 Sixes에 쓰는 패턴이라 별도 작업으로 분리한다.
