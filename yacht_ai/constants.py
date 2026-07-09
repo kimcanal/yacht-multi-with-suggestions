@@ -153,6 +153,15 @@ CHOICE_REBALANCE_SCORE_GAP = 5
 CHOICE_REBALANCE_BASE_PENALTY = 2.6
 CHOICE_REBALANCE_PER_POINT = 0.35
 
+# ── Score-stage obvious mistake guards ───────────────────────────────────────
+SCORE_STAGE_COMPLETED_HAND_THRESHOLDS = {
+    CATS["Large Straight"]: 30,
+    CATS["Yacht"]: 50,
+}
+SCORE_STAGE_COMPLETED_HAND_GUARD_MARGIN = 0.75
+SCORE_STAGE_LOW_POSITIVE_SACRIFICE_MAX_SCORE = 6
+SCORE_STAGE_LOW_POSITIVE_SACRIFICE_MARGIN = 1.0
+
 # ── Display meter scales ──────────────────────────────────────────────────────
 DECISION_ROW_EV_SCALE = 30.0
 DECISION_ROW_METER_FLOOR = 0.15

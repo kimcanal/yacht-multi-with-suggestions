@@ -45,6 +45,10 @@ from .constants import (
     SACRIFICE_BONUS_DROP_THRESHOLD,
     SACRIFICE_PRIORITY,
     SCORE_ROW_UTILITY_SCALE,
+    SCORE_STAGE_COMPLETED_HAND_GUARD_MARGIN,
+    SCORE_STAGE_COMPLETED_HAND_THRESHOLDS,
+    SCORE_STAGE_LOW_POSITIVE_SACRIFICE_MARGIN,
+    SCORE_STAGE_LOW_POSITIVE_SACRIFICE_MAX_SCORE,
     SCORE_STAGE_PRESSURE_RELIEF,
     SCORE_STAGE_QUALITY_WEIGHT,
     SMALL_STRAIGHT_UTILITY_BONUS,
@@ -663,6 +667,41 @@ def _rebalance_choice_score_stage(rows):
     )
 
 
+def _guard_completed_hand_score_stage(rows):
+    completed_rows = [
+        row
+        for row in rows
+        if row["category_idx"] in SCORE_STAGE_COMPLETED_HAND_THRESHOLDS
+        and row["score"] >= SCORE_STAGE_COMPLETED_HAND_THRESHOLDS[row["category_idx"]]
+    ]
+    if not completed_rows:
+        return
+
+    best_completed = max(completed_rows, key=lambda row: (row["score"], row["utility"]))
+    protected_utility = best_completed["utility"] - SCORE_STAGE_COMPLETED_HAND_GUARD_MARGIN
+    for row in rows:
+        if row["category_idx"] >= 6 or row["utility"] <= protected_utility:
+            continue
+        row["utility"] = protected_utility
+        row["reason"] = (
+            f"{row['reason']} 다만 {best_completed['name']} {best_completed['score']}점 확정이 떠 있어 "
+            "상단 보너스 가산은 보정했습니다"
+        )
+
+
+def _low_positive_sacrifice_override(positive_rows, sacrifice_rows):
+    if not positive_rows or not sacrifice_rows:
+        return None
+
+    best_positive = positive_rows[0]
+    best_sacrifice = sacrifice_rows[0]
+    if best_positive["score"] > SCORE_STAGE_LOW_POSITIVE_SACRIFICE_MAX_SCORE:
+        return None
+    if best_sacrifice["utility"] <= best_positive["utility"] + SCORE_STAGE_LOW_POSITIVE_SACRIFICE_MARGIN:
+        return None
+    return best_sacrifice
+
+
 def build_score_stage_advice(
     dice,
     scorecard,
@@ -692,6 +731,7 @@ def build_score_stage_advice(
     value_hits = any(row.get("utility_mode") in ("endgame_value", "learned_value") for row in rows)
     if not value_hits:
         _rebalance_choice_score_stage(rows)
+        _guard_completed_hand_score_stage(rows)
     ranked_rows = sorted(rows, key=lambda row: (row["utility"], row["score"]), reverse=True)
     positive_rows = [row for row in rows if row["score"] > 0]
     positive_rows.sort(key=lambda row: (row["utility"], row["score"]), reverse=True)
@@ -702,8 +742,15 @@ def build_score_stage_advice(
     else:
         sacrifice_rows.sort(key=_score_stage_sacrifice_key)
 
+    sacrifice_override = None if value_hits else _low_positive_sacrifice_override(positive_rows, sacrifice_rows)
+
     display_rows = []
-    score_display_rows = ranked_rows[:3] if value_hits else positive_rows[:3]
+    if value_hits:
+        score_display_rows = ranked_rows[:3]
+    elif sacrifice_override:
+        score_display_rows = [sacrifice_override] + positive_rows[:2]
+    else:
+        score_display_rows = positive_rows[:3]
     for row in score_display_rows:
         reason = row["reason"]
         if row.get("long_term_note"):
@@ -733,6 +780,8 @@ def build_score_stage_advice(
 
     if value_hits:
         best_row = ranked_rows[0] if ranked_rows else None
+    elif sacrifice_override:
+        best_row = sacrifice_override
     elif positive_rows:
         best_row = positive_rows[0]
     else:

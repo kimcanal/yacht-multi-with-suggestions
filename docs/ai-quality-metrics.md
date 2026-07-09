@@ -64,3 +64,14 @@ full-game exact value table(open12)이 있으므로, 모든 지표는 이론 최
 
 focused/cover는 "설명 가능한 목표 지향 플레이"가 목적이므로 regret 0이 목표가 아니다.
 다만 regret이 **어디서** 새는지(turn/stage별)를 보고, 설명력을 해치지 않는 선에서 줄이는 것이 개선 방향이다.
+
+## Focused Score-Stage Guard v2
+
+`docs/decision-regret-100-focused-v2.md`는 score 단계 obvious-mistake guard 적용 후의 focused 재측정이다.
+
+- Regret/게임: 22.41점 -> 20.89점
+- Score 결정 최적 일치율: 79.0% -> 79.75%
+- Score avg regret: 1.049 -> 0.9234
+- 평균 점수: 175.12 -> 176.01
+
+Yacht 50 / Large Straight 30 같은 확정 고득점 족보가 상단 보너스 push에 밀리지 않도록 막고, 아주 낮은 양수 점수보다 0점 희생이 명백히 나은 경우를 허용했다. 4 of a Kind / Full House까지 강하게 보호하면 반대로 상단 선택을 막는 오판이 생겨 제외했다.
