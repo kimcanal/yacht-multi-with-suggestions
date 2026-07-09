@@ -47,6 +47,11 @@ def _set_cached_recommendation(cache_key, result):
 def _solver_options_for_strategy(strategy_mode):
     if strategy_mode == "optimal":
         return "focused", "value_optimal", "exact_value_optimal"
+    if strategy_mode == "focused":
+        # roll 단계는 focused 휴리스틱 유지, score 단계만 exact V(next_state)로 대체.
+        # regret 0.7554 -> 0, 200게임 +9.04점(95% CI [+3.43, +14.65], p=0.0016) 확인 후 기본값 승격.
+        # docs/ai-quality-metrics.md, docs/decision-regret-100-value-score-only.md
+        return "focused", "value_score_only", None
     return strategy_mode, None, None
 
 
@@ -89,7 +94,8 @@ def recommend():
             }
             if score_value_mode:
                 result["score_value_mode"] = score_value_mode
-                result["policy_source"] = forced_policy_source
+                if forced_policy_source:
+                    result["policy_source"] = forced_policy_source
             result["decision_report"] = build_decision_report(
                 result, dice, normalized_rolls_left, strategy_mode, scorecard, open_categories
             )
@@ -119,7 +125,8 @@ def recommend():
         if score_value_mode:
             result["strategy_mode"] = strategy_mode
             result["score_value_mode"] = score_value_mode
-            result["policy_source"] = forced_policy_source
+            if forced_policy_source:
+                result["policy_source"] = forced_policy_source
 
         result["decision_report"] = build_decision_report(
             result, dice, normalized_rolls_left, strategy_mode, scorecard, open_categories

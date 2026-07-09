@@ -101,6 +101,42 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(response_cached.headers["X-AI-Request-Cache"], "hit")
         self.assertIn("decision_report", response_cached.get_json())
 
+    def test_recommend_focused_score_stage_uses_exact_value_by_default(self):
+        # scorecard: Threes/Twos/Sixes 등 상단 여러 칸이 열려 있어 순수 휴리스틱이면
+        # 상단 보너스 페이스를 우선해 Sixes에 적곤 했던 상태. Full House가 완성됐으므로
+        # exact V 기준 정답은 Full House.
+        scorecard = [None, None, 3, None, 15, None, 24, None, None, 15, 30, None]
+        response = self.client.post(
+            "/api/recommend",
+            json={
+                "dice": [6, 6, 5, 5, 6],
+                "rolls_left": 0,
+                "scorecard": scorecard,
+                "strategy_mode": "focused",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload["stage"], "score")
+        self.assertEqual(payload["strategy_mode"], "focused")
+        self.assertEqual(payload["score_value_mode"], "value_score_only")
+        self.assertEqual(payload["policy_source"], "exact")
+        self.assertEqual(payload["primary_target"], "Full House")
+
+        # roll-stage keep 판단은 여전히 focused 휴리스틱 그대로다.
+        roll_response = self.client.post(
+            "/api/recommend",
+            json={
+                "dice": [1, 2, 3, 4, 6],
+                "rolls_left": 1,
+                "scorecard": [None] * 12,
+                "strategy_mode": "focused",
+            },
+        )
+        roll_payload = roll_response.get_json()
+        self.assertEqual(roll_payload["keep_indices"], [0, 1, 2, 3])
+
     def test_recommend_optimal_strategy_uses_exact_value_mode(self):
         response = self.client.post(
             "/api/recommend",

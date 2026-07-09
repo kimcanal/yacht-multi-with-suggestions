@@ -110,6 +110,15 @@ Yacht 50 / Large Straight 30 같은 확정 고득점 족보가 상단 보너스 
 - 95% CI: +3.43 ~ +14.65점, two-sided normal p=0.001587
 - Score-stage exact table hit: 12.0턴/게임, fallback 0.0턴/게임
 
-해석: open4 시절의 `value_score_only` 결과는 exact hit가 부족해 결론을 내리기 어려웠지만, open12 테이블에서는 점수 기록 순간의 손실이 완전히 사라진다. 기본값 승격은 별도 작업으로 두되, 다음 후보는 focused의 score 단계 기본을 `value_score_only`로 올리고 설명 문구를 exact V 기반으로 다듬는 것이다.
+해석: open4 시절의 `value_score_only` 결과는 exact hit가 부족해 결론을 내리기 어려웠지만, open12 테이블에서는 점수 기록 순간의 손실이 완전히 사라진다.
+
+## Focused 기본값 승격 (2026-07-09)
+
+`routes/ai.py`의 `_solver_options_for_strategy`가 `strategy_mode == "focused"`일 때 `score_value_mode="value_score_only"`를 기본으로 넘기도록 바뀌었다. roll 단계는 여전히 focused 휴리스틱(`terminal_score_value_mode="heuristic"`)이라 "집중 공략" 설명력은 유지되고, score 단계만 exact V(next_state) 조회로 대체된다.
+
+- 사용자에게 노출되는 `focused` 추천의 score-stage regret이 이제 이론상 항상 0이다 (환경변수 설정 없이도 적용).
+- `policy_source`/`decision_report.method.source`는 여전히 `"exact"`로 표시된다(새 값 강제 없음) — `report.py`의 `_source_label`/`_learning_note`가 미인식 소스에 안전한 기본 문구를 반환하는 걸 확인했다.
+- `scripts/check_ai_golden.py`는 `yacht_engine.solve_best_move`를 `score_value_mode` 없이 직접 호출하므로 이 변경의 영향을 받지 않는다(환경변수 `YACHT_SCORE_STAGE_MODE` 기본값은 그대로 `heuristic`).
+- roll-stage `keep_indices`는 값 변화 없음을 회귀 테스트로 확인(`tests/test_routes.py`의 `[0, 1, 2, 3]` 기대값 유지).
 
 프론트의 AI 모드 설명 카드에 노출하는 평균 점수/최적 대비 손실 수치는 이 문서와 regret 리포트를 기준으로 하며, 새 regret 리포트를 채택할 때 함께 갱신한다.
