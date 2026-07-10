@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎲 Yacht - Multiplayer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260709-2') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260710-4') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -281,9 +281,17 @@
             text-shadow:none !important; margin-bottom:16px !important;
         }
         .game-wrapper { gap:24px; }
-        .dice-area, .scorecard-area, .info-bar, .observer-banner {
+        .dice-area, .scorecard-area {
             background:#101827 !important; border:1px solid rgba(148,163,184,0.24) !important;
             border-radius:18px !important; box-shadow:0 18px 48px rgba(0,0,0,0.3) !important;
+        }
+        .info-bar {
+            background:rgba(126,243,203,0.05) !important; border:1px solid rgba(126,243,203,0.18) !important;
+            border-radius:14px !important; box-shadow:none !important;
+        }
+        .observer-banner {
+            background:rgba(255,209,102,0.06) !important; border:1px solid rgba(255,209,102,0.28) !important;
+            border-radius:14px !important; box-shadow:none !important;
         }
         .scorecard-area {
             padding:20px !important; max-height:calc(100vh - 36px); overflow:auto; scrollbar-width:thin;
@@ -294,6 +302,25 @@
         .scorecard-area::-webkit-scrollbar-thumb { background:rgba(126,243,203,0.55); border-radius:999px; }
         .info-bar { color:#7ef3cb !important; }
         .btn { border-radius:12px !important; }
+        /* 데스크톱: 세로 스크롤 없이 한 화면에 담기 */
+        @media (min-width: 1025px) {
+            html, body { height: 100%; }
+            body { overflow: hidden; padding: 14px 20px; }
+            .game-wrapper { height: calc(100vh - 28px); align-items: stretch; }
+            .main-area { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+            .title { margin-bottom: 10px !important; font-size: 2.3rem !important; }
+            .observer-banner { margin-bottom: 12px !important; }
+            .controls.primary-controls { margin-bottom: 14px !important; }
+            .dice-area {
+                flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-bottom: 0 !important;
+                padding: 20px 22px !important; scrollbar-width: thin;
+                scrollbar-color: rgba(126,243,203,0.5) rgba(255,255,255,0.05);
+            }
+            .dice-area::-webkit-scrollbar { width: 8px; }
+            .dice-area::-webkit-scrollbar-thumb { background: rgba(126,243,203,0.4); border-radius: 999px; }
+            #multiplayer-controls { margin-top: 12px !important; flex: 0 0 auto; }
+            .scorecard-area { height: 100%; max-height: none !important; }
+        }
         @media (max-width: 768px) {
             .scorecard-area { max-height:none; }
         }
@@ -339,30 +366,22 @@
                         <div id="timer-bar" class="game-timer-card">⏳<span id="timer-count">30</span>초 남았습니다</div>
                     </div>
                     <div class="dice-grid" id="dice-grid"></div>
-                    <div class="ai-mode-row" id="ai-mode-row">
-                        <button class="ai-mode-btn" data-ai-mode="focused">집중 공략</button>
-                        <button class="ai-mode-btn" data-ai-mode="cover">커버 플레이</button>
-                        <button class="ai-mode-btn" data-ai-mode="optimal">기대 최적</button>
-                    </div>
-                    <div class="ai-mode-guide" aria-label="AI 모드 설명">
+                    <div class="ai-mode-guide" aria-label="AI 추천 방식 선택">
                         <div class="ai-mode-card" data-ai-mode-desc="focused">
-                            <strong><span class="ai-mode-chip">집중</span> 한 족보를 깊게 밉니다</strong>
-                            <p>지금 손패에서 가장 유망한 한 족보를 끝까지 노립니다. Small Straight가 이미 잡혀 있으면 Large Straight 업그레이드도 같이 봅니다.</p>
-                            <span class="ai-mode-metric">목표 지향 설명형 · 최적 대비 평균 -19점</span>
+                            <strong><span class="ai-mode-chip">집중</span> 한 족보 집중</strong>
+                            <p>유망한 한 족보를 끝까지 공략.</p>
+                            <span class="ai-mode-metric">최적 대비 평균 -19점</span>
                         </div>
                         <div class="ai-mode-card" data-ai-mode-desc="cover">
-                            <strong><span class="ai-mode-chip">커버</span> 하나 이상 성공을 노립니다</strong>
-                            <p>열린 하단 족보를 묶어서 하나라도 먹을 확률을 키웁니다. 동시에 전부 실패할 확률도 함께 보여줍니다.</p>
-                            <span class="ai-mode-metric">하단 커버 안전형 · 최적 대비 평균 -38점</span>
+                            <strong><span class="ai-mode-chip">커버</span> 하나 이상</strong>
+                            <p>여러 하단 족보 중 하나라도 성공 노림.</p>
+                            <span class="ai-mode-metric">최적 대비 평균 -38점</span>
                         </div>
                         <div class="ai-mode-card" data-ai-mode-desc="optimal">
-                            <strong><span class="ai-mode-chip">최적</span> 기대 최종점수를 봅니다</strong>
-                            <p>full-game exact V 기준으로 즉시 점수와 남은 점수판 가치를 합산해 가장 높은 기대값을 고릅니다.</p>
-                            <span class="ai-mode-metric">이론 최적 플레이 · 평균 198점</span>
+                            <strong><span class="ai-mode-chip">최적</span> 기대 최적</strong>
+                            <p>남은 점수판 가치까지 계산해 기대점수 최대화.</p>
+                            <span class="ai-mode-metric">이론 최적 · 평균 198점</span>
                         </div>
-                    </div>
-                    <div id="ai-info-tip" style="margin-top: 8px; padding: 8px 12px; background: rgba(0, 255, 204, 0.1); border-left: 3px solid #00ffcc; border-radius: 5px; font-size: 0.75em; color: #aaa; line-height: 1.4; display: none;">
-                        💡 모드 차이는 굴림 단계에서 가장 크게 드러납니다. 집중 공략은 한 족보의 성공과 업그레이드를, 커버 플레이는 여러 하단 족보 중 하나 이상 성공할 확률과 전부 실패 확률을 함께 봅니다. 기대 최적은 full-game exact V로 기대 최종점수를 최대화합니다.<br>이미 Yacht를 확보했다면 Yacht Bonus +100 가치도 추천에 반영됩니다.
                     </div>
                     <div id="ai-breakdown" class="ai-breakdown"></div>
                     <div id="win-prob-panel" class="winprob-panel"></div>
@@ -382,10 +401,28 @@
     </div>
 
     <div id="score-toast" class="toast-overlay"></div>
+
+    <div id="chat-widget" class="chat-widget collapsed" style="display:none;">
+        <button type="button" class="chat-header" id="chat-header" onclick="toggleChat()">
+            <span class="chat-header-title">💬 채팅</span>
+            <span class="chat-unread" id="chat-unread" style="display:none;">0</span>
+            <span class="chat-caret" id="chat-caret">▾</span>
+        </button>
+        <div class="chat-body" id="chat-body">
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-empty" id="chat-empty">상대와 나눈 메시지가 여기 표시됩니다.</div>
+            </div>
+            <form class="chat-input-row" id="chat-form" onsubmit="return sendChat(event)">
+                <input type="text" id="chat-input" class="chat-input" maxlength="200" placeholder="메시지 입력..." autocomplete="off">
+                <button type="submit" class="chat-send" id="chat-send">전송</button>
+            </form>
+        </div>
+    </div>
+
     <script src="{{ url_for('static', filename='js/dom_utils.js', v='20260417-6') }}"></script>
     <script src="{{ url_for('static', filename='js/game_state.js', v='20260406-5') }}"></script>
-    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260708-3') }}"></script>
-    <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260521-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260710-2') }}"></script>
+    <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260710-1') }}"></script>
     <script src="{{ url_for('static', filename='js/winprob.js', v='20260406-5') }}"></script>
     <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260709-1') }}"></script>
     <script>
@@ -452,6 +489,8 @@
                 if (banner) banner.style.display = 'block';
                 const aiModeRow = document.getElementById('ai-mode-row');
                 if (aiModeRow) aiModeRow.style.display = 'none';
+                const aiModeGuide = document.querySelector('.ai-mode-guide');
+                if (aiModeGuide) aiModeGuide.style.display = 'none';
                 renderObserverSummary();
             } else {
                 document.getElementById('player-controls').style.display = 'flex';
@@ -460,6 +499,8 @@
                 if (banner) banner.style.display = 'none';
                 const aiModeRow = document.getElementById('ai-mode-row');
                 if (aiModeRow) aiModeRow.style.display = 'flex';
+                const aiModeGuide = document.querySelector('.ai-mode-guide');
+                if (aiModeGuide) aiModeGuide.style.display = 'grid';
             }
         }
         let roomVersion = 0;
@@ -773,8 +814,8 @@
                         if (rollsLeft > 0) {
                             rollDice();
                         } else {
-                            const available = myCard.map((v, i) => v === null ? i : null).filter(v => v !== null);
-                            if (available.length > 0) pickCategory(available[0]);
+                            const best = chooseBestOpenCategory(myCard, dice);
+                            if (best !== null) pickCategory(best);
                         }
                     }
                 }, 1000);
@@ -1005,6 +1046,7 @@
                 }
 
                 markRoomContact();
+                renderChatMessages(data.messages);
                 observerCount = Number(data.observer_count ?? (Array.isArray(data.observers) ? data.observers.length : observerCount));
                 roomPhase = data.room_phase || roomPhase;
                 rematchPendingPlayers = Array.isArray(data.rematch_pending_players) ? data.rematch_pending_players : [];
@@ -1281,35 +1323,52 @@
             };
         }
 
-        async function pushState() {
-            if (!roomCode || !username || isApplyingRemote) return;
-            try {
-                const r = await fetchWithTimeout(
-                    `/api/rooms/${roomCode}/sync`,
-                    {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(buildStatePayload()),
-                    },
-                    currentRoomRequestTimeoutMs(),
-                );
-                const data = await r.json();
-                if (r.status === 404) {
-                    handleConnectionLost('방 연결이 종료되었습니다. 로비로 이동합니다.');
-                    return;
+        async function pushState({ critical = false, attempts = 3 } = {}) {
+            if (!roomCode || !username || isApplyingRemote) return false;
+            const payload = JSON.stringify(buildStatePayload());
+            for (let attempt = 1; attempt <= attempts; attempt++) {
+                try {
+                    const r = await fetchWithTimeout(
+                        `/api/rooms/${roomCode}/sync`,
+                        {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: payload,
+                        },
+                        currentRoomRequestTimeoutMs(),
+                    );
+                    const data = await r.json();
+                    if (r.status === 404) {
+                        handleConnectionLost('방 연결이 종료되었습니다. 로비로 이동합니다.');
+                        return false;
+                    }
+                    if (r.status === 403 && data.error === '참가자 인증 실패') {
+                        handleConnectionLost('참가 인증이 만료되었습니다. 로비에서 다시 입장해 주세요.');
+                        return false;
+                    }
+                    if (!r.ok) {
+                        throw new Error(data.error || `HTTP ${r.status}`);
+                    }
+                    markRoomContact();
+                    if (data.state && typeof data.state.version === 'number') {
+                        roomVersion = data.state.version;
+                    }
+                    return true;
+                } catch (e) {
+                    console.warn(`sync failed (attempt ${attempt}/${attempts})`, e);
+                    if (attempt < attempts) {
+                        await new Promise((resolve) => setTimeout(resolve, 350 * attempt));
+                    }
                 }
-                if (r.status === 403 && data.error === '참가자 인증 실패') {
-                    handleConnectionLost('참가 인증이 만료되었습니다. 로비에서 다시 입장해 주세요.');
-                    return;
-                }
-                if (!r.ok) {
-                    throw new Error(data.error || `HTTP ${r.status}`);
-                }
-                markRoomContact();
-                if (data.state && typeof data.state.version === 'number') {
-                    roomVersion = data.state.version;
-                }
-            } catch (e) { console.warn('sync failed', e); }
+            }
+            // 모든 재시도 실패: 낙관적 로컬 상태가 서버와 어긋났을 수 있으므로
+            // 다음 폴링에서 서버 권위 상태를 강제로 다시 받아 재동기화한다.
+            if (critical) {
+                roomVersion = -1;
+                showStatusToast('⚠️ 동기화 실패', '방금 동작이 서버에 반영되지 않았습니다. 자동으로 다시 맞춥니다...', 3200);
+                fetchRoomState();
+            }
+            return false;
         }
 
 function applyRemoteState(state) {
@@ -1646,6 +1705,20 @@ window.addEventListener('beforeunload', (e) => {
             setTimeout(() => toast.classList.remove('show'), 1500);
         }
 
+        function chooseBestOpenCategory(card, currentDice) {
+            let bestIdx = null;
+            let bestScore = -1;
+            for (let i = 0; i < 12; i++) {
+                if (card[i] !== null) continue;
+                const score = calcScore(currentDice, i);
+                if (bestIdx === null || score > bestScore) {
+                    bestIdx = i;
+                    bestScore = score;
+                }
+            }
+            return bestIdx;
+        }
+
         function pickCategory(i) {
             if (!isMyTurn() || myCard[i] !== null || rollsLeft === 3 || gameOver) return;
             clearTurnTimer(); 
@@ -1711,7 +1784,7 @@ window.addEventListener('beforeunload', (e) => {
             flashScoreSelection(i);
             refreshInsightPanels();
             refreshTurnUI();
-            pushState();
+            pushState({ critical: true });
         }
 
         async function leaveRoom() {
@@ -1764,7 +1837,110 @@ window.addEventListener('beforeunload', (e) => {
             setTimeout(() => toast.classList.remove('show'), 2000);
         }
 
+        // --- [1:1 채팅] ---
+        let chatCollapsed = true;
+        let chatSending = false;
+        const chatSeenIds = new Set();
+        let chatRenderedCount = 0;
+
+        function escapeChat(text) {
+            return escapeHtml(String(text == null ? '' : text));
+        }
+
+        function toggleChat() {
+            chatCollapsed = !chatCollapsed;
+            const widget = document.getElementById('chat-widget');
+            if (widget) widget.classList.toggle('collapsed', chatCollapsed);
+            if (!chatCollapsed) {
+                clearChatUnread();
+                const input = document.getElementById('chat-input');
+                if (input) input.focus();
+                scrollChatToBottom();
+            }
+        }
+
+        function clearChatUnread() {
+            const badge = document.getElementById('chat-unread');
+            if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
+        }
+
+        function bumpChatUnread(count) {
+            if (!count) return;
+            const badge = document.getElementById('chat-unread');
+            if (!badge) return;
+            const next = (parseInt(badge.textContent, 10) || 0) + count;
+            badge.textContent = String(next);
+            badge.style.display = 'inline-block';
+        }
+
+        function scrollChatToBottom() {
+            const list = document.getElementById('chat-messages');
+            if (list) list.scrollTop = list.scrollHeight;
+        }
+
+        function renderChatMessages(messages) {
+            if (!Array.isArray(messages)) return;
+            const list = document.getElementById('chat-messages');
+            if (!list) return;
+            const empty = document.getElementById('chat-empty');
+            let newIncoming = 0;
+            messages.forEach((msg) => {
+                if (!msg || !msg.id || chatSeenIds.has(msg.id)) return;
+                chatSeenIds.add(msg.id);
+                if (empty) empty.remove();
+                const mine = msg.user === username;
+                const isObs = msg.role === 'observer';
+                const el = document.createElement('div');
+                el.className = 'chat-msg ' + (isObs ? 'system-role' : (mine ? 'mine' : 'theirs'));
+                const nameLabel = mine ? '나' : msg.user;
+                el.innerHTML = `<span class="chat-msg-name">${escapeChat(nameLabel)}${isObs ? ' (관전)' : ''}</span>${escapeChat(msg.text)}`;
+                list.appendChild(el);
+                if (!mine) newIncoming++;
+            });
+            if (chatSeenIds.size !== chatRenderedCount) {
+                chatRenderedCount = chatSeenIds.size;
+                scrollChatToBottom();
+            }
+            if (newIncoming > 0 && chatCollapsed) bumpChatUnread(newIncoming);
+        }
+
+        async function sendChat(event) {
+            if (event) event.preventDefault();
+            const input = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('chat-send');
+            if (!input) return false;
+            const text = input.value.trim();
+            if (!text || chatSending) return false;
+            chatSending = true;
+            if (sendBtn) sendBtn.disabled = true;
+            try {
+                const r = await fetchWithTimeout(
+                    `/api/rooms/${roomCode}/chat`,
+                    {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ username, player_token: playerToken, text }),
+                    },
+                    currentRoomRequestTimeoutMs(),
+                );
+                const data = await r.json();
+                if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+                input.value = '';
+                renderChatMessages(data.messages || (data.message ? [data.message] : []));
+            } catch (e) {
+                console.warn('chat send failed', e);
+                showStatusToast('메시지 전송 실패', '잠시 후 다시 시도해 주세요.', 1400);
+            } finally {
+                chatSending = false;
+                if (sendBtn) sendBtn.disabled = false;
+                input.focus();
+            }
+            return false;
+        }
+
         async function initializeGame() {
+            const chatWidget = document.getElementById('chat-widget');
+            if (chatWidget) chatWidget.style.display = 'flex';
             renderDice();
             updateScorecard();
             document.getElementById('ai-breakdown').innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">🎲 주사위를 굴려주세요</div>';

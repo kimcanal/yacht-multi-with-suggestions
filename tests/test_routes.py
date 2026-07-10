@@ -409,6 +409,51 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(leaderboard_payload[0]["wins"], 1)
 
 
+    def test_room_chat_send_and_fetch(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        code = created.get_json()["code"]
+        host_token = created.get_json()["player_token"]
+        joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
+        guest_token = joined.get_json()["player_token"]
+
+        # 인증 실패
+        forged = self.client.post(
+            f"/api/rooms/{code}/chat",
+            json={"username": "host1", "player_token": "wrong", "text": "hi"},
+        )
+        self.assertEqual(forged.status_code, 403)
+
+        # 빈 메시지 거부
+        empty = self.client.post(
+            f"/api/rooms/{code}/chat",
+            json={"username": "host1", "player_token": host_token, "text": "   "},
+        )
+        self.assertEqual(empty.status_code, 400)
+
+        # 정상 전송
+        sent = self.client.post(
+            f"/api/rooms/{code}/chat",
+            json={"username": "guest1", "player_token": guest_token, "text": "안녕!"},
+        )
+        self.assertEqual(sent.status_code, 200)
+        sent_payload = sent.get_json()
+        self.assertEqual(sent_payload["message"]["user"], "guest1")
+        self.assertEqual(sent_payload["message"]["text"], "안녕!")
+        self.assertEqual(sent_payload["message"]["role"], "player")
+
+        # get_room 응답에 메시지 포함
+        room = self.client.get(f"/api/rooms/{code}", query_string={"u": "host1", "pt": host_token})
+        messages = room.get_json()["messages"]
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0]["text"], "안녕!")
+
+        # 참가자/관전자가 아니면 거부
+        outsider = self.client.post(
+            f"/api/rooms/{code}/chat",
+            json={"username": "stranger", "text": "hi"},
+        )
+        self.assertEqual(outsider.status_code, 404)
+
     def test_sync_validation_errors(self):
         created = self.client.post("/api/rooms", json={"username": "host1"})
         code = created.get_json()["code"]

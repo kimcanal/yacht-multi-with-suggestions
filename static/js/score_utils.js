@@ -17,7 +17,7 @@ const CAT_DESC = {
     'Full House': '같은 숫자 3개 + 같은 숫자 2개\n → 주사위 5개의 총합 \n(예: ⚄⚄ + ⚅⚅⚅ = 28점)',
     'Small Straight': '연속된 주사위 눈 4개 이상\n → 고정 15점 \n(예: 1-2-3-4, 2-3-4-5, 3-4-5-6)',
     'Large Straight': '연속된 주사위 눈 5개\n → 고정 30점 \n(1-2-3-4-5 또는 2-3-4-5-6)',
-    'Yacht': '동일한 주사위 눈 5개 → 고정 50점\n\n🏆 Yacht Bonus: 이미 Yacht 50점을 받은 후 다시 Yacht를 굴리면,\n다른 칸에 0이 아닌 점수를 기록할 때 추가로 +100점을 받습니다!'
+    'Yacht': '동일한 주사위 눈 5개 → 고정 50점\n🏆 이후 Yacht 재발생 시 다른 칸 기록에 +100점 보너스'
 };
 
 const CAT_DICE = {
@@ -274,7 +274,8 @@ function applyScoreTooltipChrome(tooltip) {
     tooltip.style.overflowWrap = 'break-word';
     tooltip.style.wordBreak = 'keep-all';
     tooltip.style.border = '1px solid #b5ffe9';
-    tooltip.style.overflow = 'visible';
+    tooltip.style.overflow = 'auto';
+    tooltip.style.maxHeight = '40vh';
     tooltip.style.boxSizing = 'border-box';
     tooltip.style.textShadow = '0 1px 1px rgba(0,0,0,0.85)';
 }
@@ -526,38 +527,21 @@ function renderCompareBoard(leftCard, rightCard, options = {}) {
     `;
 }
 
+// 점수 설명은 점수판 상단의 고정 높이 인라인 도움말(#score-desc-area)에만 표시한다.
+// (예전에는 커서를 따라다니는 플로팅 툴팁도 같이 띄워 설명이 중복되고 행을 가렸다.)
 function showTip(el) {
-    hideTip();
     const desc = el.getAttribute('data-desc') || '';
     const diceText = el.getAttribute('data-dice') || '';
     if (!desc && !diceText) return;
     updateScoreHelp(desc, diceText);
-
-    const tip = getGlobalTooltip();
-    applyScoreTooltipChrome(tip);
-    const tipLayout = el.getAttribute('data-tip-layout') || 'default';
-    const scorePreviewLayout = tipLayout === 'score-preview';
-    const diceMarkup = diceText
-        ? `<div class="tip-dice" style="font-weight:900; color:#8fffe3; font-size:1.04em; margin-bottom:7px;">${escapeHtml(diceText)}</div>`
-        : '';
-
-    tip.style.display = 'flex';
-    tip.style.flexDirection = 'column';
-    tip.style.alignItems = 'flex-start';
-    tip.style.minWidth = window.innerWidth < 600 ? '120px' : '180px';
-    tip.style.maxWidth = window.innerWidth < 600 ? '90vw' : '320px';
-    tip.style.width = window.innerWidth < 600 ? 'auto' : (scorePreviewLayout ? 'min(320px, calc(100vw - 40px))' : 'max-content');
-    tip.style.fontSize = window.innerWidth < 600 ? '0.98em' : '1em';
-    tip.style.padding = window.innerWidth < 600 ? '10px 10px 9px 10px' : '14px 18px 13px 18px';
-    tip.innerHTML = `${diceMarkup}<div class="tip-desc" style="font-size:1.01em; line-height:1.6; color:#ffffff; font-weight:800;">${escapeHtml(desc)}</div>`;
-    positionScoreTooltip(el, tip, scorePreviewLayout);
 }
 
 function hideTip() {
     const tip = document.getElementById('global-score-tooltip');
-    if (!tip) return;
-    tip.style.display = 'none';
-    tip.innerHTML = '';
+    if (tip) {
+        tip.style.display = 'none';
+        tip.innerHTML = '';
+    }
 }
 
 function formatSignedDelta(value) {

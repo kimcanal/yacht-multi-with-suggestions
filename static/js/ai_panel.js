@@ -52,12 +52,25 @@ function updateAiModeButtons(scope = document) {
 }
 
 function bindAiModeControls(onChange) {
+    const selectMode = (rawMode) => {
+        const nextMode = normalizeAiMode(rawMode);
+        setAiMode(nextMode);
+        updateAiModeButtons();
+        if (typeof onChange === 'function') onChange(nextMode);
+    };
+    // 버튼 줄(data-ai-mode)과 설명 카드(data-ai-mode-desc) 모두 클릭으로 모드 선택
     document.querySelectorAll('[data-ai-mode]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const nextMode = normalizeAiMode(btn.dataset.aiMode);
-            setAiMode(nextMode);
-            updateAiModeButtons();
-            if (typeof onChange === 'function') onChange(nextMode);
+        btn.addEventListener('click', () => selectMode(btn.dataset.aiMode));
+    });
+    document.querySelectorAll('[data-ai-mode-desc]').forEach((card) => {
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.addEventListener('click', () => selectMode(card.dataset.aiModeDesc));
+        card.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                selectMode(card.dataset.aiModeDesc);
+            }
         });
     });
     updateAiModeButtons();

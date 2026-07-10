@@ -143,30 +143,38 @@
         }
         .stat-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
+            grid-template-columns: 1fr;
+            gap: 10px;
         }
         .stat {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            align-items: center;
+            column-gap: 16px;
             border-radius: 18px;
-            padding: 16px;
+            padding: 14px 16px;
             background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.06);
         }
         .stat-label {
+            grid-row: 1;
+            grid-column: 1;
             color: var(--muted);
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            margin-bottom: 8px;
         }
         .stat-value {
+            grid-row: 2;
+            grid-column: 1;
             font-family: 'Rajdhani', sans-serif;
-            font-size: 2rem;
+            font-size: 1.9rem;
             color: var(--text-strong);
             line-height: 1;
         }
         .stat-sub {
-            margin-top: 8px;
+            grid-row: 1 / span 2;
+            grid-column: 2;
             color: var(--text-cool);
             font-size: 0.84rem;
             line-height: 1.5;
@@ -205,13 +213,13 @@
         }
         .feature-list,
         .rule-list,
-        .score-list {
+        .cat-list {
             display: grid;
             gap: 12px;
         }
         .feature,
         .rule-item,
-        .score-item {
+        .cat-item {
             padding: 16px 18px;
             border-radius: 18px;
             border: 1px solid rgba(255,255,255,0.06);
@@ -219,14 +227,14 @@
         }
         .feature strong,
         .rule-item strong,
-        .score-item strong {
+        .cat-item strong {
             display: block;
             margin-bottom: 6px;
             color: var(--text-strong);
         }
         .feature p,
         .rule-item p,
-        .score-item p {
+        .cat-item p {
             color: var(--muted);
             line-height: 1.65;
             font-size: 0.96rem;
@@ -234,7 +242,10 @@
         .rule-list {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
-        .score-list {
+        .cat-list {
+            grid-template-columns: 1fr;
+        }
+        .ai-feature-list {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
         .section-note {
@@ -263,7 +274,8 @@
             .hero-grid,
             .section-grid,
             .rule-list,
-            .score-list {
+            .cat-list,
+            .ai-feature-list {
                 grid-template-columns: 1fr;
             }
             .stat-grid {
@@ -307,7 +319,7 @@
 
         <section class="hero">
             <div class="hero-kicker">ONLINE DICE STRATEGY</div>
-            <h1>굴릴지,<br>남길지,<br>지금 점수를 적을지.</h1>
+            <h1>주사위를 굴릴지, 남길지,<br>지금 점수를 적을지.</h1>
             <p>
                 Yacht는 5개의 주사위와 12개의 점수 칸으로 만드는 확률 게임입니다.
                 한 턴에 최대 3번까지 굴릴 수 있고, 어떤 주사위를 남길지와 어느 칸에 기록할지를
@@ -401,20 +413,20 @@
 
             <section class="panel">
                 <div class="section-title">점수 카테고리</div>
-                <div class="score-list">
-                    <div class="score-item">
+                <div class="cat-list">
+                    <div class="cat-item">
                         <strong>Ones ~ Sixes</strong>
                         <p>해당 숫자의 총합. 예를 들어 Sixes는 6이 나온 개수만큼 6점씩 받습니다.</p>
                     </div>
-                    <div class="score-item">
+                    <div class="cat-item">
                         <strong>Choice</strong>
                         <p>현재 주사위 다섯 개의 총합을 그대로 받습니다.</p>
                     </div>
-                    <div class="score-item">
+                    <div class="cat-item">
                         <strong>4 of a Kind / Full House</strong>
                         <p>조건을 만족하면 다섯 주사위의 총합을 점수로 받습니다.</p>
                     </div>
-                    <div class="score-item">
+                    <div class="cat-item">
                         <strong>Small / Large Straight / Yacht</strong>
                         <p>Small Straight 15점, Large Straight 30점, Yacht 50점 고정입니다.</p>
                     </div>
@@ -447,7 +459,7 @@
 
             <section class="panel">
                 <div class="section-title">AI 추천은 무엇을 보나요?</div>
-                <div class="feature-list">
+                <div class="feature-list ai-feature-list">
                     <div class="feature">
                         <strong>턴 단위 기대값</strong>
                         <p>현재 나온 주사위와 남은 reroll 수를 기준으로 어떤 KEEP이 가장 좋은지 계산합니다.</p>

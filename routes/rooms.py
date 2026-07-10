@@ -1,4 +1,5 @@
 import json
+import secrets
 import time
 from contextlib import nullcontext
 
@@ -23,6 +24,12 @@ rooms_bp = Blueprint("rooms", __name__)
 
 _INVALID_USERNAME = "닉네임은 2~12자(한글/영문/숫자/_)만 가능합니다"
 _YACHT_IDX = CATS["Yacht"]
+_CHAT_MAX_LEN = 200
+_CHAT_HISTORY_LIMIT = 40
+
+
+def _recent_messages(room):
+    return list(room.get("messages", []))[-_CHAT_HISTORY_LIMIT:]
 
 
 def _save_room(code, room):
@@ -248,6 +255,7 @@ def create_room():
         "player_last_seen": {username: now},
         "observer_last_seen": {},
         "rematch_requests": {},
+        "messages": [],
         "fair": build_fair_state(),
     }
     for _ in range(25):
@@ -383,6 +391,7 @@ def get_room(code):
             "state": state_payload,
             "player1": p1,
             "player2": p2,
+            "messages": _recent_messages(room),
         }
         payload.update(_rematch_payload(room))
 
@@ -672,6 +681,51 @@ def roll_dice(code):
                 "next_nonce": next_fair.get("nonce", 0),
             },
         })
+
+
+@rooms_bp.route("/api/rooms/<code>/chat", methods=["POST"])
+def chat_room(code):
+    data = request.json or {}
+    username = normalize_username(data.get("username"))
+    player_token = data.get("player_token")
+    raw_text = data.get("text")
+    if not username:
+        return jsonify({"error": _INVALID_USERNAME}), 400
+    text = (raw_text or "").strip()
+    if not text:
+        return jsonify({"error": "메시지가 비어 있습니다"}), 400
+    if len(text) > _CHAT_MAX_LEN:
+        text = text[:_CHAT_MAX_LEN]
+
+    with _room_lock(code):
+        room = rooms.get(code)
+        if not room:
+            return jsonify({"error": "방 없음"}), 404
+
+        now = time.time()
+        is_player = username in room.get("players", [])
+        if is_player:
+            if not is_valid_player(room, username, player_token):
+                return jsonify({"error": "참가자 인증 실패"}), 403
+            touch_player(room, username, now)
+        elif username in room.get("observers", []):
+            touch_observer(room, username, now)
+        else:
+            return jsonify({"error": "참가자 없음"}), 404
+
+        message = {
+            "id": secrets.token_urlsafe(9),
+            "user": username,
+            "text": text,
+            "role": "player" if is_player else "observer",
+            "ts": now,
+        }
+        history = room.setdefault("messages", [])
+        history.append(message)
+        if len(history) > _CHAT_HISTORY_LIMIT:
+            del history[:-_CHAT_HISTORY_LIMIT]
+        _save_room(code, room)
+        return jsonify({"status": "ok", "message": message, "messages": _recent_messages(room)})
 
 
 @rooms_bp.route("/api/rooms/<code>/fairness", methods=["GET"])
