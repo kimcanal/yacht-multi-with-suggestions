@@ -785,6 +785,19 @@ button {
     background: rgba(15, 23, 42, 0.9);
 }
 
+.score-overview-card.has-help {
+    cursor: help;
+    transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+}
+
+.score-overview-card.has-help:hover,
+.score-overview-card.has-help:focus-visible {
+    border-color: rgba(126, 243, 203, 0.62);
+    background: rgba(20, 42, 53, 0.94);
+    outline: none;
+    transform: translateY(-1px);
+}
+
 .score-overview-label {
     display: block;
     color: var(--text-muted-mid);

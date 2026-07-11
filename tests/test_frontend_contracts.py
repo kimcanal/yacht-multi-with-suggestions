@@ -60,6 +60,10 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_upper_bonus_is_explained_once_in_the_overview(self):
         self.assertIn("상단 합계 63점 달성 시 +35점", self.score_utils)
+        self.assertIn("Upper 총합 63점 이상이면 보너스 35점을 받습니다.", self.score_utils)
+        self.assertIn("desc: getUpperHelp(totals)", self.score_utils)
+        self.assertIn("desc: getUpperHelp(leftTotals, rightTotals)", self.score_utils)
+        self.assertIn("tabindex=\"0\" data-desc=", self.score_utils)
         self.assertIn("+${totals.bonus} 확보", self.score_utils)
         self.assertNotIn("score-item subtotal", self.score_utils)
         self.assertNotIn("renderCompareStatRow('Subtotal'", self.score_utils)
