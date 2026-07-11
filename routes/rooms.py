@@ -356,9 +356,11 @@ def get_room(code):
             return jsonify({"error": "방 없음"}), 404
 
         now = time.time()
-        u = request.args.get("u")
-        pt = request.args.get("pt")
-        if u and u in room.get("players", []) and is_valid_player(room, u, pt):
+        u = normalize_username(request.args.get("u"))
+        player_token = request.headers.get("X-Player-Token", "")
+        if u and u in room.get("players", []):
+            if not is_valid_player(room, u, player_token):
+                return jsonify({"error": "참가자 인증 실패"}), 403
             touch_player(room, u, now)
         elif u and u in room.get("observers", []):
             touch_observer(room, u, now)
@@ -513,13 +515,13 @@ def sync_room(code):
         if state.get("turn") and state["turn"] != username and not data.get("game_over"):
             return jsonify({"error": "상대 턴"}), 403
 
-        requested_dice = normalize_dice(data.get("dice", state["dice"]))
-        requested_kept = normalize_kept(data.get("kept", state["kept"]))
-        if requested_dice is None or requested_kept is None:
+        # 주사위 상태는 서버 소유다. 이전 클라이언트와의 API 호환을 위해 필드가
+        # 포함된 경우 형식만 검증하고, 값 자체는 아래 서버 상태를 사용한다.
+        if "dice" in data and normalize_dice(data["dice"]) is None:
             return jsonify({"error": "잘못된 주사위 데이터"}), 400
-
-        requested_rolls_left = normalize_rolls_left(data.get("rolls_left", state["rolls_left"]), 0, 3)
-        if requested_rolls_left is None:
+        if "kept" in data and normalize_kept(data["kept"]) is None:
+            return jsonify({"error": "잘못된 keep 데이터"}), 400
+        if "rolls_left" in data and normalize_rolls_left(data["rolls_left"], 0, 3) is None:
             return jsonify({"error": "rolls_left는 0~3 정수여야 합니다"}), 400
 
         dice = normalize_dice(state.get("dice", [1, 1, 1, 1, 1]))
@@ -724,6 +726,9 @@ def chat_room(code):
         history.append(message)
         if len(history) > _CHAT_HISTORY_LIMIT:
             del history[:-_CHAT_HISTORY_LIMIT]
+        state = room.setdefault("state", default_room_state())
+        state["version"] = safe_int(state.get("version"), 0) + 1
+        state["updated_by"] = username
         _save_room(code, room)
         return jsonify({"status": "ok", "message": message, "messages": _recent_messages(room)})
 
@@ -791,11 +796,11 @@ def rematch_room(code):
         return jsonify(payload)
 
 
-@rooms_bp.route("/api/rooms/<code>/leave", methods=["POST", "GET"])
+@rooms_bp.route("/api/rooms/<code>/leave", methods=["POST"])
 def leave_room(code):
     data = request.get_json(silent=True) or {}
-    username = normalize_username(data.get("username") or request.args.get("username"))
-    player_token = data.get("player_token") or request.args.get("pt")
+    username = normalize_username(data.get("username"))
+    player_token = data.get("player_token")
     with _room_lock(code):
         room = rooms.get(code)
         if not room:

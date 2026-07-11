@@ -7,7 +7,7 @@ import yacht_engine
 from flask import Blueprint, jsonify, request
 
 from app_state import ai_metrics
-from config import AI_SLOW_LOG_MS, AI_POLICY_MIN_CONFIDENCE
+from config import AI_SLOW_LOG_MS, AI_POLICY_MIN_CONFIDENCE, WIN_PROBABILITY_DEFAULT_SAMPLES
 from utils.ai_utils import record_ai_slow_sample
 from utils.observability import log_json
 from utils.validation import (
@@ -15,7 +15,9 @@ from utils.validation import (
     normalize_rolls_left,
     normalize_scorecard,
     normalize_strategy_mode,
+    safe_int,
 )
+from utils.win_probability_service import request_win_probability
 from yacht_ai.report import build_decision_report
 
 ai_bp = Blueprint("ai", __name__)
@@ -23,6 +25,48 @@ ai_bp = Blueprint("ai", __name__)
 
 _RECOMMEND_CACHE_MAX = 512
 _RECOMMEND_RESULT_CACHE = OrderedDict()
+
+
+def _optional_turn_state(data, prefix):
+    dice_raw = data.get(f"{prefix}_dice")
+    rolls_raw = data.get(f"{prefix}_rolls_left")
+    if dice_raw is None and rolls_raw is None:
+        return None, None, None
+    dice = normalize_dice(dice_raw)
+    rolls_left = normalize_rolls_left(rolls_raw, 0, 2)
+    if dice is None or rolls_left is None:
+        return None, None, f"{prefix}_dice와 {prefix}_rolls_left가 올바르지 않습니다"
+    return dice, rolls_left, None
+
+
+@ai_bp.route("/api/win-probability", methods=["POST"])
+def win_probability():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "JSON 객체 본문이 필요합니다"}), 400
+
+    my_scorecard = normalize_scorecard(data.get("my_scorecard"))
+    opp_scorecard = normalize_scorecard(data.get("opp_scorecard"))
+    if my_scorecard is None or opp_scorecard is None:
+        return jsonify({"error": "양쪽 scorecard는 길이 12의 점수/None 배열이어야 합니다"}), 400
+
+    my_dice, my_rolls_left, my_error = _optional_turn_state(data, "my")
+    opp_dice, opp_rolls_left, opp_error = _optional_turn_state(data, "opp")
+    if my_error or opp_error:
+        return jsonify({"error": my_error or opp_error}), 400
+
+    requested_samples = safe_int(data.get("samples"), WIN_PROBABILITY_DEFAULT_SAMPLES)
+    samples = max(5, min(requested_samples, 100))
+    result = request_win_probability({
+        "my_scorecard": my_scorecard,
+        "opp_scorecard": opp_scorecard,
+        "my_dice": my_dice,
+        "my_rolls_left": my_rolls_left,
+        "opp_dice": opp_dice,
+        "opp_rolls_left": opp_rolls_left,
+        "samples": samples,
+    })
+    return jsonify(result), 202 if result["status"] == "pending" else 200
 
 
 def _recommend_cache_key(dice, rolls_left, strategy_mode, scorecard):

@@ -339,6 +339,90 @@ button {
 
 .dice-item {
     position: relative;
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-size: min(3.1vw, 22px);
+}
+
+.dice-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.die-container {
+    position: relative;
+    width: min(5em, 100%);
+    aspect-ratio: 1 / 1;
+    perspective: 1000px;
+    transition: transform 0.3s ease;
+}
+
+.die-container.locked {
+    transform: translateY(-15px);
+}
+
+.die {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.die-face {
+    position: absolute;
+    display: grid;
+    width: 100%;
+    height: 100%;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    padding: 0.4em;
+    border: 2px solid rgba(200, 200, 200, 0.5);
+    border-radius: 0.8em;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(240, 240, 240, 0.9));
+    backface-visibility: hidden;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.05);
+}
+
+.die-face .dot {
+    margin: auto;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.face-1 { transform: rotateY(0deg) translateZ(2.5em); }
+.face-6 { transform: rotateY(180deg) translateZ(2.5em); }
+.face-2 { transform: rotateX(90deg) translateZ(2.5em); }
+.face-5 { transform: rotateX(-90deg) translateZ(2.5em); }
+.face-3 { transform: rotateY(90deg) translateZ(2.5em); }
+.face-4 { transform: rotateY(-90deg) translateZ(2.5em); }
+
+.die.rolling {
+    animation: var(--die-roll-animation, roll3d 1.5s linear infinite);
+}
+
+@keyframes roll3d {
+    0% { transform: rotateX(0) rotateY(0) rotateZ(0); }
+    100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(360deg); }
+}
+
+.dot {
+    width: 0.9em;
+    height: 0.9em;
+    border-radius: 50%;
+    background: #333;
+    transition: all 0.2s;
+}
+
+.dot.hidden {
+    opacity: 0;
 }
 
 .die-container.ai-keep-recommended {
@@ -1476,6 +1560,73 @@ button {
     line-height: 1.4;
 }
 
+.winprob-panel {
+    margin-top: 14px;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.winprob-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.winprob-title { color: var(--text-panel); font-weight: 800; }
+.winprob-sub, .winprob-meta { color: var(--text-muted-deep); font-size: 0.8em; }
+.winprob-meta { margin-bottom: 8px; }
+
+.winprob-bar {
+    display: flex;
+    width: 100%;
+    height: 30px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.winprob-left, .winprob-right {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    overflow: hidden;
+    font-size: 0.82em;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.winprob-left {
+    justify-content: flex-start;
+    padding-left: 10px;
+    background: var(--mint-accent);
+    color: var(--ink-success);
+}
+
+.winprob-right {
+    justify-content: flex-end;
+    padding-right: 10px;
+    background: var(--danger-warm);
+    color: var(--ink-warm);
+}
+
+.winprob-graph { display: block; width: 100%; height: 96px; }
+
+.winprob-loading {
+    min-height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text-muted-blue);
+    font-size: 0.82rem;
+}
+
 .breakdown-item {
     display: flex;
     align-items: center;
@@ -1594,7 +1745,7 @@ button {
     flex-direction: column;
     border-radius: 14px;
     overflow: hidden;
-    background: #0f1626;
+    background: var(--bg-3);
     border: 1px solid rgba(126, 243, 203, 0.28);
     box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
     font-size: 0.9rem;
@@ -1608,7 +1759,7 @@ button {
     border: none;
     cursor: pointer;
     background: rgba(126, 243, 203, 0.1);
-    color: #d9fff5;
+    color: var(--mint-pale);
     font-weight: 800;
     font-size: 0.92rem;
     text-align: left;
@@ -1630,7 +1781,7 @@ button {
 .chat-body {
     display: flex;
     flex-direction: column;
-    background: #0f1626;
+    background: var(--bg-3);
 }
 .chat-messages {
     display: flex;
@@ -1710,6 +1861,41 @@ button {
 }
 .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 768px) {
-    .chat-widget { right: 10px; bottom: 10px; width: min(300px, calc(100vw - 20px)); }
+    .multiplayer-page { padding-bottom: calc(76px + env(safe-area-inset-bottom)) !important; }
+    .chat-widget { right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); width: min(300px, calc(100vw - 20px)); }
+    .chat-header { min-height: 44px; }
     .chat-messages { max-height: 180px; }
+}
+
+/* Unrolled dice are placeholders, not real game values. */
+.die-container.dice-unrolled .die {
+    opacity: 0.16;
+    animation: none !important;
+}
+
+.die-container.dice-unrolled::after {
+    content: "?";
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: grid;
+    place-items: center;
+    color: var(--text-faint);
+    font-size: 2.3em;
+    font-weight: 900;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+    pointer-events: none;
+}
+
+@keyframes roll3dMobile {
+    0% { transform: scale(0.72) rotateX(0) rotateY(0) rotateZ(0); }
+    100% { transform: scale(0.72) rotateX(720deg) rotateY(360deg) rotateZ(360deg); }
+}
+
+@media (max-width: 480px) {
+    .die.rolling { --die-roll-animation: roll3dMobile 1.2s linear infinite; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .die.rolling { animation: none !important; }
 }

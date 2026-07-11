@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎲 Yacht - Single Player</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260710-4') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260711-1') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -46,43 +46,6 @@
             background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 40px;
             backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 30px;
         }
-        .dice-grid {
-            display: flex; flex-wrap: nowrap; gap: 8px; justify-content: space-between;
-            margin-bottom: 20px; width: 100%;
-        }
-        .dice-item {
-            display: flex; flex-direction: column; align-items: center; gap: 8px;
-            flex: 1; min-width: 0; font-size: min(3.1vw, 22px);
-        }
-        .die-container {
-            width: min(5em, 100%); aspect-ratio: 1 / 1; position: relative; perspective: 1000px; transition: transform 0.3s ease;
-        }
-        .die-container.locked { transform: translateY(-15px); }
-        .die {
-            width: 100%; height: 100%; position: absolute; transform-style: preserve-3d;
-            transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-        .die-face {
-            position: absolute; width: 100%; height: 100%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(240,240,240,0.9));
-            border: 2px solid rgba(200,200,200,0.5); border-radius: 0.8em;
-            display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
-            padding: 0.4em; backface-visibility: hidden; box-shadow: inset 0 0 15px rgba(0,0,0,0.05);
-        }
-        .die-face .dot { margin: auto; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); }
-        .face-1 { transform: rotateY(0deg) translateZ(2.5em); }
-        .face-6 { transform: rotateY(180deg) translateZ(2.5em); }
-        .face-2 { transform: rotateX(90deg) translateZ(2.5em); }
-        .face-5 { transform: rotateX(-90deg) translateZ(2.5em); }
-        .face-3 { transform: rotateY(90deg) translateZ(2.5em); }
-        .face-4 { transform: rotateY(-90deg) translateZ(2.5em); }
-        .die.rolling { animation: roll3d 1.5s linear infinite; }
-        @keyframes roll3d {
-            0% { transform: rotateX(0) rotateY(0) rotateZ(0); }
-            100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(360deg); }
-        }
-        .dot { width: 0.9em; height: 0.9em; background: #333; border-radius: 50%; transition: all 0.2s; }
-        .dot.hidden { opacity: 0; }
         .controls {
             display: flex; gap: 15px; justify-content: center; margin-top: 10px; margin-bottom: 30px;
         }
@@ -289,7 +252,7 @@
                         <div class="ai-mode-card" data-ai-mode-desc="focused">
                             <strong><span class="ai-mode-chip">집중</span> 한 족보 집중</strong>
                             <p>유망한 한 족보를 끝까지 공략.</p>
-                            <span class="ai-mode-metric">최적 대비 평균 -19점</span>
+                            <span class="ai-mode-metric">최적 대비 평균 -10.4점</span>
                         </div>
                         <div class="ai-mode-card" data-ai-mode-desc="cover">
                             <strong><span class="ai-mode-chip">커버</span> 하나 이상</strong>
@@ -332,7 +295,7 @@
     <script src="{{ url_for('static', filename='js/game_state.js', v='20260406-5') }}"></script>
     <script src="{{ url_for('static', filename='js/score_utils.js', v='20260710-2') }}"></script>
     <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260710-1') }}"></script>
-    <script src="{{ url_for('static', filename='js/winprob.js', v='20260406-5') }}"></script>
+    <script src="{{ url_for('static', filename='js/winprob.js', v='20260711-4') }}"></script>
     <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260709-1') }}"></script>
     <script>
         const SINGLE_MODE_KEY = 'yacht_single_mode';
@@ -903,7 +866,8 @@
                 const containerEl = document.getElementById(`die-container-${i}`);
                 if (!dieEl || !containerEl) continue;
 
-                if (rollsLeft === 3 && !gameOver && isMyTurn()) {
+                containerEl.classList.toggle('dice-unrolled', rollsLeft === 3 && !isRolling && !gameOver);
+                if (isRolling && !kept[i]) {
                     dieEl.classList.add('rolling');
                 } else {
                     dieEl.classList.remove('rolling');
