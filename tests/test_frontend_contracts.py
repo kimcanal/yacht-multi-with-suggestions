@@ -31,8 +31,18 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("qs.set('reaction_id', lastReactionId)", self.multi)
         self.assertIn("/api/rooms/${roomCode}/reaction", self.multi)
         self.assertIn("playReactionSound(reaction.code)", self.multi)
+        self.assertIn("assets/openmoji/1F602.svg", self.multi)
+        self.assertIn("emoji.src = reaction.asset", self.multi)
         self.assertNotIn("/api/rooms/${roomCode}/chat", self.multi)
         self.assertIn("startSyncPolling({immediate: true})", self.multi)
+
+    def test_multiplayer_reactions_vendor_openmoji_assets_and_license(self):
+        asset_dir = ROOT / "static/assets/openmoji"
+        for filename in ("1F44D.svg", "1F525.svg", "1F602.svg", "1F631.svg", "1F3B2.svg", "1F44F.svg"):
+            svg = (asset_dir / filename).read_text(encoding="utf-8")
+            self.assertIn('<svg id="emoji"', svg)
+        license_text = (asset_dir / "LICENSE.txt").read_text(encoding="utf-8")
+        self.assertIn("Creative Commons Attribution-ShareAlike 4.0", license_text)
 
     def test_win_probability_uses_server_endpoint_and_current_metric(self):
         self.assertIn("/api/win-probability", self.winprob)

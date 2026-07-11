@@ -548,12 +548,12 @@ data: {"code":"AB12CD","room_phase":"playing","players":["Host01","Guest01"],"ob
 
 ```text
 event: reaction
-data: {"id":"reaction-id","user":"Guest01","code":"fire","emoji":"🔥","label":"대박","ts":1710000000.0}
+data: {"id":"reaction-id","user":"Guest01","code":"fire","emoji":"🔥","label":"대박","asset":"/static/assets/openmoji/1F525.svg","ts":1710000000.0}
 ```
 
 ### `POST /api/rooms/<code>/reaction`
 
-플레이어 전용 감정표현 전송 API입니다. `nice`, `fire`, `laugh`, `wow`, `dice`, `gg`만 허용하며 플레이어별 1.5초 쿨다운을 적용합니다. 감정표현은 게임 state version을 변경하지 않습니다.
+플레이어 전용 감정표현 전송 API입니다. `nice`, `fire`, `laugh`, `wow`, `dice`, `gg`만 허용하며 플레이어별 2초 쿨다운을 적용합니다. 감정표현은 게임 state version을 변경하지 않습니다.
 
 ```json
 {

@@ -509,6 +509,7 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(sent_payload["reaction"]["user"], "guest1")
         self.assertEqual(sent_payload["reaction"]["code"], "fire")
         self.assertEqual(sent_payload["reaction"]["emoji"], "🔥")
+        self.assertEqual(sent_payload["reaction"]["asset"], "/static/assets/openmoji/1F525.svg")
         first_reaction_id = sent_payload["reaction"]["id"]
 
         room = self.client.get(

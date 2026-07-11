@@ -25,14 +25,14 @@ rooms_bp = Blueprint("rooms", __name__)
 _INVALID_USERNAME = "닉네임은 2~12자(한글/영문/숫자/_)만 가능합니다"
 _YACHT_IDX = CATS["Yacht"]
 _REACTION_HISTORY_LIMIT = 24
-_REACTION_COOLDOWN_SECONDS = 1.5
+_REACTION_COOLDOWN_SECONDS = 2.0
 _REACTIONS = {
-    "nice": {"emoji": "👍", "label": "나이스"},
-    "fire": {"emoji": "🔥", "label": "대박"},
-    "laugh": {"emoji": "😂", "label": "ㅋㅋ"},
-    "wow": {"emoji": "😱", "label": "헉"},
-    "dice": {"emoji": "🎲", "label": "가자"},
-    "gg": {"emoji": "👏", "label": "GG"},
+    "nice": {"emoji": "👍", "label": "나이스", "asset": "/static/assets/openmoji/1F44D.svg"},
+    "fire": {"emoji": "🔥", "label": "대박", "asset": "/static/assets/openmoji/1F525.svg"},
+    "laugh": {"emoji": "😂", "label": "ㅋㅋ", "asset": "/static/assets/openmoji/1F602.svg"},
+    "wow": {"emoji": "😱", "label": "헉", "asset": "/static/assets/openmoji/1F631.svg"},
+    "dice": {"emoji": "🎲", "label": "가자", "asset": "/static/assets/openmoji/1F3B2.svg"},
+    "gg": {"emoji": "👏", "label": "GG", "asset": "/static/assets/openmoji/1F44F.svg"},
 }
 
 

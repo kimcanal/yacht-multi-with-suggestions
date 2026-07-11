@@ -334,12 +334,12 @@
             <button type="button" id="reaction-sound-toggle" class="reaction-sound-toggle" onclick="toggleReactionSound()" aria-label="감정표현 소리 끄기" aria-pressed="true">🔊</button>
         </div>
         <div class="reaction-buttons">
-            <button type="button" data-reaction="nice" onclick="sendReaction('nice')" aria-label="나이스" title="나이스">👍</button>
-            <button type="button" data-reaction="fire" onclick="sendReaction('fire')" aria-label="대박" title="대박">🔥</button>
-            <button type="button" data-reaction="laugh" onclick="sendReaction('laugh')" aria-label="웃음" title="ㅋㅋ">😂</button>
-            <button type="button" data-reaction="wow" onclick="sendReaction('wow')" aria-label="놀람" title="헉">😱</button>
-            <button type="button" data-reaction="dice" onclick="sendReaction('dice')" aria-label="가자" title="가자">🎲</button>
-            <button type="button" data-reaction="gg" onclick="sendReaction('gg')" aria-label="지지" title="GG">👏</button>
+            <button type="button" data-reaction="nice" onclick="sendReaction('nice')" aria-label="나이스" title="나이스"><img src="{{ url_for('static', filename='assets/openmoji/1F44D.svg', v='17.0.0') }}" alt="👍"></button>
+            <button type="button" data-reaction="fire" onclick="sendReaction('fire')" aria-label="대박" title="대박"><img src="{{ url_for('static', filename='assets/openmoji/1F525.svg', v='17.0.0') }}" alt="🔥"></button>
+            <button type="button" data-reaction="laugh" onclick="sendReaction('laugh')" aria-label="웃음" title="ㅋㅋ"><img src="{{ url_for('static', filename='assets/openmoji/1F602.svg', v='17.0.0') }}" alt="😂"></button>
+            <button type="button" data-reaction="wow" onclick="sendReaction('wow')" aria-label="놀람" title="헉"><img src="{{ url_for('static', filename='assets/openmoji/1F631.svg', v='17.0.0') }}" alt="😱"></button>
+            <button type="button" data-reaction="dice" onclick="sendReaction('dice')" aria-label="가자" title="가자"><img src="{{ url_for('static', filename='assets/openmoji/1F3B2.svg', v='17.0.0') }}" alt="🎲"></button>
+            <button type="button" data-reaction="gg" onclick="sendReaction('gg')" aria-label="지지" title="GG"><img src="{{ url_for('static', filename='assets/openmoji/1F44F.svg', v='17.0.0') }}" alt="👏"></button>
         </div>
     </div>
 
@@ -1832,6 +1832,7 @@ window.addEventListener('beforeunload', (e) => {
             nice: [523, 659], fire: [440, 659, 880], laugh: [392, 330, 392],
             wow: [262, 523], dice: [294, 440], gg: [523, 659, 784],
         };
+        const REACTION_COOLDOWN_MS = 2000;
 
         function updateReactionSoundButton() {
             const button = document.getElementById('reaction-sound-toggle');
@@ -1887,9 +1888,20 @@ window.addEventListener('beforeunload', (e) => {
             const label = document.createElement('span');
             label.className = 'reaction-burst-label';
             label.textContent = mine ? `내 ${reaction.label}` : `${reaction.user} · ${reaction.label}`;
-            const emoji = document.createElement('span');
+            const emoji = document.createElement(reaction.asset ? 'img' : 'span');
             emoji.className = 'reaction-burst-emoji';
-            emoji.textContent = reaction.emoji;
+            if (reaction.asset) {
+                emoji.src = reaction.asset;
+                emoji.alt = reaction.emoji || reaction.label;
+                emoji.addEventListener('error', () => {
+                    const fallback = document.createElement('span');
+                    fallback.className = 'reaction-burst-emoji';
+                    fallback.textContent = reaction.emoji || '✨';
+                    emoji.replaceWith(fallback);
+                }, {once: true});
+            } else {
+                emoji.textContent = reaction.emoji;
+            }
             burst.append(label, emoji);
             layer.appendChild(burst);
             playReactionSound(reaction.code);
@@ -1937,7 +1949,7 @@ window.addEventListener('beforeunload', (e) => {
                 setTimeout(() => {
                     reactionSending = false;
                     setReactionButtonsDisabled(false);
-                }, 1500);
+                }, REACTION_COOLDOWN_MS);
             }
         }
 

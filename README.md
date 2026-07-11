@@ -113,7 +113,7 @@ full-game exact value table이 있으므로 추천 품질을 이론 최적 대�
 - `/sync`는 클라이언트가 보낸 dice 값을 신뢰하지 않습니다.
 - 점수 기록은 서버가 현재 주사위와 점수판으로 다시 계산합니다.
 - roll 결과는 commit-reveal fairness 상태로 검증할 수 있습니다.
-- 멀티 참가자는 허용된 감정표현을 보낼 수 있고, 상대와 관전자 화면에는 전용 SSE 이벤트로 큰 이모지와 효과음이 즉시 재생됩니다. 서버와 UI에 1.5초 쿨다운이 적용됩니다.
+- 멀티 참가자는 허용된 감정표현을 보낼 수 있고, 상대와 관전자 화면에는 전용 SSE 이벤트로 큰 이모지와 효과음이 즉시 재생됩니다. 서버와 UI에 2초 쿨다운이 적용됩니다.
 - 참가자 토큰은 URL이 아니라 `X-Player-Token` 헤더 또는 POST body로만 전송합니다.
 - 상태 변경은 SSE로 감지하고, 연결 실패 시 polling으로 자동 복귀합니다.
 
@@ -156,6 +156,10 @@ full-game exact value table이 있으므로 추천 품질을 이론 최적 대�
 | `GET /api/system-status` | 운영 상태와 AI 메트릭 |
 
 요청/응답 예시는 [API.md](./API.md)를 참고하세요.
+
+## 오픈소스 에셋
+
+감정표현 SVG는 [OpenMoji](https://openmoji.org/) 17.0.0의 컬러 에셋을 사용합니다. OpenMoji는 HfG Schwäbisch Gmünd와 기여자들이 만든 오픈소스 이모지 프로젝트이며, 그래픽은 [CC BY-SA 4.0](./static/assets/openmoji/LICENSE.txt)으로 제공됩니다.
 
 ## 검증 명령
 

@@ -1785,6 +1785,12 @@ button {
 }
 .reaction-buttons button:hover { transform: translateY(-2px) scale(1.08); background: rgba(126, 243, 203, 0.14); }
 .reaction-buttons button:disabled { opacity: 0.45; cursor: wait; transform: none; }
+.reaction-buttons img {
+    display: block;
+    width: 34px;
+    height: 34px;
+    margin: auto;
+}
 .reaction-burst-layer {
     position: fixed;
     top: 22%;
@@ -1811,7 +1817,14 @@ button {
 }
 .reaction-burst.incoming { border-color: rgba(255, 209, 102, 0.6); }
 .reaction-burst-label { color: var(--mint-pale); font-size: 0.8rem; font-weight: 800; }
-.reaction-burst-emoji { font-size: clamp(4rem, 11vw, 7rem); line-height: 1.05; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.38)); }
+.reaction-burst-emoji {
+    width: clamp(4.5rem, 12vw, 7.5rem);
+    height: clamp(4.5rem, 12vw, 7.5rem);
+    object-fit: contain;
+    font-size: clamp(4rem, 11vw, 7rem);
+    line-height: 1.05;
+    filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.38));
+}
 @keyframes reactionBurst {
     0% { opacity: 0; transform: translateY(40px) scale(0.45) rotate(-8deg); }
     18% { opacity: 1; transform: translateY(0) scale(1.12) rotate(3deg); }
