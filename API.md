@@ -95,6 +95,8 @@ Notes:
 - `scorecard`: 12칸 배열, 비어 있는 칸은 `null`
 - `rolls_left = 0`이면 `stage = "score"`로 기록 추천을 반환하고, `keep_indices`는 빈 배열입니다.
 - `decision_report`: AI 결론을 UI/로그에서 사람이 읽을 수 있게 만든 설명 객체입니다. exact solver 또는 학습 정책 모델 중 어떤 방식으로 결정했는지, confidence, 핵심 근거, 비교 포인트, ML/DL 모델의 역할 설명을 포함합니다.
+- `strategy_mode = "optimal"`이면 `banked_score`, `remaining_game_ev`, `expected_final_score`, `alternative_gap`을 추가로 반환합니다. `expected_final_score`는 현재 점수판에 기록된 `banked_score`와 이번 선택 이후 게임 종료까지의 `remaining_game_ev`를 합산한 값입니다.
+- Optimal 모드에 필요한 full-game exact value table을 읽을 수 없거나 현재 상태가 누락된 경우, 휴리스틱 결과를 exact로 표시하지 않고 `503`과 `error = "exact_value_unavailable"`을 반환합니다.
 
 Example:
 

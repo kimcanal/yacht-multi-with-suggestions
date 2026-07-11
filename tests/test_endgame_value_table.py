@@ -9,7 +9,7 @@ from yacht_ai.advice import build_score_stage_advice
 from yacht_ai.constants import CATS
 from yacht_ai.endgame_value import EndgameValueTable, load_endgame_value_table, state_key_from_scorecard
 from yacht_ai.learned_value import LinearScorecardValueModel
-from yacht_ai.solver import solve_best_move
+from yacht_ai.solver import ExactValueTableUnavailableError, solve_best_move
 from yacht_ai.value_model import VALUE_FEATURE_NAMES
 from scripts.build_value_table import (
     build_exact_endgame_batch_table,
@@ -213,6 +213,70 @@ class EndgameValueTableTests(unittest.TestCase):
         self.assertEqual(optimal_value["keep_indices"], [2, 3])
         self.assertGreater(optimal_value["expected_value"], focused_value["expected_value"])
 
+    def test_solver_value_optimal_explains_banked_and_remaining_scores(self):
+        table_path = Path("artifacts/value/endgame-value-table-open12.npz")
+        if not table_path.exists():
+            self.skipTest("full value table artifact is not available")
+
+        dice = [3, 3, 6, 1, 2]
+        scorecard = [4] + [None] * 11
+        open_categories = [idx for idx, value in enumerate(scorecard) if value is None]
+
+        result = solve_best_move(
+            dice,
+            1,
+            open_categories,
+            "focused",
+            scorecard,
+            score_value_mode="value_optimal",
+            endgame_value_table_path=str(table_path),
+        )
+
+        self.assertEqual(result["keep_indices"], [0, 1])
+        self.assertEqual(result["banked_score"], 4)
+        self.assertEqual(result["remaining_game_ev"], 180.68)
+        self.assertEqual(result["expected_final_score"], 184.68)
+        self.assertEqual(result["alternative_gap"], 1.31)
+        self.assertEqual(
+            result["expected_final_score"],
+            round(result["banked_score"] + result["remaining_game_ev"], 2),
+        )
+        reason = result["breakdown"][0]["reason"]
+        self.assertIn("현재 점수판에 기록된 4점", reason)
+        self.assertIn("이번 턴의 재굴림과 기록 점수", reason)
+        self.assertNotIn("즉시 기록 점수", reason)
+
+    def test_solver_value_optimal_fails_when_exact_table_is_unavailable(self):
+        with self.assertRaises(ExactValueTableUnavailableError):
+            solve_best_move(
+                [1, 2, 3, 4, 6],
+                1,
+                list(range(12)),
+                "focused",
+                [None] * 12,
+                score_value_mode="value_optimal",
+                endgame_value_table_path="missing-exact-value-table.npz",
+            )
+
+    def test_solver_value_optimal_fails_when_required_state_is_missing(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            table_path = Path(tmpdir) / "incomplete-value-table.json"
+            table_path.write_text(
+                json.dumps({"batch_open_count": 0, "values": {}}),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(ExactValueTableUnavailableError):
+                solve_best_move(
+                    [1, 2, 3, 4, 6],
+                    0,
+                    list(range(12)),
+                    "focused",
+                    [None] * 12,
+                    score_value_mode="value_optimal",
+                    endgame_value_table_path=str(table_path),
+                )
+
     def test_solver_value_optimal_fast_score_path_matches_explained_result(self):
         dice = [6, 6, 6, 6, 6]
         scorecard = [None, 6, 9, 12, 15, 18, None, 20, 25, 15, 30, 50]
@@ -256,6 +320,8 @@ class EndgameValueTableTests(unittest.TestCase):
 
         self.assertEqual(fast["primary_target"], explained["primary_target"])
         self.assertEqual(fast["expected_value"], explained["expected_value"])
+        self.assertEqual(fast["expected_final_score"], explained["expected_final_score"])
+        self.assertEqual(fast["remaining_game_ev"], explained["remaining_game_ev"])
         self.assertEqual(fast["policy_source"], "exact_value_optimal")
         self.assertEqual(fast["breakdown"], [])
 
@@ -290,6 +356,8 @@ class EndgameValueTableTests(unittest.TestCase):
 
         self.assertEqual(fast["keep_indices"], explained["keep_indices"])
         self.assertEqual(fast["expected_value"], explained["expected_value"])
+        self.assertEqual(fast["expected_final_score"], explained["expected_final_score"])
+        self.assertEqual(fast["alternative_gap"], explained["alternative_gap"])
         self.assertEqual(fast["policy_source"], "exact_value_optimal")
         self.assertEqual(fast["breakdown"], [])
 

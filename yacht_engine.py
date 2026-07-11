@@ -1,5 +1,6 @@
 from yacht_ai import (
     CATS,
+    ExactValueTableUnavailableError,
     calc_score,
     clear_solver_cache,
     get_category_expected_value,
@@ -10,6 +11,7 @@ from yacht_ai import (
 
 __all__ = [
     "CATS",
+    "ExactValueTableUnavailableError",
     "calc_score",
     "get_category_expected_value",
     "get_solver_cache_info",

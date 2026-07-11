@@ -213,6 +213,12 @@ def recommend():
         response.headers["X-AI-Request-Cache"] = "hit" if request_cache_hit else "miss"
         return response
 
+    except yacht_engine.ExactValueTableUnavailableError:
+        ai_metrics.error_count += 1
+        return jsonify({
+            "error": "exact_value_unavailable",
+            "message": "최적 계산 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        }), 503
     except Exception as e:
         ai_metrics.error_count += 1
         return jsonify({"error": str(e), "message": "AI 추천 오류"}), 500

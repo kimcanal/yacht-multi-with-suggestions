@@ -40,6 +40,11 @@ from .scoring import (
     kept_tuple_to_indices,
 )
 
+
+class ExactValueTableUnavailableError(RuntimeError):
+    """Raised when optimal mode cannot use its required exact value table."""
+
+
 # ---------------------------------------------------------------------------
 # 내부 헬퍼: 각 모드 계산을 주 함수에서 분리
 # ---------------------------------------------------------------------------
@@ -533,6 +538,16 @@ def _banked_score_total(scorecard):
     return int(sum((value or 0) for value in scorecard)) + (35 if upper_total >= 63 else 0)
 
 
+def _optimal_projection_fields(scorecard, remaining_game_ev, alternative_gap=None):
+    banked_score = _banked_score_total(scorecard)
+    return {
+        "banked_score": banked_score,
+        "remaining_game_ev": round(float(remaining_game_ev), 2),
+        "expected_final_score": round(banked_score + float(remaining_game_ev), 2),
+        "alternative_gap": None if alternative_gap is None else round(float(alternative_gap), 2),
+    }
+
+
 def _resolve_score_value_options(
     score_value_mode=None,
     endgame_value_table_path=None,
@@ -574,8 +589,18 @@ def _load_score_value_table(score_value_mode, endgame_value_table_path):
         return None
     try:
         return load_endgame_value_table(endgame_value_table_path)
-    except OSError:
+    except OSError as error:
+        if score_value_mode == "value_optimal":
+            raise ExactValueTableUnavailableError(
+                "Full-game exact value table을 불러오지 못했습니다."
+            ) from error
         return None
+    except Exception as error:
+        if score_value_mode == "value_optimal":
+            raise ExactValueTableUnavailableError(
+                "Full-game exact value table을 불러오지 못했습니다."
+            ) from error
+        raise
 
 
 def _load_learned_value_model(score_value_mode, learned_value_model_path):
@@ -639,8 +664,10 @@ def _exact_value_score_row_from_state(
 def _value_table_for_cached_optimal(table_path):
     try:
         return load_endgame_value_table(table_path)
-    except OSError:
-        return None
+    except Exception as error:
+        raise ExactValueTableUnavailableError(
+            "Full-game exact value table을 불러오지 못했습니다."
+        ) from error
 
 
 @lru_cache(maxsize=262144)
@@ -654,7 +681,9 @@ def _value_optimal_terminal_utility_cached(
 ):
     table = _value_table_for_cached_optimal(endgame_value_table_path)
     if table is None:
-        return None
+        raise ExactValueTableUnavailableError(
+            "Full-game exact value table을 불러오지 못했습니다."
+        )
 
     best_key = None
     best_utility = float("-inf")
@@ -668,7 +697,9 @@ def _value_optimal_terminal_utility_cached(
             table,
         )
         if row is None:
-            return None
+            raise ExactValueTableUnavailableError(
+                "현재 점수판 상태가 full-game exact value table에 없습니다."
+            )
         row_key = (row["utility"], row["score"], -SACRIFICE_PRIORITY.get(row["name"], 99))
         if best_key is None or row_key > best_key:
             best_key = row_key
@@ -766,6 +797,10 @@ def _solve_best_move_cached(
     endgame_value_table = _load_score_value_table(score_value_mode, endgame_value_table_path)
     learned_value_model = _load_learned_value_model(score_value_mode, learned_value_model_path)
     ev_optimal_mode = score_value_mode == "value_optimal"
+    if ev_optimal_mode and endgame_value_table is None:
+        raise ExactValueTableUnavailableError(
+            "Full-game exact value table을 불러오지 못했습니다."
+        )
     terminal_score_value_mode = "heuristic" if score_value_mode == "value_score_only" else ("value" if ev_optimal_mode else score_value_mode)
     direct_score_value_mode = "value" if score_value_mode in ("value_score_only", "value_optimal") else score_value_mode
     base_closed_mask = sum(1 << idx for idx, value in enumerate(scorecard[:len(CATEGORY_NAMES)]) if value is not None)
@@ -783,23 +818,36 @@ def _solve_best_move_cached(
         )
 
     if rolls_left == 0:
+        exact_rows = None
+        if ev_optimal_mode:
+            exact_rows = [exact_value_score_row(tuple(dice), idx) for idx in open_categories]
+            if not exact_rows or any(row is None for row in exact_rows):
+                raise ExactValueTableUnavailableError(
+                    "현재 점수판 상태가 full-game exact value table에 없습니다."
+                )
+
         if ev_optimal_mode and not explain:
-            rows = [exact_value_score_row(tuple(dice), idx) for idx in open_categories]
-            if rows and all(row is not None for row in rows):
-                best_row = max(rows, key=lambda row: (row["utility"], row["score"]))
-                return {
-                    "keep_indices": [],
-                    "expected_value": round(best_row["utility"], 2),
-                    "dice_recommendations": [],
-                    "message": best_row["name"],
-                    "breakdown": [],
-                    "strategy_mode": "optimal",
-                    "score_value_mode": "value_optimal",
-                    "primary_target": best_row["name"],
-                    "summary": "",
-                    "stage": "score",
-                    "policy_source": "exact_value_optimal",
-                }
+            rows = exact_rows
+            if not rows or any(row is None for row in rows):
+                raise ExactValueTableUnavailableError(
+                    "현재 점수판 상태가 full-game exact value table에 없습니다."
+                )
+            best_row = max(rows, key=lambda row: (row["utility"], row["score"]))
+            projection = _optimal_projection_fields(scorecard, best_row["utility"])
+            return {
+                "keep_indices": [],
+                "expected_value": round(best_row["utility"], 2),
+                "dice_recommendations": [],
+                "message": best_row["name"],
+                "breakdown": [],
+                "strategy_mode": "optimal",
+                "score_value_mode": "value_optimal",
+                "primary_target": best_row["name"],
+                "summary": "",
+                "stage": "score",
+                "policy_source": "exact_value_optimal",
+                **projection,
+            }
 
         result = build_score_stage_advice(
             dice,
@@ -814,13 +862,14 @@ def _solve_best_move_cached(
         )
         if ev_optimal_mode:
             result = dict(result)
-            banked_total = _banked_score_total(scorecard)
             remaining_ev = float(result.get("expected_value", 0.0))
-            expected_final = banked_total + remaining_ev
+            projection = _optimal_projection_fields(scorecard, remaining_ev)
+            banked_total = projection["banked_score"]
+            expected_final = projection["expected_final_score"]
             target = result.get("primary_target") or result.get("message") or "점수 기록"
             result["summary"] = (
                 f"점수 기록 추천: {target}, 기대 최종점수 {expected_final:.2f}점 "
-                f"(확정 {banked_total}점 + 남은 기대 {remaining_ev:.2f}점)"
+                f"(현재 기록 {banked_total}점 + 이 선택 이후 기대 {remaining_ev:.2f}점)"
             )
             result["breakdown"] = [{
                 "name": "기대 최종점수",
@@ -831,13 +880,15 @@ def _solve_best_move_cached(
                 "keep_str": f"{target} 기록 선택",
                 "keep_indices": [],
                 "reason": (
-                    f"확정 {banked_total}점에 이번 기록부터 남은 기대점수 "
-                    f"{remaining_ev:.2f}점을 더한 full-game exact V 기준입니다."
+                    f"현재 점수판에 기록된 {banked_total}점과 이 기록 선택 이후 게임 종료까지 "
+                    f"기대되는 {remaining_ev:.2f}점을 합산했습니다. 이후 기대점수에는 이번 턴의 "
+                    "기록 점수와 남은 모든 턴의 full-game exact V가 포함됩니다."
                 ),
             }] + list(result.get("breakdown") or [])
             result["strategy_mode"] = "optimal"
             result["score_value_mode"] = "value_optimal"
             result["policy_source"] = "exact_value_optimal"
+            result.update(projection)
         else:
             result.setdefault("policy_source", "exact")
         return result
@@ -970,6 +1021,11 @@ def _solve_best_move_cached(
     if ev_optimal_mode and not explain:
         best_keep_tuple = best_general_keep_tuple
         chosen_ev = keep_ev_map.get(best_keep_tuple, best_ev)
+        alternative_values = [
+            value for kept_tuple, value in keep_action_values if kept_tuple != best_keep_tuple
+        ]
+        alternative_gap = chosen_ev - max(alternative_values) if alternative_values else None
+        projection = _optimal_projection_fields(scorecard, chosen_ev, alternative_gap)
         best_keep_indices = kept_tuple_to_indices(dice, best_keep_tuple)
         dice_recommendations = [
             {"index": i, "value": dice[i], "action": "keep" if i in best_keep_indices else "reroll", "confidence": 100}
@@ -987,6 +1043,7 @@ def _solve_best_move_cached(
             "summary": "",
             "stage": "roll",
             "policy_source": "exact_value_optimal",
+            **projection,
         }
 
     hand_cats = ["Yacht", "4 of a Kind", "Full House", "Large Straight", "Small Straight"]
@@ -1205,7 +1262,7 @@ def _solve_best_move_cached(
             gap_text = f", 차선 대비 +{alternative_gap:.2f}점"
         summary = (
             f"{style_label} 추천: {optimal_action_label}, 기대 최종점수 {expected_final:.2f}점 "
-            f"(확정 {banked_total}점 + 남은 기대 {chosen_ev:.2f}점){gap_text}"
+            f"(현재 기록 {banked_total}점 + 이 선택 이후 기대 {chosen_ev:.2f}점){gap_text}"
         )
     elif cover_fallback and best_keep_indices:
         summary = f"{style_label}: 커버 대상이 없어 일반 추천으로 전환, [{', '.join(kept_vals)}] keep, 평가값 {chosen_ev:.2f}"
@@ -1252,8 +1309,9 @@ def _solve_best_move_cached(
             "keep_str": f"{optimal_action_label} 선택",
             "keep_indices": best_keep_indices,
             "reason": (
-                f"확정 {banked_total}점에 남은 기대점수 {chosen_ev:.2f}점"
-                "(즉시 기록 점수 + full-game exact V)을 합산한 기준입니다. "
+                f"현재 점수판에 기록된 {banked_total}점과 {optimal_action_label} 이후 게임 종료까지 "
+                f"기대되는 {chosen_ev:.2f}점을 합산했습니다. 이후 기대점수에는 이번 턴의 재굴림과 "
+                "기록 점수, 남은 모든 턴의 full-game exact V가 포함됩니다. "
                 f"{alt_reason}"
             ),
         }] + breakdown
@@ -1289,7 +1347,8 @@ def _solve_best_move_cached(
                 "keep_str": f"{optimal_action_label} 선택",
                 "keep_indices": best_keep_indices,
                 "reason": (
-                    f"확정 {banked_total}점 + 남은 기대 {chosen_ev:.2f}점 기준으로, "
+                    f"현재 기록 {banked_total}점과 지금 기록한 이후의 기대점수 {chosen_ev:.2f}점을 "
+                    "합산한 기준으로, "
                     "지금 기록하는 선택이 full-game exact V에서 가장 높은 기대 최종점수입니다."
                 ),
             }] + breakdown
@@ -1301,7 +1360,7 @@ def _solve_best_move_cached(
         for i in range(5)
     ]
 
-    return {
+    result = {
         "keep_indices": best_keep_indices,
         "expected_value": round(chosen_ev, 2),
         "dice_recommendations": dice_recommendations,
@@ -1313,6 +1372,9 @@ def _solve_best_move_cached(
         "stage": "roll",
         "policy_source": "exact_value_optimal" if ev_optimal_mode else "exact",
     }
+    if ev_optimal_mode:
+        result.update(_optimal_projection_fields(scorecard, chosen_ev, alternative_gap))
+    return result
 
 
 # ---------------------------------------------------------------------------

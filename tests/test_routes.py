@@ -180,8 +180,36 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(payload["policy_source"], "exact_value_optimal")
         self.assertEqual(response.headers["X-AI-Policy-Source"], "exact_value_optimal")
         self.assertIn("기대", payload["summary"])
+        self.assertEqual(
+            payload["expected_final_score"],
+            round(payload["banked_score"] + payload["remaining_game_ev"], 2),
+        )
         self.assertEqual(payload["decision_report"]["method"]["source"], "exact_value_optimal")
         self.assertEqual(payload["decision_report"]["method"]["label"], "Full-game exact V")
+        self.assertEqual(
+            payload["decision_report"]["decision"]["expected_value"],
+            payload["expected_final_score"],
+        )
+
+    @patch(
+        "routes.ai.yacht_engine.solve_best_move",
+        side_effect=ai_routes.yacht_engine.ExactValueTableUnavailableError("missing"),
+    )
+    def test_recommend_optimal_returns_503_when_exact_table_is_unavailable(self, solve):
+        response = self.client.post(
+            "/api/recommend",
+            json={
+                "dice": [1, 2, 3, 4, 6],
+                "rolls_left": 1,
+                "scorecard": [None] * 12,
+                "strategy_mode": "optimal",
+            },
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.get_json()["error"], "exact_value_unavailable")
+        self.assertIn("최적 계산 데이터", response.get_json()["message"])
+        solve.assert_called_once()
 
     def test_request_id_header_is_propagated(self):
         response = self.client.get("/health", headers={"X-Request-ID": "route-test-123"})
