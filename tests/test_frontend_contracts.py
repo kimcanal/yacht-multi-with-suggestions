@@ -34,6 +34,11 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("최적 대비 평균 -10.4점", self.single)
         self.assertIn("최적 대비 평균 -10.4점", self.multi)
 
+    def test_recommendation_errors_prefer_user_facing_server_message(self):
+        expected = "payload.message || payload.error || 'AI 추천 요청 실패'"
+        self.assertIn(expected, self.single)
+        self.assertIn(expected, self.multi)
+
 
 if __name__ == "__main__":
     unittest.main()

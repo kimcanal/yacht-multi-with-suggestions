@@ -946,7 +946,7 @@
             });
             const payload = await response.json();
             if (!response.ok || payload.error) {
-                throw new Error(payload.error || 'AI 추천 요청 실패');
+                throw new Error(payload.message || payload.error || 'AI 추천 요청 실패');
             }
             return payload;
         }

@@ -1604,7 +1604,7 @@ function applyRemoteState(state) {
                 });
                 const payload = await r.json();
                 if (!r.ok || payload.error) {
-                    throw new Error(payload.error || 'AI 추천 요청 실패');
+                    throw new Error(payload.message || payload.error || 'AI 추천 요청 실패');
                 }
                 aiRec = payload;
                 GameState.setAiRec(aiRec);
