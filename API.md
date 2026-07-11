@@ -124,6 +124,7 @@ curl -s "$BASE_URL/api/recommend" \
 ```
 
 진행 중인 턴은 `my_dice` + `my_rolls_left` 또는 `opp_dice` + `opp_rolls_left`를 함께 보낼 수 있습니다. 샘플 수는 5~100으로 제한됩니다.
+멀티 UI는 같은 상태에 대해 30샘플 결과를 먼저 표시한 뒤 100샘플 요청으로 자동 보정합니다.
 
 ## Leaderboard
 
@@ -524,11 +525,12 @@ Response:
 
 ### `GET /api/rooms/<code>/events`
 
-방 상태 변경을 SSE 형식으로 구독하는 PoC endpoint입니다. 기존 polling 클라이언트를 대체하기 전 점진 전환용으로 추가되었습니다.
+방 상태와 새 채팅 메시지를 SSE 형식으로 구독합니다. 연결이 끊기거나 탭이 숨겨진 경우 클라이언트는 polling으로 자동 복귀합니다.
 
 Query:
 
 - `sv`: 마지막으로 본 state version
+- `chat_id`: 마지막으로 렌더링한 채팅 메시지 ID. 이후 메시지만 `chat_message` event로 전달
 - `once`: `1`이면 현재 상태 이벤트 1개만 반환하고 종료
 - `interval_ms`: 변경 확인 간격. 서버에서 500~5000ms 범위로 제한
 
@@ -541,6 +543,13 @@ data: {"code":"AB12CD","room_phase":"playing","players":["Host01","Guest01"],"ob
 ```
 
 변경이 없을 때 장시간 연결에서는 `heartbeat` event가 전송될 수 있습니다.
+
+새 채팅 메시지는 게임 state 전체를 다시 받지 않고 별도 event로 전달됩니다.
+
+```text
+event: chat_message
+data: {"id":"message-id","user":"Guest01","text":"안녕!","role":"player","ts":1710000000.0}
+```
 
 ### `POST /api/rooms/<code>/heartbeat`
 
@@ -722,7 +731,7 @@ Response:
 
 - 플레이어 조작 API는 `player_token`이 필요합니다.
 - `GET /api/rooms/<code>`에서 플레이어 presence 갱신 시 `pt` query 파라미터를 사용합니다.
-- `GET /api/rooms/<code>/events`는 SSE PoC입니다. 현재 클라이언트 기본 경로는 polling이며, SSE는 점진 전환용으로 유지합니다.
+- `GET /api/rooms/<code>/events`가 기본 실시간 경로이며, 연결 실패나 숨김 탭에서는 polling으로 자동 복귀합니다. 채팅은 `chat_message` event로 별도 전달됩니다.
 - room backend는 방 단위 lock과 atomic create를 지원합니다. Redis 사용 시 `YACHT_ROOM_BACKEND=redis`, `YACHT_REDIS_URL`을 설정합니다.
 - lobby/presence backend도 Redis로 분리할 수 있습니다. Redis 사용 시 `YACHT_PRESENCE_BACKEND=redis`를 설정합니다.
 - 관전자는 `roll`/`sync`를 호출하면 `403`을 받습니다.

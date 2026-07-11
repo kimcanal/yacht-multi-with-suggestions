@@ -32,7 +32,7 @@
 `POST /api/win-probability`와 멀티 판세 패널에 연결했다. 요청 스레드는 시뮬레이션을 기다리지 않고 `202 pending`을 반환하며, 백그라운드 worker가 상태별 계산을 한 번만 수행한다. 같은 body를 다시 요청하면 완료된 캐시를 `200 ready`로 반환한다.
 
 - 점수판 예상 최종점수는 open12 exact value table로 즉시 표시한다.
-- 기본 Monte Carlo는 30샘플이며 UI에 95% 표본 오차를 같이 표시한다.
+- UI는 30샘플 빠른 추정을 먼저 보여주고 같은 상태를 100샘플 정밀 추정으로 자동 교체하며, 두 단계 모두 95% 표본 오차를 표시한다.
 - 캐시는 기본 10분, 최대 64개 상태를 유지한다.
 - 환경변수: `YACHT_WIN_PROBABILITY_WORKERS`, `YACHT_WIN_PROBABILITY_SAMPLES`, `YACHT_WIN_PROBABILITY_CACHE_MAX`, `YACHT_WIN_PROBABILITY_CACHE_TTL`.
 

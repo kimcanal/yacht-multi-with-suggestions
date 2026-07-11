@@ -18,6 +18,8 @@
 
 멀티 판세 패널의 고정 카테고리 합산식을 제거하고, exact value table 예상 최종점수와 캐시된 백그라운드 Monte Carlo 승률을 연결했다. 승률에는 샘플 수와 표본 오차를 함께 표시한다.
 
+승률 UI는 30샘플 빠른 추정을 먼저 보여준 뒤 같은 상태를 100샘플로 자동 보정한다. Upper Bonus는 상단 요약에서 `63점 달성 시 +35점`으로 설명하고 점수판 내부의 중복 Subtotal/Bonus 행은 제거했다. 채팅은 방 상태 재조회 대신 전용 `chat_message` SSE event로 전달한다.
+
 참가자 토큰을 URL 쿼리에서 `X-Player-Token` 헤더/POST body로 옮겼고, 상태 동기화는 SSE 우선 + polling fallback으로 바꿨다. 모바일에서는 굴리기 전 주사위를 placeholder로 표시하고 rolling 큐브를 축소해 겹침을 막았으며, 채팅 터치 높이와 하단 여백을 보강했다.
 
 싱글/멀티에 중복된 주사위 3D CSS와 판세 패널 CSS는 `static/css/base.css`로 합쳤다.

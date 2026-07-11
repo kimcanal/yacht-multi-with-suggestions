@@ -118,6 +118,15 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 202)
         self.assertEqual(response.get_json()["status"], "pending")
         request_probability.assert_called_once()
+        self.assertEqual(request_probability.call_args.args[0]["samples"], 30)
+
+        request_probability.reset_mock()
+        refined = self.client.post(
+            "/api/win-probability",
+            json={"my_scorecard": [None] * 12, "opp_scorecard": [None] * 12, "samples": 100},
+        )
+        self.assertEqual(refined.status_code, 202)
+        self.assertEqual(request_probability.call_args.args[0]["samples"], 100)
 
         invalid = self.client.post(
             "/api/win-probability",
@@ -477,6 +486,7 @@ class RouteIntegrationTests(unittest.TestCase):
         host_token = created.get_json()["player_token"]
         joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
         guest_token = joined.get_json()["player_token"]
+        game_version_before_chat = joined.get_json()["state"]["version"]
 
         # 인증 실패
         forged = self.client.post(
@@ -502,6 +512,7 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(sent_payload["message"]["user"], "guest1")
         self.assertEqual(sent_payload["message"]["text"], "안녕!")
         self.assertEqual(sent_payload["message"]["role"], "player")
+        first_message_id = sent_payload["message"]["id"]
 
         # get_room 응답에 메시지 포함
         room = self.client.get(
@@ -512,7 +523,22 @@ class RouteIntegrationTests(unittest.TestCase):
         messages = room.get_json()["messages"]
         self.assertEqual(len(messages), 1)
         self.assertEqual(messages[0]["text"], "안녕!")
-        self.assertGreaterEqual(room.get_json()["state"]["version"], 2)
+        self.assertEqual(room.get_json()["state"]["version"], game_version_before_chat)
+
+        second = self.client.post(
+            f"/api/rooms/{code}/chat",
+            json={"username": "host1", "player_token": host_token, "text": "반가워!"},
+        )
+        self.assertEqual(second.status_code, 200)
+
+        chat_events = self.client.get(
+            f"/api/rooms/{code}/events",
+            query_string={"once": 1, "chat_id": first_message_id},
+        )
+        chat_event_text = chat_events.get_data(as_text=True)
+        self.assertIn("event: chat_message", chat_event_text)
+        self.assertIn('"text":"반가워!"', chat_event_text)
+        self.assertNotIn('"text":"안녕!"', chat_event_text)
 
         # 참가자/관전자가 아니면 거부
         outsider = self.client.post(

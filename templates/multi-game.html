@@ -813,6 +813,7 @@
             stopSyncPolling();
             if (immediate) fetchRoomState();
             const qs = new URLSearchParams({sv: String(roomVersion), interval_ms: '800'});
+            if (lastChatMessageId) qs.set('chat_id', lastChatMessageId);
             const source = new EventSource(`/api/rooms/${roomCode}/events?${qs.toString()}`);
             roomEventSource = source;
             source.onopen = () => {
@@ -828,6 +829,15 @@
                     }
                 } catch (error) {
                     console.warn('room event parse failed', error);
+                }
+            });
+            source.addEventListener('chat_message', (event) => {
+                if (source !== roomEventSource || connectionLostHandled) return;
+                try {
+                    const message = JSON.parse(event.data || '{}');
+                    renderChatMessages([message]);
+                } catch (error) {
+                    console.warn('chat event parse failed', error);
                 }
             });
             source.addEventListener('room_closed', () => {
@@ -1818,6 +1828,7 @@ window.addEventListener('beforeunload', (e) => {
         let chatSending = false;
         const chatSeenIds = new Set();
         let chatRenderedCount = 0;
+        let lastChatMessageId = '';
 
         function escapeChat(text) {
             return escapeHtml(String(text == null ? '' : text));
@@ -1861,7 +1872,9 @@ window.addEventListener('beforeunload', (e) => {
             const empty = document.getElementById('chat-empty');
             let newIncoming = 0;
             messages.forEach((msg) => {
-                if (!msg || !msg.id || chatSeenIds.has(msg.id)) return;
+                if (!msg || !msg.id) return;
+                lastChatMessageId = msg.id;
+                if (chatSeenIds.has(msg.id)) return;
                 chatSeenIds.add(msg.id);
                 if (empty) empty.remove();
                 const mine = msg.user === username;
