@@ -27,8 +27,11 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("'X-Player-Token': playerToken", self.multi)
         self.assertNotIn("qs.set('pt'", self.multi)
         self.assertIn("new EventSource", self.multi)
-        self.assertIn("source.addEventListener('chat_message'", self.multi)
-        self.assertIn("qs.set('chat_id', lastChatMessageId)", self.multi)
+        self.assertIn("source.addEventListener('reaction'", self.multi)
+        self.assertIn("qs.set('reaction_id', lastReactionId)", self.multi)
+        self.assertIn("/api/rooms/${roomCode}/reaction", self.multi)
+        self.assertIn("playReactionSound(reaction.code)", self.multi)
+        self.assertNotIn("/api/rooms/${roomCode}/chat", self.multi)
         self.assertIn("startSyncPolling({immediate: true})", self.multi)
 
     def test_win_probability_uses_server_endpoint_and_current_metric(self):

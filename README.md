@@ -1,6 +1,6 @@
 # Yacht Multi With Suggestions
 
-Flask 기반의 웹 요트 다이스 게임입니다. 싱글플레이, VS AI, 실시간 1:1 멀티플레이, 관전, 리더보드, 방 채팅, AI 추천 코치를 제공합니다.
+Flask 기반의 웹 요트 다이스 게임입니다. 싱글플레이, VS AI, 실시간 1:1 멀티플레이, 관전, 리더보드, 실시간 감정표현, AI 추천 코치를 제공합니다.
 
 이 프로젝트의 핵심은 "추천을 보여주는 게임"을 넘어서, **exact solver를 기준선으로 삼고 추천 품질을 수치로 검증하는 게임 AI 시스템**을 제품 UI에 연결한 점입니다.
 
@@ -113,7 +113,7 @@ full-game exact value table이 있으므로 추천 품질을 이론 최적 대�
 - `/sync`는 클라이언트가 보낸 dice 값을 신뢰하지 않습니다.
 - 점수 기록은 서버가 현재 주사위와 점수판으로 다시 계산합니다.
 - roll 결과는 commit-reveal fairness 상태로 검증할 수 있습니다.
-- 방 채팅은 참가자/관전자 모두 사용할 수 있고, 최근 40개 메시지를 유지하며 전용 SSE 이벤트로 즉시 전달합니다.
+- 멀티 참가자는 허용된 감정표현을 보낼 수 있고, 상대와 관전자 화면에는 전용 SSE 이벤트로 큰 이모지와 효과음이 즉시 재생됩니다. 서버와 UI에 1.5초 쿨다운이 적용됩니다.
 - 참가자 토큰은 URL이 아니라 `X-Player-Token` 헤더 또는 POST body로만 전송합니다.
 - 상태 변경은 SSE로 감지하고, 연결 실패 시 polling으로 자동 복귀합니다.
 
@@ -146,7 +146,7 @@ full-game exact value table이 있으므로 추천 품질을 이론 최적 대�
 | `POST /api/rooms/<code>/observe` | 관전 입장 |
 | `POST /api/rooms/<code>/roll` | 서버 권위 주사위 굴림 |
 | `POST /api/rooms/<code>/sync` | 멀티 상태 동기화/점수 기록 |
-| `POST /api/rooms/<code>/chat` | 방 채팅 |
+| `POST /api/rooms/<code>/reaction` | 멀티 감정표현 전송 |
 | `GET /api/rooms/<code>/fairness` | 현재 fairness commit/reveal 상태 |
 | `POST /api/rooms/<code>/rematch` | 재대결 동의 |
 | `GET /api/leaderboard/single` | 싱글 리더보드 |

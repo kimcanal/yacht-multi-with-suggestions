@@ -24,21 +24,29 @@ rooms_bp = Blueprint("rooms", __name__)
 
 _INVALID_USERNAME = "닉네임은 2~12자(한글/영문/숫자/_)만 가능합니다"
 _YACHT_IDX = CATS["Yacht"]
-_CHAT_MAX_LEN = 200
-_CHAT_HISTORY_LIMIT = 40
+_REACTION_HISTORY_LIMIT = 24
+_REACTION_COOLDOWN_SECONDS = 1.5
+_REACTIONS = {
+    "nice": {"emoji": "👍", "label": "나이스"},
+    "fire": {"emoji": "🔥", "label": "대박"},
+    "laugh": {"emoji": "😂", "label": "ㅋㅋ"},
+    "wow": {"emoji": "😱", "label": "헉"},
+    "dice": {"emoji": "🎲", "label": "가자"},
+    "gg": {"emoji": "👏", "label": "GG"},
+}
 
 
-def _recent_messages(room):
-    return list(room.get("messages", []))[-_CHAT_HISTORY_LIMIT:]
+def _recent_reactions(room):
+    return list(room.get("reactions", []))[-_REACTION_HISTORY_LIMIT:]
 
 
-def _chat_messages_after(messages, last_message_id):
-    if not last_message_id:
-        return list(messages)
-    for index, message in enumerate(messages):
-        if message.get("id") == last_message_id:
-            return list(messages[index + 1:])
-    return list(messages)
+def _reactions_after(reactions, last_reaction_id):
+    if not last_reaction_id:
+        return list(reactions)
+    for index, reaction in enumerate(reactions):
+        if reaction.get("id") == last_reaction_id:
+            return list(reactions[index + 1:])
+    return list(reactions[-1:])
 
 
 def _save_room(code, room):
@@ -264,7 +272,8 @@ def create_room():
         "player_last_seen": {username: now},
         "observer_last_seen": {},
         "rematch_requests": {},
-        "messages": [],
+        "reactions": [],
+        "reaction_last_sent": {},
         "fair": build_fair_state(),
     }
     for _ in range(25):
@@ -402,7 +411,7 @@ def get_room(code):
             "state": state_payload,
             "player1": p1,
             "player2": p2,
-            "messages": _recent_messages(room),
+            "reactions": _recent_reactions(room),
         }
         payload.update(_rematch_payload(room))
 
@@ -425,14 +434,14 @@ def room_events(code):
 
     once = request.args.get("once") == "1"
     last_version = safe_int(request.args.get("sv"), -1)
-    last_chat_id = (request.args.get("chat_id") or "").strip() or None
-    chat_cursor_initialized = last_chat_id is not None
+    last_reaction_id = (request.args.get("reaction_id") or "").strip() or None
+    reaction_cursor_initialized = last_reaction_id is not None
     interval_ms = safe_int(request.args.get("interval_ms"), 1200)
     interval_s = max(0.5, min((interval_ms or 1200) / 1000, 5.0))
 
     @stream_with_context
     def generate():
-        nonlocal last_version, last_chat_id, chat_cursor_initialized
+        nonlocal last_version, last_reaction_id, reaction_cursor_initialized
         deadline = time.time() + 25
         last_heartbeat = 0
         while True:
@@ -442,25 +451,25 @@ def room_events(code):
                     state = room.get("state", default_room_state())
                     current_version = safe_int(state.get("version"), 0)
                     room_notice = _room_event_payload(code, room)
-                    messages = _recent_messages(room)
+                    reactions = _recent_reactions(room)
                 else:
                     current_version = None
                     room_notice = None
-                    messages = []
+                    reactions = []
 
             if room_notice is None:
                 yield _sse_event("room_closed", {"code": code})
                 return
 
-            if not chat_cursor_initialized:
-                last_chat_id = messages[-1].get("id") if messages else None
-                chat_cursor_initialized = True
+            if not reaction_cursor_initialized:
+                last_reaction_id = reactions[-1].get("id") if reactions else None
+                reaction_cursor_initialized = True
             else:
-                new_messages = _chat_messages_after(messages, last_chat_id)
-                for message in new_messages:
-                    yield _sse_event("chat_message", message)
-                if new_messages:
-                    last_chat_id = new_messages[-1].get("id")
+                new_reactions = _reactions_after(reactions, last_reaction_id)
+                for reaction in new_reactions:
+                    yield _sse_event("reaction", reaction)
+                if new_reactions:
+                    last_reaction_id = new_reactions[-1].get("id")
 
             if once or current_version != last_version:
                 last_version = current_version
@@ -716,19 +725,16 @@ def roll_dice(code):
         })
 
 
-@rooms_bp.route("/api/rooms/<code>/chat", methods=["POST"])
-def chat_room(code):
+@rooms_bp.route("/api/rooms/<code>/reaction", methods=["POST"])
+def react_to_room(code):
     data = request.json or {}
     username = normalize_username(data.get("username"))
     player_token = data.get("player_token")
-    raw_text = data.get("text")
+    reaction_code = str(data.get("reaction") or "").strip().lower()
     if not username:
         return jsonify({"error": _INVALID_USERNAME}), 400
-    text = (raw_text or "").strip()
-    if not text:
-        return jsonify({"error": "메시지가 비어 있습니다"}), 400
-    if len(text) > _CHAT_MAX_LEN:
-        text = text[:_CHAT_MAX_LEN]
+    if reaction_code not in _REACTIONS:
+        return jsonify({"error": "지원하지 않는 감정표현입니다"}), 400
 
     with _room_lock(code):
         room = rooms.get(code)
@@ -736,29 +742,34 @@ def chat_room(code):
             return jsonify({"error": "방 없음"}), 404
 
         now = time.time()
-        is_player = username in room.get("players", [])
-        if is_player:
-            if not is_valid_player(room, username, player_token):
-                return jsonify({"error": "참가자 인증 실패"}), 403
-            touch_player(room, username, now)
-        elif username in room.get("observers", []):
-            touch_observer(room, username, now)
-        else:
+        if username not in room.get("players", []):
             return jsonify({"error": "참가자 없음"}), 404
+        if not is_valid_player(room, username, player_token):
+            return jsonify({"error": "참가자 인증 실패"}), 403
 
-        message = {
+        last_sent = room.setdefault("reaction_last_sent", {}).get(username, 0)
+        retry_after = _REACTION_COOLDOWN_SECONDS - (now - last_sent)
+        if retry_after > 0:
+            return jsonify({
+                "error": "감정표현은 잠시 후 다시 보낼 수 있습니다",
+                "retry_after_ms": int(retry_after * 1000) + 1,
+            }), 429
+
+        reaction = {
             "id": secrets.token_urlsafe(9),
             "user": username,
-            "text": text,
-            "role": "player" if is_player else "observer",
+            "code": reaction_code,
+            **_REACTIONS[reaction_code],
             "ts": now,
         }
-        history = room.setdefault("messages", [])
-        history.append(message)
-        if len(history) > _CHAT_HISTORY_LIMIT:
-            del history[:-_CHAT_HISTORY_LIMIT]
+        history = room.setdefault("reactions", [])
+        history.append(reaction)
+        if len(history) > _REACTION_HISTORY_LIMIT:
+            del history[:-_REACTION_HISTORY_LIMIT]
+        room["reaction_last_sent"][username] = now
+        touch_player(room, username, now)
         _save_room(code, room)
-        return jsonify({"status": "ok", "message": message, "messages": _recent_messages(room)})
+        return jsonify({"status": "ok", "reaction": reaction})
 
 
 @rooms_bp.route("/api/rooms/<code>/fairness", methods=["GET"])

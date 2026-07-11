@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎲 Yacht - Multiplayer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260711-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260711-2') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -327,20 +327,19 @@
 
     <div id="score-toast" class="toast-overlay"></div>
 
-    <div id="chat-widget" class="chat-widget collapsed" style="display:none;">
-        <button type="button" class="chat-header" id="chat-header" onclick="toggleChat()">
-            <span class="chat-header-title">💬 채팅</span>
-            <span class="chat-unread" id="chat-unread" style="display:none;">0</span>
-            <span class="chat-caret" id="chat-caret">▾</span>
-        </button>
-        <div class="chat-body" id="chat-body">
-            <div class="chat-messages" id="chat-messages">
-                <div class="chat-empty" id="chat-empty">상대와 나눈 메시지가 여기 표시됩니다.</div>
-            </div>
-            <form class="chat-input-row" id="chat-form" onsubmit="return sendChat(event)">
-                <input type="text" id="chat-input" class="chat-input" maxlength="200" placeholder="메시지 입력..." autocomplete="off">
-                <button type="submit" class="chat-send" id="chat-send">전송</button>
-            </form>
+    <div id="reaction-burst-layer" class="reaction-burst-layer" aria-live="polite" aria-atomic="true"></div>
+    <div id="reaction-dock" class="reaction-dock" style="display:none;" aria-label="감정표현 보내기">
+        <div class="reaction-dock-head">
+            <strong>감정표현</strong>
+            <button type="button" id="reaction-sound-toggle" class="reaction-sound-toggle" onclick="toggleReactionSound()" aria-label="감정표현 소리 끄기" aria-pressed="true">🔊</button>
+        </div>
+        <div class="reaction-buttons">
+            <button type="button" data-reaction="nice" onclick="sendReaction('nice')" aria-label="나이스" title="나이스">👍</button>
+            <button type="button" data-reaction="fire" onclick="sendReaction('fire')" aria-label="대박" title="대박">🔥</button>
+            <button type="button" data-reaction="laugh" onclick="sendReaction('laugh')" aria-label="웃음" title="ㅋㅋ">😂</button>
+            <button type="button" data-reaction="wow" onclick="sendReaction('wow')" aria-label="놀람" title="헉">😱</button>
+            <button type="button" data-reaction="dice" onclick="sendReaction('dice')" aria-label="가자" title="가자">🎲</button>
+            <button type="button" data-reaction="gg" onclick="sendReaction('gg')" aria-label="지지" title="GG">👏</button>
         </div>
     </div>
 
@@ -813,7 +812,7 @@
             stopSyncPolling();
             if (immediate) fetchRoomState();
             const qs = new URLSearchParams({sv: String(roomVersion), interval_ms: '800'});
-            if (lastChatMessageId) qs.set('chat_id', lastChatMessageId);
+            if (lastReactionId) qs.set('reaction_id', lastReactionId);
             const source = new EventSource(`/api/rooms/${roomCode}/events?${qs.toString()}`);
             roomEventSource = source;
             source.onopen = () => {
@@ -831,13 +830,12 @@
                     console.warn('room event parse failed', error);
                 }
             });
-            source.addEventListener('chat_message', (event) => {
+            source.addEventListener('reaction', (event) => {
                 if (source !== roomEventSource || connectionLostHandled) return;
                 try {
-                    const message = JSON.parse(event.data || '{}');
-                    renderChatMessages([message]);
+                    showReaction(JSON.parse(event.data || '{}'));
                 } catch (error) {
-                    console.warn('chat event parse failed', error);
+                    console.warn('reaction event parse failed', error);
                 }
             });
             source.addEventListener('room_closed', () => {
@@ -1033,7 +1031,7 @@
                 }
 
                 markRoomContact();
-                renderChatMessages(data.messages);
+                syncReactions(data.reactions);
                 observerCount = Number(data.observer_count ?? (Array.isArray(data.observers) ? data.observers.length : observerCount));
                 roomPhase = data.room_phase || roomPhase;
                 rematchPendingPlayers = Array.isArray(data.rematch_pending_players) ? data.rematch_pending_players : [];
@@ -1823,113 +1821,130 @@ window.addEventListener('beforeunload', (e) => {
             setTimeout(() => toast.classList.remove('show'), 2000);
         }
 
-        // --- [1:1 채팅] ---
-        let chatCollapsed = true;
-        let chatSending = false;
-        const chatSeenIds = new Set();
-        let chatRenderedCount = 0;
-        let lastChatMessageId = '';
+        // --- [실시간 감정표현] ---
+        let reactionSending = false;
+        let lastReactionId = '';
+        let reactionCursorInitialized = false;
+        const reactionSeenIds = new Set();
+        let reactionSoundEnabled = localStorage.getItem('yacht_reaction_sound') !== 'off';
+        let reactionAudioContext = null;
+        const REACTION_TONES = {
+            nice: [523, 659], fire: [440, 659, 880], laugh: [392, 330, 392],
+            wow: [262, 523], dice: [294, 440], gg: [523, 659, 784],
+        };
 
-        function escapeChat(text) {
-            return escapeHtml(String(text == null ? '' : text));
+        function updateReactionSoundButton() {
+            const button = document.getElementById('reaction-sound-toggle');
+            if (!button) return;
+            button.textContent = reactionSoundEnabled ? '🔊' : '🔇';
+            button.setAttribute('aria-pressed', String(reactionSoundEnabled));
+            button.setAttribute('aria-label', reactionSoundEnabled ? '감정표현 소리 끄기' : '감정표현 소리 켜기');
         }
 
-        function toggleChat() {
-            chatCollapsed = !chatCollapsed;
-            const widget = document.getElementById('chat-widget');
-            if (widget) widget.classList.toggle('collapsed', chatCollapsed);
-            if (!chatCollapsed) {
-                clearChatUnread();
-                const input = document.getElementById('chat-input');
-                if (input) input.focus();
-                scrollChatToBottom();
+        function toggleReactionSound() {
+            reactionSoundEnabled = !reactionSoundEnabled;
+            localStorage.setItem('yacht_reaction_sound', reactionSoundEnabled ? 'on' : 'off');
+            updateReactionSoundButton();
+            if (reactionSoundEnabled) playReactionSound('nice');
+        }
+
+        function playReactionSound(code) {
+            if (!reactionSoundEnabled) return;
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) return;
+                reactionAudioContext = reactionAudioContext || new AudioContextClass();
+                if (reactionAudioContext.state === 'suspended') reactionAudioContext.resume();
+                const startedAt = reactionAudioContext.currentTime;
+                (REACTION_TONES[code] || REACTION_TONES.nice).forEach((frequency, index) => {
+                    const oscillator = reactionAudioContext.createOscillator();
+                    const gain = reactionAudioContext.createGain();
+                    const noteAt = startedAt + index * 0.09;
+                    oscillator.type = code === 'fire' ? 'sawtooth' : 'sine';
+                    oscillator.frequency.setValueAtTime(frequency, noteAt);
+                    gain.gain.setValueAtTime(0.0001, noteAt);
+                    gain.gain.exponentialRampToValueAtTime(0.12, noteAt + 0.015);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, noteAt + 0.11);
+                    oscillator.connect(gain).connect(reactionAudioContext.destination);
+                    oscillator.start(noteAt);
+                    oscillator.stop(noteAt + 0.12);
+                });
+            } catch (error) {
+                console.warn('reaction sound unavailable', error);
             }
         }
 
-        function clearChatUnread() {
-            const badge = document.getElementById('chat-unread');
-            if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
+        function showReaction(reaction) {
+            if (!reaction || !reaction.id || reactionSeenIds.has(reaction.id)) return;
+            reactionSeenIds.add(reaction.id);
+            lastReactionId = reaction.id;
+            reactionCursorInitialized = true;
+            const layer = document.getElementById('reaction-burst-layer');
+            if (!layer) return;
+            const burst = document.createElement('div');
+            const mine = reaction.user === username;
+            burst.className = `reaction-burst ${mine ? 'mine' : 'incoming'}`;
+            const label = document.createElement('span');
+            label.className = 'reaction-burst-label';
+            label.textContent = mine ? `내 ${reaction.label}` : `${reaction.user} · ${reaction.label}`;
+            const emoji = document.createElement('span');
+            emoji.className = 'reaction-burst-emoji';
+            emoji.textContent = reaction.emoji;
+            burst.append(label, emoji);
+            layer.appendChild(burst);
+            playReactionSound(reaction.code);
+            setTimeout(() => burst.remove(), 1800);
         }
 
-        function bumpChatUnread(count) {
-            if (!count) return;
-            const badge = document.getElementById('chat-unread');
-            if (!badge) return;
-            const next = (parseInt(badge.textContent, 10) || 0) + count;
-            badge.textContent = String(next);
-            badge.style.display = 'inline-block';
-        }
-
-        function scrollChatToBottom() {
-            const list = document.getElementById('chat-messages');
-            if (list) list.scrollTop = list.scrollHeight;
-        }
-
-        function renderChatMessages(messages) {
-            if (!Array.isArray(messages)) return;
-            const list = document.getElementById('chat-messages');
-            if (!list) return;
-            const empty = document.getElementById('chat-empty');
-            let newIncoming = 0;
-            messages.forEach((msg) => {
-                if (!msg || !msg.id) return;
-                lastChatMessageId = msg.id;
-                if (chatSeenIds.has(msg.id)) return;
-                chatSeenIds.add(msg.id);
-                if (empty) empty.remove();
-                const mine = msg.user === username;
-                const isObs = msg.role === 'observer';
-                const el = document.createElement('div');
-                el.className = 'chat-msg ' + (isObs ? 'system-role' : (mine ? 'mine' : 'theirs'));
-                const nameLabel = mine ? '나' : msg.user;
-                el.innerHTML = `<span class="chat-msg-name">${escapeChat(nameLabel)}${isObs ? ' (관전)' : ''}</span>${escapeChat(msg.text)}`;
-                list.appendChild(el);
-                if (!mine) newIncoming++;
-            });
-            if (chatSeenIds.size !== chatRenderedCount) {
-                chatRenderedCount = chatSeenIds.size;
-                scrollChatToBottom();
+        function syncReactions(reactions) {
+            if (!Array.isArray(reactions)) return;
+            if (!reactionCursorInitialized) {
+                lastReactionId = reactions.length ? (reactions[reactions.length - 1].id || '') : '';
+                reactionCursorInitialized = true;
+                return;
             }
-            if (newIncoming > 0 && chatCollapsed) bumpChatUnread(newIncoming);
+            if (reactions.length === 0) return;
+            const cursor = reactions.findIndex((reaction) => reaction.id === lastReactionId);
+            const pending = cursor >= 0 ? reactions.slice(cursor + 1) : reactions.slice(-1);
+            pending.forEach(showReaction);
         }
 
-        async function sendChat(event) {
-            if (event) event.preventDefault();
-            const input = document.getElementById('chat-input');
-            const sendBtn = document.getElementById('chat-send');
-            if (!input) return false;
-            const text = input.value.trim();
-            if (!text || chatSending) return false;
-            chatSending = true;
-            if (sendBtn) sendBtn.disabled = true;
+        function setReactionButtonsDisabled(disabled) {
+            document.querySelectorAll('[data-reaction]').forEach((button) => { button.disabled = disabled; });
+        }
+
+        async function sendReaction(reaction) {
+            if (reactionSending || isObserver) return;
+            reactionSending = true;
+            setReactionButtonsDisabled(true);
             try {
                 const r = await fetchWithTimeout(
-                    `/api/rooms/${roomCode}/chat`,
+                    `/api/rooms/${roomCode}/reaction`,
                     {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ username, player_token: playerToken, text }),
+                        body: JSON.stringify({ username, player_token: playerToken, reaction }),
                     },
                     currentRoomRequestTimeoutMs(),
                 );
                 const data = await r.json();
                 if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
-                input.value = '';
-                renderChatMessages(data.messages || (data.message ? [data.message] : []));
+                showReaction(data.reaction);
             } catch (e) {
-                console.warn('chat send failed', e);
-                showStatusToast('메시지 전송 실패', '잠시 후 다시 시도해 주세요.', 1400);
+                console.warn('reaction send failed', e);
+                showStatusToast('감정표현 전송 실패', e.message || '잠시 후 다시 시도해 주세요.', 1400);
             } finally {
-                chatSending = false;
-                if (sendBtn) sendBtn.disabled = false;
-                input.focus();
+                setTimeout(() => {
+                    reactionSending = false;
+                    setReactionButtonsDisabled(false);
+                }, 1500);
             }
-            return false;
         }
 
         async function initializeGame() {
-            const chatWidget = document.getElementById('chat-widget');
-            if (chatWidget) chatWidget.style.display = 'flex';
+            const reactionDock = document.getElementById('reaction-dock');
+            if (reactionDock && !isObserver) reactionDock.style.display = 'block';
+            updateReactionSoundButton();
             renderDice();
             updateScorecard();
             document.getElementById('ai-breakdown').innerHTML = '<div style="color:#999; text-align:center; padding:12px; font-size:0.9em;">🎲 주사위를 굴려주세요</div>';

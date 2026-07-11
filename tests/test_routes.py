@@ -480,72 +480,80 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(leaderboard_payload[0]["wins"], 1)
 
 
-    def test_room_chat_send_and_fetch(self):
+    def test_room_reaction_send_rate_limit_and_sse(self):
         created = self.client.post("/api/rooms", json={"username": "host1"})
         code = created.get_json()["code"]
         host_token = created.get_json()["player_token"]
         joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
         guest_token = joined.get_json()["player_token"]
-        game_version_before_chat = joined.get_json()["state"]["version"]
+        game_version_before_reaction = joined.get_json()["state"]["version"]
 
-        # 인증 실패
         forged = self.client.post(
-            f"/api/rooms/{code}/chat",
-            json={"username": "host1", "player_token": "wrong", "text": "hi"},
+            f"/api/rooms/{code}/reaction",
+            json={"username": "host1", "player_token": "wrong", "reaction": "nice"},
         )
         self.assertEqual(forged.status_code, 403)
 
-        # 빈 메시지 거부
-        empty = self.client.post(
-            f"/api/rooms/{code}/chat",
-            json={"username": "host1", "player_token": host_token, "text": "   "},
+        invalid = self.client.post(
+            f"/api/rooms/{code}/reaction",
+            json={"username": "host1", "player_token": host_token, "reaction": "custom"},
         )
-        self.assertEqual(empty.status_code, 400)
+        self.assertEqual(invalid.status_code, 400)
 
-        # 정상 전송
         sent = self.client.post(
-            f"/api/rooms/{code}/chat",
-            json={"username": "guest1", "player_token": guest_token, "text": "안녕!"},
+            f"/api/rooms/{code}/reaction",
+            json={"username": "guest1", "player_token": guest_token, "reaction": "fire"},
         )
         self.assertEqual(sent.status_code, 200)
         sent_payload = sent.get_json()
-        self.assertEqual(sent_payload["message"]["user"], "guest1")
-        self.assertEqual(sent_payload["message"]["text"], "안녕!")
-        self.assertEqual(sent_payload["message"]["role"], "player")
-        first_message_id = sent_payload["message"]["id"]
+        self.assertEqual(sent_payload["reaction"]["user"], "guest1")
+        self.assertEqual(sent_payload["reaction"]["code"], "fire")
+        self.assertEqual(sent_payload["reaction"]["emoji"], "🔥")
+        first_reaction_id = sent_payload["reaction"]["id"]
 
-        # get_room 응답에 메시지 포함
         room = self.client.get(
             f"/api/rooms/{code}",
             query_string={"u": "host1"},
             headers={"X-Player-Token": host_token},
         )
-        messages = room.get_json()["messages"]
-        self.assertEqual(len(messages), 1)
-        self.assertEqual(messages[0]["text"], "안녕!")
-        self.assertEqual(room.get_json()["state"]["version"], game_version_before_chat)
+        reactions = room.get_json()["reactions"]
+        self.assertEqual(len(reactions), 1)
+        self.assertEqual(reactions[0]["code"], "fire")
+        self.assertEqual(room.get_json()["state"]["version"], game_version_before_reaction)
+
+        rate_limited = self.client.post(
+            f"/api/rooms/{code}/reaction",
+            json={"username": "guest1", "player_token": guest_token, "reaction": "laugh"},
+        )
+        self.assertEqual(rate_limited.status_code, 429)
+        self.assertGreater(rate_limited.get_json()["retry_after_ms"], 0)
 
         second = self.client.post(
-            f"/api/rooms/{code}/chat",
-            json={"username": "host1", "player_token": host_token, "text": "반가워!"},
+            f"/api/rooms/{code}/reaction",
+            json={"username": "host1", "player_token": host_token, "reaction": "gg"},
         )
         self.assertEqual(second.status_code, 200)
 
-        chat_events = self.client.get(
+        reaction_events = self.client.get(
             f"/api/rooms/{code}/events",
-            query_string={"once": 1, "chat_id": first_message_id},
+            query_string={"once": 1, "reaction_id": first_reaction_id},
         )
-        chat_event_text = chat_events.get_data(as_text=True)
-        self.assertIn("event: chat_message", chat_event_text)
-        self.assertIn('"text":"반가워!"', chat_event_text)
-        self.assertNotIn('"text":"안녕!"', chat_event_text)
+        reaction_event_text = reaction_events.get_data(as_text=True)
+        self.assertIn("event: reaction", reaction_event_text)
+        self.assertIn('"code":"gg"', reaction_event_text)
+        self.assertNotIn('"code":"fire"', reaction_event_text)
 
-        # 참가자/관전자가 아니면 거부
         outsider = self.client.post(
-            f"/api/rooms/{code}/chat",
-            json={"username": "stranger", "text": "hi"},
+            f"/api/rooms/{code}/reaction",
+            json={"username": "stranger", "reaction": "nice"},
         )
         self.assertEqual(outsider.status_code, 404)
+
+        removed_chat = self.client.post(
+            f"/api/rooms/{code}/chat",
+            json={"username": "host1", "player_token": host_token, "text": "hi"},
+        )
+        self.assertEqual(removed_chat.status_code, 404)
 
     def test_sync_validation_errors(self):
         created = self.client.post("/api/rooms", json={"username": "host1"})
