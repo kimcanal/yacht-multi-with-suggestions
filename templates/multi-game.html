@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎲 Yacht - Multiplayer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260710-4') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260711-1') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -45,74 +45,12 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             margin-bottom: 30px;
         }
-        .dice-grid {
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 8px;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            width: 100%;
-        }
-        .dice-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            min-width: 0;
-            font-size: min(3.1vw, 22px);
-        }
         .die-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 8px;
         }
-        .die-container {
-            width: min(5em, 100%);
-            aspect-ratio: 1 / 1;
-            position: relative;
-            perspective: 1000px;
-            transition: transform 0.3s ease;
-        }
-        .die-container.locked {
-            transform: translateY(-15px);
-        }
-        .die {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            transform-style: preserve-3d;
-            transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-        .die-face {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(240,240,240,0.9));
-            border: 2px solid rgba(200,200,200,0.5);
-            border-radius: 0.8em;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            padding: 0.4em;
-            backface-visibility: hidden;
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.05);
-        }
-        .die-face .dot { margin: auto; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); }
-        .face-1 { transform: rotateY(0deg) translateZ(2.5em); }
-        .face-6 { transform: rotateY(180deg) translateZ(2.5em); }
-        .face-2 { transform: rotateX(90deg) translateZ(2.5em); }
-        .face-5 { transform: rotateX(-90deg) translateZ(2.5em); }
-        .face-3 { transform: rotateY(90deg) translateZ(2.5em); }
-        .face-4 { transform: rotateY(-90deg) translateZ(2.5em); }
-        .die.rolling { animation: roll3d 1.5s linear infinite; }
-        @keyframes roll3d {
-            0% { transform: rotateX(0) rotateY(0) rotateZ(0); }
-            100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(360deg); }
-        }
-        .dot { width: 0.9em; height: 0.9em; background: #333; border-radius: 50%; transition: all 0.2s; }
-        .dot.hidden { opacity: 0; }
         .controls {
             display: flex;
             gap: 15px;
@@ -182,19 +120,6 @@
             .dice-area { padding: 16px 10px; }
             .scorecard-area { padding: 20px 12px; }
         }
-        .winprob-panel {
-            margin-top: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 14px; padding: 14px;
-        }
-        .winprob-head { display:flex; justify-content:space-between; align-items:flex-end; gap:10px; margin-bottom:10px; }
-        .winprob-title { color:#f4f7fb; font-weight:800; }
-        .winprob-sub { color:#93a3b8; font-size:0.8em; }
-        .winprob-bar { display:flex; width:100%; height:30px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,0.06); margin-bottom:8px; }
-        .winprob-left, .winprob-right { display:flex; align-items:center; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.82em; font-weight:800; }
-        .winprob-left { justify-content:flex-start; background:#59f0c2; color:#06231b; padding-left:10px; }
-        .winprob-right { justify-content:flex-end; background:#ff9f6e; color:#2b1307; padding-right:10px; }
-        .winprob-meta { color:#93a3b8; font-size:0.82em; margin-bottom:8px; }
-        .winprob-graph { width:100%; height:96px; display:block; }
         .observer-banner {
             background: linear-gradient(135deg, rgba(255, 214, 102, 0.18), rgba(255, 160, 90, 0.12));
             border: 1px solid rgba(255, 214, 102, 0.28);
@@ -326,7 +251,7 @@
         }
     </style>
 </head>
-<body>
+<body class="multiplayer-page">
     <div class="game-wrapper">
         <div class="main-area">
             <div class="title">🎲 YACHT <span id="room-label" style="font-size:0.4em; color:#fff; opacity:0.8; margin-left:12px;"></span></div>
@@ -370,7 +295,7 @@
                         <div class="ai-mode-card" data-ai-mode-desc="focused">
                             <strong><span class="ai-mode-chip">집중</span> 한 족보 집중</strong>
                             <p>유망한 한 족보를 끝까지 공략.</p>
-                            <span class="ai-mode-metric">최적 대비 평균 -19점</span>
+                            <span class="ai-mode-metric">최적 대비 평균 -10.4점</span>
                         </div>
                         <div class="ai-mode-card" data-ai-mode-desc="cover">
                             <strong><span class="ai-mode-chip">커버</span> 하나 이상</strong>
@@ -423,7 +348,7 @@
     <script src="{{ url_for('static', filename='js/game_state.js', v='20260406-5') }}"></script>
     <script src="{{ url_for('static', filename='js/score_utils.js', v='20260710-2') }}"></script>
     <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260710-1') }}"></script>
-    <script src="{{ url_for('static', filename='js/winprob.js', v='20260406-5') }}"></script>
+    <script src="{{ url_for('static', filename='js/winprob.js', v='20260711-4') }}"></script>
     <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260709-1') }}"></script>
     <script>
         // --- [전역 변수 설정] ---
@@ -514,7 +439,6 @@
         let gameOverToastShown = false;
         let connectionLostHandled = false;
         let syncFailures = 0;
-        let matchWinHistory = [];
         let allowImmediateExit = false;
         let observerCount = 0;
         let roomPhase = 'waiting';
@@ -532,6 +456,7 @@
         const ROOM_REQUEST_TIMEOUT_HIDDEN_MS = 12000;
         const ROOM_CONTACT_GRACE_MS = isObserver ? 90000 : 45000;
         let roomHeartbeatTimer = null;
+        let roomEventSource = null;
         let syncRequestInFlight = false;
         let heartbeatRequestInFlight = false;
         let lastRoomContactAt = Date.now();
@@ -576,6 +501,7 @@
         }
 
         function shouldSkipHeartbeat() {
+            if (roomEventSource) return false;
             return (Date.now() - lastRoomContactAt) < Math.min(ROOM_HEARTBEAT_INTERVAL_MS * 0.75, currentSyncIntervalMs() * 2.5);
         }
 
@@ -869,6 +795,51 @@
             scheduleNextSyncPoll(currentSyncIntervalMs(), generation);
         }
 
+        function stopRoomEvents() {
+            if (roomEventSource) {
+                roomEventSource.close();
+                roomEventSource = null;
+            }
+        }
+
+        function startRoomEvents(options = {}) {
+            const {immediate = false} = options;
+            stopRoomEvents();
+            if (typeof EventSource !== 'function' || document.visibilityState === 'hidden') {
+                startSyncPolling({immediate});
+                return;
+            }
+
+            stopSyncPolling();
+            if (immediate) fetchRoomState();
+            const qs = new URLSearchParams({sv: String(roomVersion), interval_ms: '800'});
+            const source = new EventSource(`/api/rooms/${roomCode}/events?${qs.toString()}`);
+            roomEventSource = source;
+            source.onopen = () => {
+                if (source === roomEventSource) stopSyncPolling();
+            };
+            source.addEventListener('room_state', (event) => {
+                if (source !== roomEventSource || connectionLostHandled) return;
+                try {
+                    const notice = JSON.parse(event.data || '{}');
+                    const remoteVersion = Number(notice.version || 0);
+                    if (remoteVersion !== roomVersion || notice.room_phase !== roomPhase) {
+                        fetchRoomState();
+                    }
+                } catch (error) {
+                    console.warn('room event parse failed', error);
+                }
+            });
+            source.addEventListener('room_closed', () => {
+                if (source === roomEventSource) handleConnectionLost('방이 종료되어 로비로 이동합니다.');
+            });
+            source.onerror = () => {
+                if (source !== roomEventSource || connectionLostHandled) return;
+                // EventSource의 기본 재연결은 유지하고, 연결 중에만 polling을 fallback으로 쓴다.
+                startSyncPolling({immediate: true});
+            };
+        }
+
         function stopRoomHeartbeat() {
             if (roomHeartbeatTimer) {
                 clearInterval(roomHeartbeatTimer);
@@ -892,6 +863,7 @@
             connectionLostHandled = true;
             allowImmediateExit = true;
             clearTurnTimer();
+            stopRoomEvents();
             stopSyncPolling();
             stopRoomHeartbeat();
             localStorage.removeItem('yacht_room');
@@ -905,16 +877,19 @@
 
         window.addEventListener('online', () => {
             if (connectionLostHandled) return;
-            startSyncPolling({immediate: true});
+            startRoomEvents({immediate: true});
             sendRoomHeartbeat({immediate: true});
             showStatusToast('연결 복구', '방 상태를 다시 확인하고 있습니다.', 1400);
         });
 
         document.addEventListener('visibilitychange', () => {
             if (connectionLostHandled || !roomCode) return;
-            startSyncPolling({immediate: document.visibilityState === 'visible'});
             if (document.visibilityState === 'visible') {
+                startRoomEvents({immediate: true});
                 sendRoomHeartbeat({immediate: true});
+            } else {
+                stopRoomEvents();
+                startSyncPolling({immediate: false});
             }
         });
 
@@ -1024,11 +999,13 @@
             const qs = new URLSearchParams();
             qs.set('u', username);
             qs.set('sv', String(roomVersion));
-            if (!isObserver && playerToken) qs.set('pt', playerToken);
             try {
                 const r = await fetchWithTimeout(
                     `/api/rooms/${roomCode}?${qs.toString()}`,
-                    {cache: 'no-store'},
+                    {
+                        cache: 'no-store',
+                        headers: isObserver || !playerToken ? {} : {'X-Player-Token': playerToken},
+                    },
                     currentRoomRequestTimeoutMs(),
                 );
                 if (r.status === 404) {
@@ -1220,7 +1197,8 @@
                 const c = document.getElementById(`die-container-${i}`);
                 if (!d) continue;
                 
-                if (rollsLeft === 3 && !gameOver) {
+                c.classList.toggle('dice-unrolled', rollsLeft === 3 && !isRolling && !gameOver);
+                if (isRolling && !kept[i]) {
                     d.classList.add('rolling');
                 } else {
                     d.classList.remove('rolling');
@@ -1288,19 +1266,21 @@
 
             const leftLabel = isObserver ? (roomPlayers[0] || 'Player 1') : '나';
             const rightLabel = isObserver ? (roomPlayers[1] || 'Player 2') : (opponentName || '상대');
-            const snapshot = estimateWinChances(
-                GameState.getMyCard(),
-                GameState.getOppCard(),
-                {
-                    myDice: turnOwner === username || (isObserver && turnOwner === roomPlayers[0]) ? dice : null,
-                    myRollsLeft: turnOwner === username || (isObserver && turnOwner === roomPlayers[0]) ? GameState.getRollsLeft() : 3,
-                    oppDice: !isObserver && turnOwner === opponentName ? dice : (isObserver && turnOwner === roomPlayers[1] ? dice : null),
-                    oppRollsLeft: !isObserver && turnOwner === opponentName ? GameState.getRollsLeft() : (isObserver && turnOwner === roomPlayers[1] ? GameState.getRollsLeft() : 3),
-                }
-            );
-            matchWinHistory = recordWinChance(matchWinHistory, snapshot.myProbability);
-            renderWinChancePanel('win-prob-panel', snapshot, {
-                history: matchWinHistory,
+            const payload = {
+                my_scorecard: GameState.getMyCard(),
+                opp_scorecard: GameState.getOppCard(),
+            };
+            const myTurnActive = turnOwner === username || (isObserver && turnOwner === roomPlayers[0]);
+            const oppTurnActive = (!isObserver && turnOwner === opponentName) || (isObserver && turnOwner === roomPlayers[1]);
+            if (myTurnActive && GameState.getRollsLeft() < 3) {
+                payload.my_dice = dice;
+                payload.my_rolls_left = GameState.getRollsLeft();
+            } else if (oppTurnActive && GameState.getRollsLeft() < 3) {
+                payload.opp_dice = dice;
+                payload.opp_rolls_left = GameState.getRollsLeft();
+            }
+            WinProbabilityPanel.request('win-prob-panel', payload, {
+                readyToCompare: roomPlayers.length >= 2,
                 leftLabel,
                 rightLabel,
             });
@@ -1624,7 +1604,7 @@ function applyRemoteState(state) {
                 });
                 const payload = await r.json();
                 if (!r.ok || payload.error) {
-                    throw new Error(payload.error || 'AI 추천 요청 실패');
+                    throw new Error(payload.message || payload.error || 'AI 추천 요청 실패');
                 }
                 aiRec = payload;
                 GameState.setAiRec(aiRec);
@@ -1791,22 +1771,18 @@ window.addEventListener('beforeunload', (e) => {
             if (!confirm('정말 나가시겠습니까?')) return;
             try {
                 allowImmediateExit = true;
+                stopRoomEvents();
                 stopSyncPolling();
                 stopRoomHeartbeat();
                 clearTurnTimer();
                 const payload = JSON.stringify({username, player_token: playerToken});
-                if (navigator.sendBeacon) {
-                    const url = `/api/rooms/${roomCode}/leave?username=${encodeURIComponent(username)}&pt=${encodeURIComponent(playerToken || '')}`;
-                    navigator.sendBeacon(url, payload);
-                } else {
-                    fetch(`/api/rooms/${roomCode}/leave`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: payload,
-                        keepalive: true,
-                        cache: 'no-store',
-                    }).catch((e) => console.warn('leave failed (non-blocking)', e));
-                }
+                fetch(`/api/rooms/${roomCode}/leave`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: payload,
+                    keepalive: true,
+                    cache: 'no-store',
+                }).catch((e) => console.warn('leave failed (non-blocking)', e));
                 localStorage.removeItem('yacht_room');
                 gameOverToastShown = true;
                 showStatusToast('나가기 완료', '로비로 이동합니다.', 1000);
@@ -1958,7 +1934,7 @@ window.addEventListener('beforeunload', (e) => {
             } catch (e) {
                 console.warn('Failed to fetch initial room state:', e);
             }
-            startSyncPolling({immediate: false});
+            startRoomEvents({immediate: false});
             startRoomHeartbeat({immediate: true});
             refreshTurnUI();
             refreshInsightPanels();

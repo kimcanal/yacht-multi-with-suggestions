@@ -42,25 +42,25 @@ full-game exact value table(open12)이 있으므로, 모든 지표는 이론 최
 - 도구: `scripts/benchmark_ai.py`
 - 기준선(2026-07-08): heuristic cold 37.8~193.6ms, value-optimal cold 58.5~140.3ms, warm 0.04~0.05ms.
 
-## 지표 5 — (예정) 멀티플레이어 승률
+## 지표 5 — 멀티플레이어 승률 전망
 
 - 정의: 상대(EV-optimal 봇) 대비 승률. EV 최대화와 승률 최대화는 다르다 —
   지고 있으면 고분산, 이기고 있으면 저분산이 옳다.
-- 필요물: 점수차·남은 턴 조건부 정책(distribution-aware). 아직 미구현.
+- 현재 구현: 양쪽이 `value_optimal`로 남은 게임을 진행하는 Monte Carlo 전망. UI는 기본 30샘플과 95% 표본 오차를 함께 표시한다.
+- 미구현: 실제 점수차에 따라 고분산/저분산 선택을 바꾸는 distribution-aware 승률 최대화 정책.
 
 ## 현재 스코어보드 (2026-07-09)
 
 | 지표 | focused | cover | optimal | 근거 |
 |---|---|---|---|---|
-| Regret/게임 (100게임) | 22.41점 | 37.92점 | **0.00점** | decision-regret-100 |
-| Roll 결정 최적 일치율 | 70.7% | 60.0% | 100% | 상동 |
-| Score 결정 최적 일치율 | 79.0% | 71.0% | 100% | 상동 |
-| Score 실수 시 평균 손실 | 5.00점 | 5.23점 | - | 상동 |
-| 평균 점수 (200게임, indexed) | 168.2 | - | 198.6 | score-value-full-table-optimal-focused-200-indexed |
+| Regret/게임 (100게임) | **10.39점** | 37.92점 | **0.00점** | decision-regret-100-value-score-only / decision-regret-100 |
+| Roll 결정 최적 일치율 | 70.11% | 60.0% | 100% | 상동 |
+| Score 결정 최적 일치율 | **100%** | 71.0% | 100% | 상동 |
+| Score 실수 시 평균 손실 | **0.00점** | 5.23점 | - | 상동 |
+| 평균 점수 (200게임, indexed) | **184.56** | - | 198.6 | score-value-score-only-open12 / full-table-optimal |
 | 응답(cold) | 38~194ms | - | 59~140ms | ai-runtime-* artifacts |
 
-읽는 법: focused의 regret 22.4점 중 roll 단계가 게임당 약 9.8점(0.41×~24회), score 단계가 약 12.6점(1.05×12회).
-즉 **점수 기록 순간의 실수가 더 크다** — 틀릴 확률은 21%뿐이지만 한 번 틀리면 평균 5점을 잃는다.
+읽는 법: 현재 focused는 score 단계가 exact value라 기록 실수가 0이고, 남은 regret은 설명 가능한 목표 지향 roll 정책에서 발생한다.
 
 focused/cover는 "설명 가능한 목표 지향 플레이"가 목적이므로 regret 0이 목표가 아니다.
 다만 regret이 **어디서** 새는지(turn/stage별)를 보고, 설명력을 해치지 않는 선에서 줄이는 것이 개선 방향이다.

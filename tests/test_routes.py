@@ -101,6 +101,30 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(response_cached.headers["X-AI-Request-Cache"], "hit")
         self.assertIn("decision_report", response_cached.get_json())
 
+    @patch("routes.ai.request_win_probability")
+    def test_win_probability_endpoint_validates_and_returns_pending_projection(self, request_probability):
+        request_probability.return_value = {
+            "status": "pending",
+            "request_id": "test-request",
+            "retry_after_ms": 900,
+            "my_projected": 198.3582,
+            "opp_projected": 198.3582,
+            "projection_method": "full_game_exact_value",
+        }
+        response = self.client.post(
+            "/api/win-probability",
+            json={"my_scorecard": [None] * 12, "opp_scorecard": [None] * 12, "samples": 30},
+        )
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.get_json()["status"], "pending")
+        request_probability.assert_called_once()
+
+        invalid = self.client.post(
+            "/api/win-probability",
+            json={"my_scorecard": [None] * 11, "opp_scorecard": [None] * 12},
+        )
+        self.assertEqual(invalid.status_code, 400)
+
     def test_recommend_focused_score_stage_uses_exact_value_by_default(self):
         # scorecard: Threes/Twos/Sixes 등 상단 여러 칸이 열려 있어 순수 휴리스틱이면
         # 상단 보너스 페이스를 우선해 Sixes에 적곤 했던 상태. Full House가 완성됐으므로
@@ -156,8 +180,36 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(payload["policy_source"], "exact_value_optimal")
         self.assertEqual(response.headers["X-AI-Policy-Source"], "exact_value_optimal")
         self.assertIn("기대", payload["summary"])
+        self.assertEqual(
+            payload["expected_final_score"],
+            round(payload["banked_score"] + payload["remaining_game_ev"], 2),
+        )
         self.assertEqual(payload["decision_report"]["method"]["source"], "exact_value_optimal")
         self.assertEqual(payload["decision_report"]["method"]["label"], "Full-game exact V")
+        self.assertEqual(
+            payload["decision_report"]["decision"]["expected_value"],
+            payload["expected_final_score"],
+        )
+
+    @patch(
+        "routes.ai.yacht_engine.solve_best_move",
+        side_effect=ai_routes.yacht_engine.ExactValueTableUnavailableError("missing"),
+    )
+    def test_recommend_optimal_returns_503_when_exact_table_is_unavailable(self, solve):
+        response = self.client.post(
+            "/api/recommend",
+            json={
+                "dice": [1, 2, 3, 4, 6],
+                "rolls_left": 1,
+                "scorecard": [None] * 12,
+                "strategy_mode": "optimal",
+            },
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.get_json()["error"], "exact_value_unavailable")
+        self.assertIn("최적 계산 데이터", response.get_json()["message"])
+        solve.assert_called_once()
 
     def test_request_id_header_is_propagated(self):
         response = self.client.get("/health", headers={"X-Request-ID": "route-test-123"})
@@ -299,6 +351,12 @@ class RouteIntegrationTests(unittest.TestCase):
         code = created_payload["code"]
         host_token = created_payload["player_token"]
 
+        leaked_query_token = self.client.get(
+            f"/api/rooms/{code}",
+            query_string={"u": "host1", "pt": host_token},
+        )
+        self.assertEqual(leaked_query_token.status_code, 403)
+
         joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
         self.assertEqual(joined.status_code, 200)
         guest_token = joined.get_json()["player_token"]
@@ -307,7 +365,11 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(observed.status_code, 200)
         self.assertEqual(observed.get_json()["observers"], ["watch1"])
 
-        room = self.client.get(f"/api/rooms/{code}", query_string={"u": "host1", "pt": host_token})
+        room = self.client.get(
+            f"/api/rooms/{code}",
+            query_string={"u": "host1"},
+            headers={"X-Player-Token": host_token},
+        )
         self.assertEqual(room.status_code, 200)
         room_payload = room.get_json()
         self.assertEqual(room_payload["room_phase"], "playing")
@@ -442,10 +504,15 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(sent_payload["message"]["role"], "player")
 
         # get_room 응답에 메시지 포함
-        room = self.client.get(f"/api/rooms/{code}", query_string={"u": "host1", "pt": host_token})
+        room = self.client.get(
+            f"/api/rooms/{code}",
+            query_string={"u": "host1"},
+            headers={"X-Player-Token": host_token},
+        )
         messages = room.get_json()["messages"]
         self.assertEqual(len(messages), 1)
         self.assertEqual(messages[0]["text"], "안녕!")
+        self.assertGreaterEqual(room.get_json()["state"]["version"], 2)
 
         # 참가자/관전자가 아니면 거부
         outsider = self.client.post(
@@ -708,7 +775,8 @@ class RouteIntegrationTests(unittest.TestCase):
 
         room_waiting = self.client.get(
             f"/api/rooms/{code}",
-            query_string={"u": "host1", "pt": host_token, "sv": duplicate_payload["state"]["version"]},
+            query_string={"u": "host1", "sv": duplicate_payload["state"]["version"]},
+            headers={"X-Player-Token": host_token},
         )
         self.assertEqual(room_waiting.status_code, 200)
         room_waiting_payload = room_waiting.get_json()
@@ -726,7 +794,11 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(started_payload["state"]["turn"], "guest1")
         self.assertEqual(started_payload["rematch_pending_players"], [])
 
-        reset_room = self.client.get(f"/api/rooms/{code}", query_string={"u": "guest1", "pt": guest_token})
+        reset_room = self.client.get(
+            f"/api/rooms/{code}",
+            query_string={"u": "guest1"},
+            headers={"X-Player-Token": guest_token},
+        )
         self.assertEqual(reset_room.status_code, 200)
         reset_payload = reset_room.get_json()
         self.assertEqual(reset_payload["room_phase"], "playing")

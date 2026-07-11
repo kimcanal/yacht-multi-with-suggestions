@@ -90,11 +90,13 @@ Response:
 
 Notes:
 
-- `strategy_mode`: `focused` 또는 `cover`
+- `strategy_mode`: `focused`, `cover`, `optimal`
 - 레거시 별칭 `safe`, `aggressive`는 서버에서 `focused`로 정규화됩니다.
 - `scorecard`: 12칸 배열, 비어 있는 칸은 `null`
 - `rolls_left = 0`이면 `stage = "score"`로 기록 추천을 반환하고, `keep_indices`는 빈 배열입니다.
 - `decision_report`: AI 결론을 UI/로그에서 사람이 읽을 수 있게 만든 설명 객체입니다. exact solver 또는 학습 정책 모델 중 어떤 방식으로 결정했는지, confidence, 핵심 근거, 비교 포인트, ML/DL 모델의 역할 설명을 포함합니다.
+- `strategy_mode = "optimal"`이면 `banked_score`, `remaining_game_ev`, `expected_final_score`, `alternative_gap`을 추가로 반환합니다. `expected_final_score`는 현재 점수판에 기록된 `banked_score`와 이번 선택 이후 게임 종료까지의 `remaining_game_ev`를 합산한 값입니다.
+- Optimal 모드에 필요한 full-game exact value table을 읽을 수 없거나 현재 상태가 누락된 경우, 휴리스틱 결과를 exact로 표시하지 않고 `503`과 `error = "exact_value_unavailable"`을 반환합니다.
 
 Example:
 
@@ -108,6 +110,20 @@ curl -s "$BASE_URL/api/recommend" \
     "strategy_mode": "focused"
   }'
 ```
+
+### `POST /api/win-probability`
+
+양쪽 점수판의 full-game exact 기대 최종점수를 즉시 계산하고, `value_optimal` 정책 기반 Monte Carlo 승률을 백그라운드에서 계산합니다. 첫 응답은 `202 pending`일 수 있으며 `retry_after_ms` 뒤 동일한 body로 다시 요청하면 캐시된 `200 ready` 결과를 받습니다.
+
+```json
+{
+  "my_scorecard": [null, null, null, null, null, null, null, null, null, null, null, null],
+  "opp_scorecard": [null, null, null, null, null, null, null, null, null, null, null, null],
+  "samples": 30
+}
+```
+
+진행 중인 턴은 `my_dice` + `my_rolls_left` 또는 `opp_dice` + `opp_rolls_left`를 함께 보낼 수 있습니다. 샘플 수는 5~100으로 제한됩니다.
 
 ## Leaderboard
 

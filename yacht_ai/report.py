@@ -64,7 +64,10 @@ def _method_note(policy_source, stage):
             "confidence 기준을 넘은 경우에만 채택됩니다."
         )
     if policy_source == "exact_value_optimal":
-        return "즉시 점수와 전체 12칸 value table의 V(next_state)를 합산해 기대 최종점수가 가장 큰 선택을 고릅니다."
+        return (
+            "현재 기록 점수와 이번 선택 이후의 기대점수를 합산해 기대 최종점수가 가장 큰 선택을 고릅니다. "
+            "이후 기대점수에는 이번 턴의 기록과 남은 모든 턴의 full-game exact V가 포함됩니다."
+        )
     if stage == "score":
         return "점수 기록 단계는 현재 점수와 남은 칸의 장기 가치를 utility로 비교한 계산 결과입니다."
     return "현재 Yacht 상태공간은 작아서 모든 합리적 keep 후보를 동적계획법으로 직접 비교할 수 있습니다."
@@ -106,7 +109,7 @@ def build_decision_report(result, dice, rolls_left, strategy_mode, scorecard, op
             "mode": strategy_mode,
             "target": primary_target,
             "action": result.get("message") or primary_target,
-            "expected_value": result.get("expected_value"),
+            "expected_value": result.get("expected_final_score", result.get("expected_value")),
         },
         "method": {
             "source": policy_source,
