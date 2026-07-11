@@ -90,7 +90,7 @@ Response:
 
 Notes:
 
-- `strategy_mode`: `focused` 또는 `cover`
+- `strategy_mode`: `focused`, `cover`, `optimal`
 - 레거시 별칭 `safe`, `aggressive`는 서버에서 `focused`로 정규화됩니다.
 - `scorecard`: 12칸 배열, 비어 있는 칸은 `null`
 - `rolls_left = 0`이면 `stage = "score"`로 기록 추천을 반환하고, `keep_indices`는 빈 배열입니다.
@@ -108,6 +108,20 @@ curl -s "$BASE_URL/api/recommend" \
     "strategy_mode": "focused"
   }'
 ```
+
+### `POST /api/win-probability`
+
+양쪽 점수판의 full-game exact 기대 최종점수를 즉시 계산하고, `value_optimal` 정책 기반 Monte Carlo 승률을 백그라운드에서 계산합니다. 첫 응답은 `202 pending`일 수 있으며 `retry_after_ms` 뒤 동일한 body로 다시 요청하면 캐시된 `200 ready` 결과를 받습니다.
+
+```json
+{
+  "my_scorecard": [null, null, null, null, null, null, null, null, null, null, null, null],
+  "opp_scorecard": [null, null, null, null, null, null, null, null, null, null, null, null],
+  "samples": 30
+}
+```
+
+진행 중인 턴은 `my_dice` + `my_rolls_left` 또는 `opp_dice` + `opp_rolls_left`를 함께 보낼 수 있습니다. 샘플 수는 5~100으로 제한됩니다.
 
 ## Leaderboard
 

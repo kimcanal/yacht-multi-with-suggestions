@@ -114,12 +114,16 @@ full-game exact value table이 있으므로 추천 품질을 이론 최적 대�
 - 점수 기록은 서버가 현재 주사위와 점수판으로 다시 계산합니다.
 - roll 결과는 commit-reveal fairness 상태로 검증할 수 있습니다.
 - 방 채팅은 참가자/관전자 모두 사용할 수 있고, 최근 40개 메시지를 유지합니다.
+- 참가자 토큰은 URL이 아니라 `X-Player-Token` 헤더 또는 POST body로만 전송합니다.
+- 상태 변경은 SSE로 감지하고, 연결 실패 시 polling으로 자동 복귀합니다.
 
-## 승률 엔진 실험
+## 승률 분석
 
-`yacht_ai/win_probability.py`에는 멀티플레이어 판세를 추정하는 Monte Carlo 승률 엔진 프로토타입이 있습니다. 양쪽 플레이어가 남은 게임을 `value_optimal` 정책으로 진행한다고 가정하고 win/loss/tie 확률과 예상 최종점수를 추정합니다.
+멀티 화면은 점수판별 exact value table 예상 최종점수를 즉시 표시하고, 백그라운드 Monte Carlo 결과가 준비되면 승률과 표본 오차를 갱신합니다. 양쪽 플레이어가 남은 게임을 `value_optimal` 정책으로 진행한다고 가정하며, 상태별 결과는 서버에서 캐시됩니다.
 
-아직 API/UI에는 연결하지 않았습니다. 현재는 제품 기능이라기보다 다음 기능을 위한 검증된 엔진입니다.
+- `POST /api/win-probability`는 첫 요청에 `202 pending`을 반환하고 계산 완료 후 같은 요청에 `200 ready`를 반환합니다.
+- 기본 30샘플이라 표본 오차가 넓을 수 있으며 UI에 오차 폭을 함께 표시합니다.
+- 승률 최대화 정책이 아니라 양쪽 모두 EV 최적 플레이를 계속한다는 조건부 전망입니다.
 
 - fast-path 적용 후 `samples=20, seed=1`: 46.87초 -> 2.86초
 - 100샘플 재검증: 약 7.97초
@@ -132,6 +136,7 @@ full-game exact value table이 있으므로 추천 품질을 이론 최적 대�
 | API | 용도 |
 | --- | --- |
 | `POST /api/recommend` | AI 추천 |
+| `POST /api/win-probability` | exact 기대 최종점수 + 캐시된 Monte Carlo 승률 |
 | `POST /api/single/start` | 싱글 랭킹용 서버 검증 세션 시작 |
 | `POST /api/single/roll` | 싱글 랭킹 세션 주사위 굴림 |
 | `POST /api/single/score` | 싱글 랭킹 세션 점수 기록 |

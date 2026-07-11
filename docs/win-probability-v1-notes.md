@@ -27,7 +27,16 @@
 - 유닛 테스트(`tests/test_win_probability.py`)는 1칸만 남은 빠른 케이스로 shape/monotonicity만
   확인한다(전체 스위트에 추가해도 <2초).
 
-## 알려진 한계 — 프로덕션 투입 전 필요한 작업
+## API/UI 연결 (2026-07-11)
+
+`POST /api/win-probability`와 멀티 판세 패널에 연결했다. 요청 스레드는 시뮬레이션을 기다리지 않고 `202 pending`을 반환하며, 백그라운드 worker가 상태별 계산을 한 번만 수행한다. 같은 body를 다시 요청하면 완료된 캐시를 `200 ready`로 반환한다.
+
+- 점수판 예상 최종점수는 open12 exact value table로 즉시 표시한다.
+- 기본 Monte Carlo는 30샘플이며 UI에 95% 표본 오차를 같이 표시한다.
+- 캐시는 기본 10분, 최대 64개 상태를 유지한다.
+- 환경변수: `YACHT_WIN_PROBABILITY_WORKERS`, `YACHT_WIN_PROBABILITY_SAMPLES`, `YACHT_WIN_PROBABILITY_CACHE_MAX`, `YACHT_WIN_PROBABILITY_CACHE_TTL`.
+
+## 알려진 한계
 
 **속도는 크게 개선됐지만, 동기 API에 바로 붙이기에는 아직 무겁다.** 초기 구현은 빈 점수판 기준
 1인분 풀게임 시뮬레이션이 약 **1.17초/rollout** 걸렸다. solver fast-path(`explain=False`)와
@@ -37,14 +46,13 @@ value-optimal 전이 캐시를 넣은 뒤, 같은 조건의 `samples=20, seed=1`
 
 이번 최적화는 `keep_indices`/`primary_target`만 필요한 승률 시뮬레이션에서 한국어 설명 문구,
 breakdown row, decision report 조립을 건너뛰고, 같은 점수판 상태에서 반복되는 exact DP 전이 합산을
-LRU 캐시로 재사용한다. API/UI에는 아직 연결하지 않았다.
+LRU 캐시로 재사용한다.
 
-다음 중 하나(또는 조합)가 필요하다:
+다음 고도화 후보:
 
-1. **비동기/캐시 설계**: 요청-응답을 막지 않고 턴이 바뀔 때만 재계산 + 게임 상태 키로 캐싱.
-2. **샘플 수/신뢰구간 UX 조정**: 30~50샘플의 넓은 CI를 "대략치"로 노출할지, 백그라운드에서
+1. **점진적 샘플 누적**: 30~50샘플의 넓은 CI를 먼저 보여주고, 백그라운드에서
    샘플을 누적해 점진적으로 좁힐지 결정.
-3. **exact 분포 테이블**(원래 계획): 상태당 O(1) 조회로 바뀌므로 가장 빠르지만, 오프라인 빌드
+2. **exact 분포 테이블**(원래 계획): 상태당 O(1) 조회로 바뀌므로 가장 빠르지만, 오프라인 빌드
    비용이 가장 크다. 위 MC 버전으로 설계 방향이 맞다는 확신이 선 뒤 투자할 옵션.
 
 ## 사용법
@@ -62,5 +70,4 @@ result = estimate_win_probability(
 #  "my_avg_final":..., "opp_avg_final":...}
 ```
 
-API/UI 연결은 이번 단계에 포함하지 않았다 — 위 속도 문제를 먼저 풀거나, 낮은 샘플 수(예: 30~50)로
-CI가 넓은 대략치를 받아들일지부터 결정해야 한다.
+제품 UI의 승률은 정확한 확률표가 아니라 표본 기반 전망이므로, 항상 샘플 수와 오차 폭을 함께 표시한다.
