@@ -182,6 +182,8 @@ flowchart LR
 
 **후속:** 최신 teacher 32,768개로 재학습한 v3는 같은 독립 표본에서 Top-1 94.04%, guard 채택률 52.60%로 회복했다. 하지만 model-only complete-game은 exact보다 12.18점 낮아, v3도 단독 배포하지 않고 staging 후보로만 유지한다. 자세한 수치: [v3 검증](./model-20260717-roll-policy-v3.md).
 
+**정량 W/T/L:** indexed dice 200 paired games에서 v3 guard는 exact 대비 24승 / 161무 / 15패(Non-loss 92.5%, 평균 +1.59점, 95% CI -0.22~+3.40)였다. 이는 공정한 정책 비교이며 실제 온라인 대전 승률은 아니다.
+
 ---
 
 ## 8. 결론과 대학원에서 확장할 연구

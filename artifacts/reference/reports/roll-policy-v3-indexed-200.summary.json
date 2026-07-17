@@ -1,0 +1,40 @@
+{
+  "metric_name": "paired_score_win_tie_loss_vs_exact",
+  "interpretation": "Same indexed dice slots are assigned to each policy. This is a counterfactual policy-quality comparison, not a live two-player matchmaking win rate.",
+  "mode": "focused",
+  "games": 200,
+  "seed": 20260724,
+  "random_source": "indexed",
+  "baseline": {
+    "label": "exact",
+    "avg_total": 174.97,
+    "upper_bonus_rate": 0.41
+  },
+  "v3_guarded_runtime": {
+    "avg_total": 176.56,
+    "avg_delta_vs_exact": 1.59,
+    "paired_delta_95ci": [-0.222, 3.402],
+    "wins": 24,
+    "ties": 161,
+    "losses": 15,
+    "strict_win_rate": 0.12,
+    "non_loss_rate": 0.925,
+    "strict_win_rate_wilson_95ci": [0.082, 0.1723],
+    "upper_bonus_rate": 0.41,
+    "model_runtime_roll_decisions": 2514,
+    "exact_fallback_roll_decisions": 2222
+  },
+  "v3_model_only": {
+    "avg_total": 162.025,
+    "avg_delta_vs_exact": -12.945,
+    "paired_delta_95ci": [-18.372, -7.518],
+    "wins": 66,
+    "ties": 13,
+    "losses": 121,
+    "strict_win_rate": 0.33,
+    "non_loss_rate": 0.395,
+    "strict_win_rate_wilson_95ci": [0.2686, 0.3978],
+    "upper_bonus_rate": 0.195
+  },
+  "source": "artifacts/generated/model-v3-training/full-game-focused-indexed-200-v3.json"
+}

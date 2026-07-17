@@ -68,6 +68,22 @@ Focused mode, 100 games, seed `20260717`; score stage는 동일한 exact 추천�
 
 runtime guard는 exact보다 좋다고 증명되지는 않았지만, 이 표본에서 유의한 악화도 보이지 않았다. model-only의 성능 저하는 유의하므로 단독 모델 배포는 금지한다.
 
+## 정량 지표: indexed paired score W/T/L
+
+정책 간 공정 비교를 위해 턴·reroll 단계·주사위 위치마다 같은 indexed 난수를 배정했다. 따라서 아래 W/T/L은 같은 운에서 v3가 exact보다 높은/같은/낮은 최종 점수를 낸 횟수다. 실제 두 사용자가 독립적으로 주사위를 굴리는 온라인 대전 승률과는 구분한다.
+
+Focused mode, 200 paired games, seed `20260724`:
+
+| Policy | 평균 총점 | 평균 차 | 95% CI | W / T / L | Strict win | Non-loss |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| exact | 174.97 | 기준 | - | - | - | - |
+| v3 runtime guard | 176.56 | +1.59 | -0.22~+3.40 | **24 / 161 / 15** | 12.0% | **92.5%** |
+| v3 model-only | 162.03 | -12.95 | -18.37~-7.52 | 66 / 13 / 121 | 33.0% | 39.5% |
+
+guarded v3의 strict win rate 12.0%의 95% Wilson interval은 8.2%~17.2%다. 동점 80.5%는 4,736 roll decisions 중 2,222회를 exact fallback하고, 나머지에서도 exact와 같은 결정을 자주 내린 결과다. 평균 차이의 95% CI가 0을 포함하므로 v3가 exact보다 낫다고 주장하지 않는다. 이 표는 model-only가 평균적으로 명확히 열세라는 점과 guard가 exact와 같은 성능대를 유지한다는 점을 함께 보여준다.
+
+원본 요약: `artifacts/reference/reports/roll-policy-v3-indexed-200.summary.json`
+
 ## Indicative latency check
 
 동일 프로세스, cold-cache 대표 6개 시나리오에서 model-only 예측은 약 0.11~0.22 ms였다. 그러나 안전한 runtime guard는 exact gap을 재계산하므로 약 0.21~79.18 ms였고, exact 전체 탐색의 약 58.63~178.75 ms보다 일부 시나리오에서만 빨랐다. 이 수치는 로컬 마이크로벤치마크이므로 production latency 이득의 근거로는 부족하다.
