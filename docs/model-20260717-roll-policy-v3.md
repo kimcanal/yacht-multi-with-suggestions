@@ -6,6 +6,8 @@
 
 독립 검증 성능과 exact guard 안전성은 v2보다 크게 개선됐다. 하지만 model-only complete-game 결과가 exact보다 유의하게 낮으므로 **단독 활성화는 금지**다. 현재 서버의 모델 비활성 상태는 유지한다. v3는 다음 단계의 opt-in/staging 후보로만 보관한다.
 
+현재 API의 기본 `focused` 모드는 score-stage exact value 정책(`value_score_only`)을 사용하므로, 모델 파일을 로드해도 roll 단계까지 exact 경로를 유지한다. learned roll policy가 실제로 사용될 수 있는 기본 경로는 `cover` 모드다. 이 동작은 integration test로 고정했다.
+
 ## 학습 설정
 
 | 항목 | 값 |
