@@ -67,9 +67,10 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("const FAST_SAMPLES = 30", self.winprob)
         self.assertIn("const REFINED_SAMPLES = 100", self.winprob)
         self.assertIn("REFINED_SAMPLES}회 정밀 계산 중", self.winprob)
-        self.assertIn("최적 정책보다 게임당 기대점수 10.4점 낮음", self.multi)
-        self.assertIn("최적 정책보다 게임당 기대점수 37.9점 낮음", self.multi)
-        self.assertIn("기대점수 기준 최적 · 이론 평균 198.4점", self.multi)
+        self.assertIn("한 족보의 완성과 상단 보너스 흐름을 우선 고려", self.multi)
+        self.assertIn("여러 하단 족보의 성공 가능성을 함께 보존", self.multi)
+        self.assertIn("남은 점수판 가치까지 반영한 기대점수 기준", self.multi)
+        self.assertNotIn("최적 정책보다 게임당 기대점수", self.multi)
 
     def test_upper_bonus_is_explained_once_in_the_overview(self):
         self.assertIn("상단 합계 63점 달성 시 +35점", self.score_utils)
