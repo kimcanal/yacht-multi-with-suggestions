@@ -3,8 +3,8 @@
 - Mode: `focused`
 - Games: `200` paired seeds
 - Seed: `20260708`
-- Value table: `artifacts/value/endgame-value-table-open4.json`
-- Learned model: `artifacts/models/scorecard-value-linear-v1.json`
+- Value table: `artifacts/runtime/value/endgame-value-table-open4.json`
+- Learned model: `artifacts/runtime/models/scorecard-value-linear-v1.json`
 - Learned guard: validation MAE <= `25.0`, next turns >= `5`
 
 ## Summary

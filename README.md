@@ -1,6 +1,6 @@
 # Yacht Multi With Suggestions
 
-Flask 기반의 웹 요트 다이스 게임입니다. 싱글플레이, VS AI, 실시간 1:1 멀티플레이, 관전, 리더보드, 방 채팅, AI 추천 코치를 제공합니다.
+Flask 기반의 웹 요트 다이스 게임입니다. 싱글플레이, VS AI, 실시간 1:1 멀티플레이, 관전, 리더보드, 실시간 감정표현, AI 추천 코치를 제공합니다.
 
 이 프로젝트의 핵심은 "추천을 보여주는 게임"을 넘어서, **exact solver를 기준선으로 삼고 추천 품질을 수치로 검증하는 게임 AI 시스템**을 제품 UI에 연결한 점입니다.
 
@@ -68,8 +68,16 @@ export YACHT_DATA_FILE=/path/to/game_data.json
 ```bash
 export YACHT_ROOM_BACKEND=redis
 export YACHT_PRESENCE_BACKEND=redis
+export YACHT_SESSION_BACKEND=redis
 export YACHT_REDIS_URL=redis://localhost:6379/0
 python3 server.py
+```
+
+리더보드와 경기 결과는 JSON 호환 backend가 기본입니다. 다중 worker에서는 SQLite backend를 사용합니다.
+
+```bash
+export YACHT_RESULT_BACKEND=sqlite
+export YACHT_SQLITE_PATH=/var/lib/yacht/game_data.sqlite3
 ```
 
 ## AI 코치
@@ -113,7 +121,7 @@ full-game exact value table이 있으므로 추천 품질을 이론 최적 대�
 - `/sync`는 클라이언트가 보낸 dice 값을 신뢰하지 않습니다.
 - 점수 기록은 서버가 현재 주사위와 점수판으로 다시 계산합니다.
 - roll 결과는 commit-reveal fairness 상태로 검증할 수 있습니다.
-- 방 채팅은 참가자/관전자 모두 사용할 수 있고, 최근 40개 메시지를 유지합니다.
+- 멀티 참가자는 허용된 감정표현을 보낼 수 있고, 상대와 관전자 화면에는 전용 SSE 이벤트로 큰 이모지와 효과음이 즉시 재생됩니다. 서버와 UI에 2초 쿨다운이 적용됩니다.
 - 참가자 토큰은 URL이 아니라 `X-Player-Token` 헤더 또는 POST body로만 전송합니다.
 - 상태 변경은 SSE로 감지하고, 연결 실패 시 polling으로 자동 복귀합니다.
 
@@ -122,7 +130,7 @@ full-game exact value table이 있으므로 추천 품질을 이론 최적 대�
 멀티 화면은 점수판별 exact value table 예상 최종점수를 즉시 표시하고, 백그라운드 Monte Carlo 결과가 준비되면 승률과 표본 오차를 갱신합니다. 양쪽 플레이어가 남은 게임을 `value_optimal` 정책으로 진행한다고 가정하며, 상태별 결과는 서버에서 캐시됩니다.
 
 - `POST /api/win-probability`는 첫 요청에 `202 pending`을 반환하고 계산 완료 후 같은 요청에 `200 ready`를 반환합니다.
-- 기본 30샘플이라 표본 오차가 넓을 수 있으며 UI에 오차 폭을 함께 표시합니다.
+- UI는 30샘플 빠른 추정을 먼저 표시하고 같은 상태를 100샘플로 자동 보정하며, 각 단계의 표본 오차를 함께 표시합니다.
 - 승률 최대화 정책이 아니라 양쪽 모두 EV 최적 플레이를 계속한다는 조건부 전망입니다.
 
 - fast-path 적용 후 `samples=20, seed=1`: 46.87초 -> 2.86초
@@ -146,7 +154,7 @@ full-game exact value table이 있으므로 추천 품질을 이론 최적 대�
 | `POST /api/rooms/<code>/observe` | 관전 입장 |
 | `POST /api/rooms/<code>/roll` | 서버 권위 주사위 굴림 |
 | `POST /api/rooms/<code>/sync` | 멀티 상태 동기화/점수 기록 |
-| `POST /api/rooms/<code>/chat` | 방 채팅 |
+| `POST /api/rooms/<code>/reaction` | 멀티 감정표현 전송 |
 | `GET /api/rooms/<code>/fairness` | 현재 fairness commit/reveal 상태 |
 | `POST /api/rooms/<code>/rematch` | 재대결 동의 |
 | `GET /api/leaderboard/single` | 싱글 리더보드 |
@@ -157,9 +165,15 @@ full-game exact value table이 있으므로 추천 품질을 이론 최적 대�
 
 요청/응답 예시는 [API.md](./API.md)를 참고하세요.
 
+## 오픈소스 에셋
+
+감정표현 SVG는 [OpenMoji](https://openmoji.org/) 17.0.0의 컬러 에셋을 사용합니다. OpenMoji는 HfG Schwäbisch Gmünd와 기여자들이 만든 오픈소스 이모지 프로젝트이며, 그래픽은 [CC BY-SA 4.0](./static/assets/openmoji/LICENSE.txt)으로 제공됩니다.
+
 ## 검증 명령
 
 ```bash
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/ruff check .
 .venv/bin/python -m unittest discover -s tests
 .venv/bin/python scripts/check_ai_golden.py
 node --check static/js/ai_panel.js
@@ -174,7 +188,7 @@ AI 추천 품질/성능 측정:
 .venv/bin/python scripts/eval_decision_regret.py \
   --games 100 \
   --policies focused,cover,optimal \
-  --output artifacts/reports/decision-regret-100.json \
+  --output artifacts/reference/reports/decision-regret-100.json \
   --markdown-output docs/decision-regret-100.md
 ```
 
@@ -183,7 +197,7 @@ full-game value table 빌드:
 ```bash
 .venv/bin/python scripts/build_value_table.py \
   --batch-open-count 12 \
-  --output artifacts/value/endgame-value-table-open12.npz \
+  --output artifacts/generated/value/endgame-value-table-open12.npz \
   --output-format npz \
   --max-states 600000
 ```
@@ -192,21 +206,25 @@ full-game value table 빌드:
 
 ```text
 yacht-multi-with-suggestions/
-├── server.py                  # Flask app entrypoint
-├── wsgi.py                    # gunicorn entrypoint
-├── routes/                    # AI, lobby, room, leaderboard, single APIs
-├── yacht_ai/                  # solver, scoring, value table, win probability
-├── yacht_engine.py            # game-facing AI wrapper
-├── templates/                 # Flask templates
+├── server.py / wsgi.py        # compatibility and process entrypoints
+├── yacht_app/                 # app factory, web, services, stores, infrastructure
+├── yacht_core/                # AI-independent rules, scoring, simulation
+├── yacht_ai/                  # solver, policies, value models, reports
+├── routes/                    # thin Flask API controllers
+├── templates/                 # base template and page markup
 ├── static/
-│   ├── css/base.css           # shared UI styles
-│   └── js/                    # vanilla JS frontend modules
-├── tests/                     # route/AI/win-probability regression tests
-├── scripts/                   # benchmarks, simulations, value-table builders
-├── docs/                      # AI reports, screenshots, design notes
-├── artifacts/                 # value tables, reports, trained policy artifacts
-├── API.md
-└── README.md
+│   ├── css/pages/             # page-specific styles
+│   └── js/pages/              # page-specific controllers
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── frontend/
+├── scripts/                   # experiment and operations CLI entrypoints
+├── docs/
+└── artifacts/
+    ├── runtime/               # deployment-required models and value tables
+    ├── reference/             # versioned benchmark evidence
+    └── generated/             # ignored local experiment output
 ```
 
 ## 게임 규칙 요약
@@ -237,6 +255,7 @@ Ones~Sixes는 해당 숫자의 합계입니다. Upper Section 합계가 63점 �
 - [AI 결정 프레임워크](./docs/ai-decision-framework.md)
 - [성능 로드맵](./docs/performance-roadmap.md)
 - [승률 엔진 노트](./docs/win-probability-v1-notes.md)
+- [Artifact 관리 정책](./artifacts/README.md)
 
 ## 라이선스
 

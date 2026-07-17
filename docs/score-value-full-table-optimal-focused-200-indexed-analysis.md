@@ -1,10 +1,10 @@
 # Score Value Paired-case Analysis
 
-- Source report: `artifacts/reports/score-value-full-table-optimal-focused-200-indexed.json`
+- Source report: `artifacts/reference/reports/score-value-full-table-optimal-focused-200-indexed.json`
 - Mode: `focused`
 - Games: `200` paired seeds
 - Seed: `20260708`
-- Value table: `artifacts/value/endgame-value-table-open12.npz`
+- Value table: `artifacts/runtime/value/endgame-value-table-open12.npz`
 - Random source: `indexed`
 
 ## value

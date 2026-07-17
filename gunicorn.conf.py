@@ -1,6 +1,4 @@
-import multiprocessing
 import os
-
 
 bind = f"{os.getenv('YACHT_HOST', '0.0.0.0')}:{os.getenv('YACHT_PORT', '8080')}"
 worker_class = "gthread"

@@ -1,0 +1,4390 @@
+{
+  "mode": "focused",
+  "games": 200,
+  "seed": 20260708,
+  "value_table": "artifacts/runtime/value/endgame-value-table-open3.json",
+  "learned_model": "",
+  "learned_max_mae": 25.0,
+  "learned_min_turns": 5,
+  "policies": [
+    {
+      "label": "heuristic",
+      "games": 200,
+      "avg_total": 177.635,
+      "median_total": 171.5,
+      "stdev_total": 44.5676,
+      "min_total": 93,
+      "max_total": 367,
+      "avg_upper_score": 56.665,
+      "upper_bonus_rate": 0.345,
+      "avg_yacht_bonus_count": 0.03,
+      "avg_zero_categories": 1.455,
+      "avg_value_score_hits": 0.0,
+      "avg_learned_value_score_hits": 0.0,
+      "avg_value_score_fallbacks": 0.0,
+      "avg_delta_vs_heuristic": 0.0,
+      "median_delta_vs_heuristic": 0.0,
+      "min_delta_vs_heuristic": 0,
+      "max_delta_vs_heuristic": 0,
+      "win_rate_vs_heuristic": 0.0,
+      "loss_rate_vs_heuristic": 0.0,
+      "totals": [
+        144,
+        130,
+        234,
+        204,
+        243,
+        143,
+        171,
+        114,
+        201,
+        239,
+        147,
+        184,
+        162,
+        161,
+        145,
+        190,
+        111,
+        182,
+        187,
+        149,
+        130,
+        159,
+        135,
+        146,
+        189,
+        192,
+        135,
+        141,
+        194,
+        188,
+        152,
+        197,
+        156,
+        117,
+        160,
+        190,
+        122,
+        206,
+        165,
+        134,
+        216,
+        159,
+        151,
+        221,
+        194,
+        152,
+        125,
+        117,
+        186,
+        297,
+        144,
+        165,
+        144,
+        139,
+        186,
+        195,
+        131,
+        154,
+        218,
+        169,
+        343,
+        222,
+        242,
+        186,
+        182,
+        187,
+        123,
+        124,
+        139,
+        160,
+        186,
+        194,
+        174,
+        209,
+        203,
+        190,
+        248,
+        150,
+        263,
+        165,
+        174,
+        159,
+        222,
+        141,
+        145,
+        158,
+        179,
+        136,
+        208,
+        201,
+        116,
+        156,
+        194,
+        158,
+        211,
+        158,
+        249,
+        247,
+        208,
+        130,
+        161,
+        216,
+        149,
+        150,
+        93,
+        183,
+        196,
+        189,
+        143,
+        143,
+        328,
+        180,
+        146,
+        367,
+        170,
+        151,
+        214,
+        148,
+        149,
+        148,
+        99,
+        172,
+        250,
+        181,
+        155,
+        125,
+        211,
+        159,
+        163,
+        198,
+        237,
+        210,
+        199,
+        112,
+        176,
+        206,
+        173,
+        191,
+        202,
+        171,
+        211,
+        234,
+        227,
+        170,
+        130,
+        137,
+        170,
+        136,
+        325,
+        148,
+        189,
+        218,
+        209,
+        131,
+        212,
+        199,
+        164,
+        175,
+        178,
+        141,
+        205,
+        208,
+        163,
+        158,
+        178,
+        208,
+        195,
+        125,
+        103,
+        198,
+        172,
+        175,
+        185,
+        152,
+        127,
+        124,
+        212,
+        213,
+        128,
+        157,
+        237,
+        150,
+        138,
+        143,
+        189,
+        150,
+        140,
+        340,
+        222,
+        168,
+        239,
+        187,
+        219,
+        145,
+        162,
+        97,
+        160,
+        164,
+        240,
+        181
+      ],
+      "paired_delta_vs_heuristic": []
+    },
+    {
+      "label": "value_score_only",
+      "games": 200,
+      "avg_total": 177.155,
+      "median_total": 172.5,
+      "stdev_total": 42.6245,
+      "min_total": 93,
+      "max_total": 367,
+      "avg_upper_score": 56.57,
+      "upper_bonus_rate": 0.355,
+      "avg_yacht_bonus_count": 0.025,
+      "avg_zero_categories": 1.675,
+      "avg_value_score_hits": 4.0,
+      "avg_learned_value_score_hits": 0.0,
+      "avg_value_score_fallbacks": 8.0,
+      "avg_delta_vs_heuristic": -0.48,
+      "median_delta_vs_heuristic": 0.0,
+      "min_delta_vs_heuristic": -77,
+      "max_delta_vs_heuristic": 49,
+      "win_rate_vs_heuristic": 0.095,
+      "loss_rate_vs_heuristic": 0.22,
+      "totals": [
+        148,
+        130,
+        234,
+        203,
+        243,
+        141,
+        169,
+        114,
+        201,
+        239,
+        147,
+        184,
+        162,
+        160,
+        145,
+        190,
+        111,
+        179,
+        187,
+        149,
+        130,
+        159,
+        135,
+        146,
+        188,
+        192,
+        135,
+        141,
+        194,
+        210,
+        152,
+        197,
+        156,
+        117,
+        160,
+        190,
+        121,
+        206,
+        165,
+        134,
+        216,
+        159,
+        151,
+        221,
+        194,
+        149,
+        130,
+        117,
+        183,
+        220,
+        141,
+        165,
+        144,
+        136,
+        186,
+        193,
+        132,
+        154,
+        218,
+        169,
+        343,
+        222,
+        242,
+        186,
+        182,
+        187,
+        147,
+        123,
+        139,
+        140,
+        186,
+        191,
+        174,
+        209,
+        203,
+        190,
+        248,
+        193,
+        263,
+        165,
+        174,
+        173,
+        219,
+        141,
+        145,
+        156,
+        179,
+        136,
+        232,
+        201,
+        116,
+        156,
+        194,
+        155,
+        211,
+        158,
+        249,
+        248,
+        211,
+        130,
+        200,
+        204,
+        149,
+        150,
+        93,
+        176,
+        196,
+        189,
+        143,
+        143,
+        315,
+        179,
+        146,
+        367,
+        167,
+        143,
+        214,
+        149,
+        149,
+        151,
+        99,
+        172,
+        250,
+        154,
+        168,
+        125,
+        211,
+        159,
+        163,
+        208,
+        237,
+        210,
+        199,
+        112,
+        173,
+        206,
+        173,
+        203,
+        202,
+        171,
+        211,
+        234,
+        227,
+        141,
+        130,
+        152,
+        170,
+        185,
+        299,
+        148,
+        189,
+        215,
+        209,
+        128,
+        160,
+        199,
+        162,
+        175,
+        176,
+        141,
+        189,
+        206,
+        163,
+        157,
+        178,
+        208,
+        195,
+        134,
+        103,
+        197,
+        172,
+        175,
+        185,
+        149,
+        127,
+        123,
+        208,
+        213,
+        128,
+        157,
+        237,
+        150,
+        138,
+        143,
+        189,
+        150,
+        140,
+        310,
+        222,
+        168,
+        239,
+        187,
+        219,
+        145,
+        162,
+        97,
+        160,
+        162,
+        237,
+        181
+      ],
+      "paired_delta_vs_heuristic": [
+        4,
+        0,
+        0,
+        -1,
+        0,
+        -2,
+        -2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        -3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        22,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -3,
+        5,
+        0,
+        -3,
+        -77,
+        -3,
+        0,
+        0,
+        -3,
+        0,
+        -2,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        24,
+        -1,
+        0,
+        -20,
+        0,
+        -3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        43,
+        0,
+        0,
+        0,
+        14,
+        -3,
+        0,
+        0,
+        -2,
+        0,
+        0,
+        24,
+        0,
+        0,
+        0,
+        0,
+        -3,
+        0,
+        0,
+        0,
+        1,
+        3,
+        0,
+        39,
+        -12,
+        0,
+        0,
+        0,
+        -7,
+        0,
+        0,
+        0,
+        0,
+        -13,
+        -1,
+        0,
+        0,
+        -3,
+        -8,
+        0,
+        1,
+        0,
+        3,
+        0,
+        0,
+        0,
+        -27,
+        13,
+        0,
+        0,
+        0,
+        0,
+        10,
+        0,
+        0,
+        0,
+        0,
+        -3,
+        0,
+        0,
+        12,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -29,
+        0,
+        15,
+        0,
+        49,
+        -26,
+        0,
+        0,
+        -3,
+        0,
+        -3,
+        -52,
+        0,
+        -2,
+        0,
+        -2,
+        0,
+        -16,
+        -2,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        9,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        -3,
+        0,
+        -1,
+        -4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -30,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -2,
+        -3,
+        0
+      ]
+    }
+  ],
+  "paired_cases": {
+    "value_score_only": {
+      "worst": [
+        {
+          "game_index": 49,
+          "seed": 20310149,
+          "policy": "value_score_only",
+          "delta_vs_heuristic": -77,
+          "heuristic": {
+            "total_score": 297,
+            "upper_score": 58,
+            "upper_bonus": 0,
+            "yacht_score": 150,
+            "yacht_bonus_count": 1,
+            "zero_categories": 1,
+            "scorecard": [
+              5,
+              2,
+              9,
+              8,
+              10,
+              24,
+              20,
+              28,
+              26,
+              15,
+              0,
+              150
+            ],
+            "value_score_hits": 0,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 0,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  6,
+                  3,
+                  5,
+                  5,
+                  1
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 19.57
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  6,
+                  6,
+                  6,
+                  4,
+                  6
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 52.28
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  3,
+                  3,
+                  4,
+                  1,
+                  3
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 22.11
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  5,
+                  3,
+                  4,
+                  6,
+                  6
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.93
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  5,
+                  5,
+                  3,
+                  2,
+                  3
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 14.91
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  6,
+                  6,
+                  6,
+                  6,
+                  6
+                ],
+                "category": "Yacht",
+                "category_idx": 11,
+                "expected_value": 93.85
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  4,
+                  4,
+                  6,
+                  6,
+                  6
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 30.66
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  6,
+                  6,
+                  6,
+                  6,
+                  4
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 34.78
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  4,
+                  6,
+                  1,
+                  4,
+                  1
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 3.95
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  2,
+                  1,
+                  6,
+                  3,
+                  4
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 1.19
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  1,
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 108.82
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  6,
+                  4,
+                  3,
+                  3,
+                  5
+                ],
+                "category": null,
+                "category_idx": 10,
+                "expected_value": 0.0
+              }
+            ]
+          },
+          "value_score_only": {
+            "total_score": 220,
+            "upper_score": 51,
+            "upper_bonus": 0,
+            "yacht_score": 50,
+            "yacht_bonus_count": 0,
+            "zero_categories": 0,
+            "scorecard": [
+              2,
+              2,
+              9,
+              4,
+              10,
+              24,
+              20,
+              28,
+              26,
+              15,
+              30,
+              50
+            ],
+            "value_score_hits": 4,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 8,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  6,
+                  3,
+                  5,
+                  5,
+                  1
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 19.57
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  6,
+                  6,
+                  6,
+                  4,
+                  6
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 52.28
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  3,
+                  3,
+                  4,
+                  1,
+                  3
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 22.11
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  5,
+                  3,
+                  4,
+                  6,
+                  6
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.93
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  5,
+                  5,
+                  3,
+                  2,
+                  3
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 14.91
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  6,
+                  6,
+                  6,
+                  6,
+                  6
+                ],
+                "category": "Yacht",
+                "category_idx": 11,
+                "expected_value": 93.85
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  4,
+                  4,
+                  6,
+                  6,
+                  6
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 30.66
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  6,
+                  6,
+                  6,
+                  6,
+                  4
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 34.78
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  4,
+                  6,
+                  1,
+                  4,
+                  1
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 44.61
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  3,
+                  2,
+                  6,
+                  5,
+                  4
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 57.33
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  4,
+                  2,
+                  3,
+                  4,
+                  3
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 15.41
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  5,
+                  2,
+                  5,
+                  4,
+                  1
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 4.0
+              }
+            ]
+          }
+        },
+        {
+          "game_index": 154,
+          "seed": 20416094,
+          "policy": "value_score_only",
+          "delta_vs_heuristic": -52,
+          "heuristic": {
+            "total_score": 212,
+            "upper_score": 67,
+            "upper_bonus": 1,
+            "yacht_score": 0,
+            "yacht_bonus_count": 0,
+            "zero_categories": 1,
+            "scorecard": [
+              1,
+              6,
+              15,
+              12,
+              15,
+              18,
+              21,
+              28,
+              16,
+              15,
+              30,
+              0
+            ],
+            "value_score_hits": 0,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 0,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  6,
+                  5,
+                  5,
+                  5,
+                  4
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 32.62
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  6,
+                  6,
+                  5,
+                  5,
+                  6
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 38.57
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  4,
+                  4,
+                  6,
+                  2,
+                  4
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 25.44
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  4,
+                  5,
+                  3,
+                  6,
+                  1
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.93
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  5,
+                  2,
+                  2,
+                  2,
+                  5
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 19.53
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  1,
+                  6,
+                  6,
+                  5,
+                  3
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 21.35
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  5,
+                  2,
+                  2,
+                  6,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 14.96
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  4,
+                  1,
+                  5,
+                  5,
+                  5
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": -2.53
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  3,
+                  3,
+                  3,
+                  3,
+                  3
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 92.62
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  2,
+                  4,
+                  4,
+                  4,
+                  1
+                ],
+                "category": null,
+                "category_idx": 11,
+                "expected_value": 0.0
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  6,
+                  6,
+                  6,
+                  6,
+                  4
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 34.36
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  6,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.81
+              }
+            ]
+          },
+          "value_score_only": {
+            "total_score": 160,
+            "upper_score": 58,
+            "upper_bonus": 0,
+            "yacht_score": 50,
+            "yacht_bonus_count": 0,
+            "zero_categories": 2,
+            "scorecard": [
+              1,
+              6,
+              6,
+              12,
+              15,
+              18,
+              21,
+              0,
+              16,
+              15,
+              0,
+              50
+            ],
+            "value_score_hits": 4,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 8,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  6,
+                  5,
+                  5,
+                  5,
+                  4
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 32.62
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  6,
+                  6,
+                  5,
+                  5,
+                  6
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 38.57
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  4,
+                  4,
+                  6,
+                  2,
+                  4
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 25.44
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  4,
+                  5,
+                  3,
+                  6,
+                  1
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.93
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  5,
+                  2,
+                  2,
+                  2,
+                  5
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 19.53
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  1,
+                  6,
+                  6,
+                  5,
+                  3
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 21.35
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  5,
+                  2,
+                  2,
+                  6,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 14.96
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  4,
+                  1,
+                  5,
+                  5,
+                  5
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": -2.53
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  3,
+                  3,
+                  3,
+                  3,
+                  3
+                ],
+                "category": "Yacht",
+                "category_idx": 11,
+                "expected_value": 89.6
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  2,
+                  4,
+                  4,
+                  4,
+                  1
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 25.46
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  4,
+                  6,
+                  3,
+                  1,
+                  3
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 16.04
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  1,
+                  2,
+                  2,
+                  2,
+                  3
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 0.0
+              }
+            ]
+          }
+        },
+        {
+          "game_index": 187,
+          "seed": 20449391,
+          "policy": "value_score_only",
+          "delta_vs_heuristic": -30,
+          "heuristic": {
+            "total_score": 340,
+            "upper_score": 63,
+            "upper_bonus": 1,
+            "yacht_score": 150,
+            "yacht_bonus_count": 1,
+            "zero_categories": 1,
+            "scorecard": [
+              2,
+              8,
+              6,
+              20,
+              15,
+              12,
+              24,
+              23,
+              0,
+              15,
+              30,
+              150
+            ],
+            "value_score_hits": 0,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 0,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  3,
+                  4,
+                  6,
+                  6,
+                  5
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 24.31
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  6,
+                  2,
+                  4,
+                  6,
+                  4
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 20.59
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  2,
+                  2,
+                  2,
+                  2,
+                  2
+                ],
+                "category": "Yacht",
+                "category_idx": 11,
+                "expected_value": 93.81
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  5,
+                  5,
+                  5,
+                  3,
+                  6
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 31.66
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  4,
+                  5,
+                  3,
+                  3,
+                  2
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.84
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  5,
+                  3,
+                  5,
+                  5,
+                  5
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 29.63
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  5,
+                  3,
+                  5,
+                  3,
+                  2
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 7.22
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  4,
+                  4,
+                  4,
+                  4,
+                  4
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 139.53
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  4,
+                  2,
+                  2,
+                  2,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 36.08
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  1,
+                  3,
+                  2,
+                  1,
+                  4
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 47.7
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  2,
+                  3,
+                  2,
+                  4,
+                  5
+                ],
+                "category": null,
+                "category_idx": 8,
+                "expected_value": 0.0
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  5,
+                  6,
+                  2,
+                  3,
+                  4
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.75
+              }
+            ]
+          },
+          "value_score_only": {
+            "total_score": 310,
+            "upper_score": 63,
+            "upper_bonus": 1,
+            "yacht_score": 150,
+            "yacht_bonus_count": 1,
+            "zero_categories": 2,
+            "scorecard": [
+              2,
+              8,
+              6,
+              20,
+              15,
+              12,
+              24,
+              23,
+              0,
+              15,
+              0,
+              150
+            ],
+            "value_score_hits": 4,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 8,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  3,
+                  4,
+                  6,
+                  6,
+                  5
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 24.31
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  6,
+                  2,
+                  4,
+                  6,
+                  4
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 20.59
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  2,
+                  2,
+                  2,
+                  2,
+                  2
+                ],
+                "category": "Yacht",
+                "category_idx": 11,
+                "expected_value": 93.81
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  5,
+                  5,
+                  5,
+                  3,
+                  6
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 31.66
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  4,
+                  5,
+                  3,
+                  3,
+                  2
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.84
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  5,
+                  3,
+                  5,
+                  5,
+                  5
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 29.63
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  5,
+                  3,
+                  5,
+                  3,
+                  2
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 7.22
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  4,
+                  4,
+                  4,
+                  4,
+                  4
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 139.53
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  4,
+                  2,
+                  2,
+                  2,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 67.72
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  1,
+                  3,
+                  2,
+                  1,
+                  4
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 58.29
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  2,
+                  3,
+                  2,
+                  4,
+                  5
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 9.87
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  5,
+                  6,
+                  5,
+                  3,
+                  3
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 0.0
+              }
+            ]
+          }
+        },
+        {
+          "game_index": 143,
+          "seed": 20404995,
+          "policy": "value_score_only",
+          "delta_vs_heuristic": -29,
+          "heuristic": {
+            "total_score": 170,
+            "upper_score": 57,
+            "upper_bonus": 0,
+            "yacht_score": 0,
+            "yacht_bonus_count": 0,
+            "zero_categories": 1,
+            "scorecard": [
+              3,
+              4,
+              9,
+              8,
+              15,
+              18,
+              23,
+              26,
+              19,
+              15,
+              30,
+              0
+            ],
+            "value_score_hits": 0,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 0,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  5,
+                  6,
+                  4,
+                  6,
+                  2
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 23.16
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  4,
+                  5,
+                  5,
+                  5,
+                  1
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 32.65
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  1,
+                  6,
+                  6,
+                  4,
+                  6
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 38.64
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  6,
+                  3,
+                  5,
+                  2,
+                  4
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.71
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  5,
+                  4,
+                  3,
+                  6,
+                  3
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.98
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  3,
+                  5,
+                  3,
+                  3,
+                  5
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 23.1
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  2,
+                  6,
+                  6,
+                  6,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 4.19
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  1,
+                  1,
+                  1,
+                  5,
+                  6
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 6.37
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  2,
+                  2,
+                  4,
+                  2,
+                  4
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 7.57
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  3,
+                  3,
+                  6,
+                  2,
+                  3
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 18.81
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  5,
+                  5,
+                  5,
+                  5,
+                  6
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 32.3
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  5,
+                  3,
+                  5,
+                  6,
+                  5
+                ],
+                "category": null,
+                "category_idx": 11,
+                "expected_value": 0.0
+              }
+            ]
+          },
+          "value_score_only": {
+            "total_score": 141,
+            "upper_score": 54,
+            "upper_bonus": 0,
+            "yacht_score": 0,
+            "yacht_bonus_count": 0,
+            "zero_categories": 2,
+            "scorecard": [
+              3,
+              4,
+              6,
+              8,
+              15,
+              18,
+              23,
+              0,
+              19,
+              15,
+              30,
+              0
+            ],
+            "value_score_hits": 4,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 8,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  5,
+                  6,
+                  4,
+                  6,
+                  2
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 23.16
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  4,
+                  5,
+                  5,
+                  5,
+                  1
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 32.65
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  1,
+                  6,
+                  6,
+                  4,
+                  6
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 38.64
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  6,
+                  3,
+                  5,
+                  2,
+                  4
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.71
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  5,
+                  4,
+                  3,
+                  6,
+                  3
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.98
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  3,
+                  5,
+                  3,
+                  3,
+                  5
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 23.1
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  2,
+                  6,
+                  6,
+                  6,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 4.19
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  1,
+                  1,
+                  1,
+                  5,
+                  6
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 6.37
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  2,
+                  2,
+                  4,
+                  2,
+                  4
+                ],
+                "category": "Yacht",
+                "category_idx": 11,
+                "expected_value": 30.3
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  6,
+                  4,
+                  2,
+                  4,
+                  5
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 22.85
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  6,
+                  5,
+                  3,
+                  1,
+                  3
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 11.61
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  6,
+                  6,
+                  2,
+                  1,
+                  6
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 0.0
+              }
+            ]
+          }
+        },
+        {
+          "game_index": 123,
+          "seed": 20384815,
+          "policy": "value_score_only",
+          "delta_vs_heuristic": -27,
+          "heuristic": {
+            "total_score": 181,
+            "upper_score": 61,
+            "upper_bonus": 0,
+            "yacht_score": 0,
+            "yacht_bonus_count": 0,
+            "zero_categories": 1,
+            "scorecard": [
+              1,
+              8,
+              9,
+              16,
+              15,
+              12,
+              21,
+              26,
+              28,
+              15,
+              30,
+              0
+            ],
+            "value_score_hits": 0,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 0,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  5,
+                  4,
+                  5,
+                  5,
+                  6
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 32.62
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  2,
+                  6,
+                  6,
+                  1,
+                  4
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 19.76
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  3,
+                  4,
+                  3,
+                  5,
+                  2
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.89
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  2,
+                  4,
+                  5,
+                  6,
+                  4
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 21.11
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  4,
+                  3,
+                  2,
+                  1,
+                  5
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.72
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  2,
+                  6,
+                  6,
+                  6,
+                  6
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 32.96
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  3,
+                  4,
+                  4,
+                  4,
+                  4
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 31.88
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  3,
+                  4,
+                  3,
+                  3,
+                  2
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 19.11
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  2,
+                  2,
+                  2,
+                  6,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 26.18
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  4,
+                  4,
+                  4,
+                  1,
+                  4
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": -11.57
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  5,
+                  5,
+                  6,
+                  6,
+                  6
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 32.61
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  5,
+                  6,
+                  6,
+                  6,
+                  6
+                ],
+                "category": null,
+                "category_idx": 11,
+                "expected_value": 0.0
+              }
+            ]
+          },
+          "value_score_only": {
+            "total_score": 154,
+            "upper_score": 62,
+            "upper_bonus": 0,
+            "yacht_score": 0,
+            "yacht_bonus_count": 0,
+            "zero_categories": 2,
+            "scorecard": [
+              2,
+              8,
+              9,
+              16,
+              15,
+              12,
+              21,
+              26,
+              0,
+              15,
+              30,
+              0
+            ],
+            "value_score_hits": 4,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 8,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  5,
+                  4,
+                  5,
+                  5,
+                  6
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 32.62
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  2,
+                  6,
+                  6,
+                  1,
+                  4
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 19.76
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  3,
+                  4,
+                  3,
+                  5,
+                  2
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.89
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  2,
+                  4,
+                  5,
+                  6,
+                  4
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 21.11
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  4,
+                  3,
+                  2,
+                  1,
+                  5
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.72
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  2,
+                  6,
+                  6,
+                  6,
+                  6
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 32.96
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  3,
+                  4,
+                  4,
+                  4,
+                  4
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 31.88
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  3,
+                  4,
+                  3,
+                  3,
+                  2
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 19.11
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  2,
+                  2,
+                  2,
+                  6,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 46.37
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  4,
+                  4,
+                  4,
+                  1,
+                  4
+                ],
+                "category": "Yacht",
+                "category_idx": 11,
+                "expected_value": 27.29
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  1,
+                  6,
+                  3,
+                  1,
+                  6
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 14.53
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  3,
+                  6,
+                  4,
+                  1,
+                  1
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 2.0
+              }
+            ]
+          }
+        }
+      ],
+      "best": [
+        {
+          "game_index": 147,
+          "seed": 20409031,
+          "policy": "value_score_only",
+          "delta_vs_heuristic": 49,
+          "heuristic": {
+            "total_score": 136,
+            "upper_score": 56,
+            "upper_bonus": 0,
+            "yacht_score": 0,
+            "yacht_bonus_count": 0,
+            "zero_categories": 2,
+            "scorecard": [
+              3,
+              4,
+              12,
+              4,
+              15,
+              18,
+              23,
+              0,
+              12,
+              15,
+              30,
+              0
+            ],
+            "value_score_hits": 0,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 0,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  4,
+                  6,
+                  5,
+                  6,
+                  2
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 23.16
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  3,
+                  6,
+                  6,
+                  6,
+                  5
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 38.46
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  3,
+                  3,
+                  1,
+                  3,
+                  3
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 27.4
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  5,
+                  3,
+                  6,
+                  2,
+                  4
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.71
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  5,
+                  5,
+                  4,
+                  6,
+                  5
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 36.29
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  6,
+                  2,
+                  6,
+                  5,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 4.27
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  4,
+                  5,
+                  2,
+                  4,
+                  3
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 17.07
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  1,
+                  1,
+                  1,
+                  3,
+                  4
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 8.69
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  4,
+                  3,
+                  5,
+                  3,
+                  3
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": -8.76
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  1,
+                  2,
+                  4,
+                  2,
+                  2
+                ],
+                "category": null,
+                "category_idx": 11,
+                "expected_value": 0.0
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  6,
+                  4,
+                  6,
+                  3,
+                  4
+                ],
+                "category": null,
+                "category_idx": 7,
+                "expected_value": 0.0
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  2,
+                  2,
+                  3,
+                  3,
+                  2
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 16.13
+              }
+            ]
+          },
+          "value_score_only": {
+            "total_score": 185,
+            "upper_score": 64,
+            "upper_bonus": 1,
+            "yacht_score": 0,
+            "yacht_bonus_count": 0,
+            "zero_categories": 2,
+            "scorecard": [
+              3,
+              4,
+              12,
+              12,
+              15,
+              18,
+              23,
+              0,
+              18,
+              15,
+              30,
+              0
+            ],
+            "value_score_hits": 4,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 8,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  4,
+                  6,
+                  5,
+                  6,
+                  2
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 23.16
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  3,
+                  6,
+                  6,
+                  6,
+                  5
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 38.46
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  3,
+                  3,
+                  1,
+                  3,
+                  3
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 27.4
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  5,
+                  3,
+                  6,
+                  2,
+                  4
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.71
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  5,
+                  5,
+                  4,
+                  6,
+                  5
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 36.29
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  6,
+                  2,
+                  6,
+                  5,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 4.27
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  4,
+                  5,
+                  2,
+                  4,
+                  3
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 17.07
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  1,
+                  1,
+                  1,
+                  3,
+                  4
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 8.69
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  4,
+                  3,
+                  5,
+                  3,
+                  3
+                ],
+                "category": "Yacht",
+                "category_idx": 11,
+                "expected_value": 47.89
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  4,
+                  5,
+                  4,
+                  3,
+                  4
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 63.14
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  2,
+                  6,
+                  6,
+                  2,
+                  2
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 23.61
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  3,
+                  3,
+                  3,
+                  2,
+                  5
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 0.0
+              }
+            ]
+          }
+        },
+        {
+          "game_index": 77,
+          "seed": 20338401,
+          "policy": "value_score_only",
+          "delta_vs_heuristic": 43,
+          "heuristic": {
+            "total_score": 150,
+            "upper_score": 61,
+            "upper_bonus": 0,
+            "yacht_score": 0,
+            "yacht_bonus_count": 0,
+            "zero_categories": 2,
+            "scorecard": [
+              3,
+              6,
+              6,
+              8,
+              20,
+              18,
+              20,
+              0,
+              24,
+              15,
+              30,
+              0
+            ],
+            "value_score_hits": 0,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 0,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  6,
+                  4,
+                  4,
+                  6,
+                  6
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 38.4
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  3,
+                  5,
+                  5,
+                  4,
+                  2
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.85
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  3,
+                  2,
+                  4,
+                  6,
+                  5
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.7
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  3,
+                  3,
+                  4,
+                  4,
+                  6
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 19.96
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  2,
+                  1,
+                  1,
+                  1,
+                  5
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 6.28
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  5,
+                  5,
+                  5,
+                  5,
+                  3
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 48.32
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  3,
+                  3,
+                  1,
+                  5,
+                  5
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 7.09
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  3,
+                  3,
+                  6,
+                  6,
+                  6
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 28.57
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  1,
+                  4,
+                  4,
+                  6,
+                  6
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 2.36
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  3,
+                  1,
+                  1,
+                  3,
+                  1
+                ],
+                "category": null,
+                "category_idx": 11,
+                "expected_value": 0.0
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  4,
+                  2,
+                  1,
+                  2,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 9.1
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  4,
+                  5,
+                  3,
+                  6,
+                  6
+                ],
+                "category": null,
+                "category_idx": 7,
+                "expected_value": 0.0
+              }
+            ]
+          },
+          "value_score_only": {
+            "total_score": 193,
+            "upper_score": 69,
+            "upper_bonus": 1,
+            "yacht_score": 0,
+            "yacht_bonus_count": 0,
+            "zero_categories": 2,
+            "scorecard": [
+              3,
+              6,
+              6,
+              16,
+              20,
+              18,
+              20,
+              0,
+              24,
+              15,
+              30,
+              0
+            ],
+            "value_score_hits": 4,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 8,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  6,
+                  4,
+                  4,
+                  6,
+                  6
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 38.4
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  3,
+                  5,
+                  5,
+                  4,
+                  2
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.85
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  3,
+                  2,
+                  4,
+                  6,
+                  5
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.7
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  3,
+                  3,
+                  4,
+                  4,
+                  6
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 19.96
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  2,
+                  1,
+                  1,
+                  1,
+                  5
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 6.28
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  5,
+                  5,
+                  5,
+                  5,
+                  3
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 48.32
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  3,
+                  3,
+                  1,
+                  5,
+                  5
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 7.09
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  3,
+                  3,
+                  6,
+                  6,
+                  6
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 28.57
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  1,
+                  4,
+                  4,
+                  6,
+                  6
+                ],
+                "category": "Yacht",
+                "category_idx": 11,
+                "expected_value": 42.74
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  1,
+                  4,
+                  3,
+                  6,
+                  2
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 29.32
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  4,
+                  4,
+                  3,
+                  4,
+                  4
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 55.21
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  2,
+                  2,
+                  5,
+                  2,
+                  1
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 6.0
+              }
+            ]
+          }
+        },
+        {
+          "game_index": 100,
+          "seed": 20361608,
+          "policy": "value_score_only",
+          "delta_vs_heuristic": 39,
+          "heuristic": {
+            "total_score": 161,
+            "upper_score": 62,
+            "upper_bonus": 0,
+            "yacht_score": 0,
+            "yacht_bonus_count": 0,
+            "zero_categories": 1,
+            "scorecard": [
+              2,
+              4,
+              12,
+              16,
+              10,
+              18,
+              20,
+              22,
+              12,
+              15,
+              30,
+              0
+            ],
+            "value_score_hits": 0,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 0,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  2,
+                  3,
+                  5,
+                  4,
+                  5
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 17.52
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  5,
+                  4,
+                  5,
+                  1,
+                  5
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 19.7
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  6,
+                  6,
+                  6,
+                  2,
+                  4
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 37.76
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  4,
+                  4,
+                  4,
+                  4,
+                  5
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 32.44
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  2,
+                  3,
+                  1,
+                  5,
+                  1
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 1.6
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  4,
+                  5,
+                  2,
+                  1,
+                  3
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.73
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  5,
+                  5,
+                  5,
+                  2,
+                  5
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 28.53
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  3,
+                  3,
+                  3,
+                  3,
+                  4
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 33.42
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  4,
+                  2,
+                  2,
+                  6,
+                  6
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": -7.41
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  6,
+                  4,
+                  6,
+                  5,
+                  3
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 17.22
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  2,
+                  2,
+                  3,
+                  2,
+                  3
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 15.91
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  3,
+                  1,
+                  3,
+                  4,
+                  4
+                ],
+                "category": null,
+                "category_idx": 11,
+                "expected_value": 0.0
+              }
+            ]
+          },
+          "value_score_only": {
+            "total_score": 200,
+            "upper_score": 64,
+            "upper_bonus": 1,
+            "yacht_score": 0,
+            "yacht_bonus_count": 0,
+            "zero_categories": 1,
+            "scorecard": [
+              2,
+              6,
+              12,
+              16,
+              10,
+              18,
+              20,
+              22,
+              14,
+              15,
+              30,
+              0
+            ],
+            "value_score_hits": 4,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 8,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  2,
+                  3,
+                  5,
+                  4,
+                  5
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 17.52
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  5,
+                  4,
+                  5,
+                  1,
+                  5
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 19.7
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  6,
+                  6,
+                  6,
+                  2,
+                  4
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 37.76
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  4,
+                  4,
+                  4,
+                  4,
+                  5
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 32.44
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  2,
+                  3,
+                  1,
+                  5,
+                  1
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 1.6
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  4,
+                  5,
+                  2,
+                  1,
+                  3
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.73
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  5,
+                  5,
+                  5,
+                  2,
+                  5
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 28.53
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  3,
+                  3,
+                  3,
+                  3,
+                  4
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 33.42
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  4,
+                  2,
+                  2,
+                  6,
+                  6
+                ],
+                "category": "Yacht",
+                "category_idx": 11,
+                "expected_value": 45.64
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  2,
+                  3,
+                  2,
+                  3,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 59.94
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  2,
+                  3,
+                  5,
+                  6,
+                  4
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 22.01
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  1,
+                  4,
+                  1,
+                  4,
+                  4
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 14.0
+              }
+            ]
+          }
+        },
+        {
+          "game_index": 88,
+          "seed": 20349500,
+          "policy": "value_score_only",
+          "delta_vs_heuristic": 24,
+          "heuristic": {
+            "total_score": 208,
+            "upper_score": 72,
+            "upper_bonus": 1,
+            "yacht_score": 50,
+            "yacht_bonus_count": 0,
+            "zero_categories": 2,
+            "scorecard": [
+              1,
+              8,
+              9,
+              16,
+              20,
+              18,
+              23,
+              13,
+              0,
+              15,
+              0,
+              50
+            ],
+            "value_score_hits": 0,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 0,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  4,
+                  1,
+                  4,
+                  4,
+                  4
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 32.96
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  4,
+                  6,
+                  6,
+                  4,
+                  3
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 23.24
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  5,
+                  6,
+                  5,
+                  5,
+                  5
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 49.7
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  3,
+                  3,
+                  3,
+                  3,
+                  3
+                ],
+                "category": "Yacht",
+                "category_idx": 11,
+                "expected_value": 93.82
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  2,
+                  4,
+                  3,
+                  1,
+                  6
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.84
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  2,
+                  2,
+                  2,
+                  2,
+                  5
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 21.84
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  2,
+                  2,
+                  5,
+                  2,
+                  2
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 18.48
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  6,
+                  6,
+                  6,
+                  1,
+                  3
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 51.06
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  6,
+                  3,
+                  3,
+                  2,
+                  3
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 51.39
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  5,
+                  2,
+                  1,
+                  2,
+                  2
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 0.38
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  2,
+                  1,
+                  4,
+                  2,
+                  4
+                ],
+                "category": null,
+                "category_idx": 8,
+                "expected_value": 0.0
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  3,
+                  6,
+                  6,
+                  4,
+                  2
+                ],
+                "category": null,
+                "category_idx": 10,
+                "expected_value": 0.0
+              }
+            ]
+          },
+          "value_score_only": {
+            "total_score": 232,
+            "upper_score": 72,
+            "upper_bonus": 1,
+            "yacht_score": 50,
+            "yacht_bonus_count": 0,
+            "zero_categories": 1,
+            "scorecard": [
+              1,
+              8,
+              9,
+              16,
+              20,
+              18,
+              23,
+              13,
+              24,
+              15,
+              0,
+              50
+            ],
+            "value_score_hits": 4,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 8,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  4,
+                  1,
+                  4,
+                  4,
+                  4
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 32.96
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  4,
+                  6,
+                  6,
+                  4,
+                  3
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 23.24
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  5,
+                  6,
+                  5,
+                  5,
+                  5
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 49.7
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  3,
+                  3,
+                  3,
+                  3,
+                  3
+                ],
+                "category": "Yacht",
+                "category_idx": 11,
+                "expected_value": 93.82
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  2,
+                  4,
+                  3,
+                  1,
+                  6
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.84
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  2,
+                  2,
+                  2,
+                  2,
+                  5
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 21.84
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  2,
+                  2,
+                  5,
+                  2,
+                  2
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 18.48
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  6,
+                  6,
+                  6,
+                  1,
+                  3
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 51.06
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  6,
+                  3,
+                  3,
+                  2,
+                  3
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": 75.96
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  5,
+                  2,
+                  1,
+                  2,
+                  2
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 22.29
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  2,
+                  1,
+                  4,
+                  2,
+                  4
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 9.87
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  3,
+                  6,
+                  6,
+                  6,
+                  3
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 24.0
+              }
+            ]
+          }
+        },
+        {
+          "game_index": 66,
+          "seed": 20327302,
+          "policy": "value_score_only",
+          "delta_vs_heuristic": 24,
+          "heuristic": {
+            "total_score": 123,
+            "upper_score": 49,
+            "upper_bonus": 0,
+            "yacht_score": 0,
+            "yacht_bonus_count": 0,
+            "zero_categories": 2,
+            "scorecard": [
+              3,
+              6,
+              3,
+              4,
+              15,
+              18,
+              13,
+              0,
+              16,
+              15,
+              30,
+              0
+            ],
+            "value_score_hits": 0,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 0,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  5,
+                  6,
+                  1,
+                  5,
+                  5
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 32.62
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  4,
+                  2,
+                  3,
+                  5,
+                  3
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.85
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  3,
+                  5,
+                  6,
+                  2,
+                  4
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.7
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  6,
+                  2,
+                  2,
+                  6,
+                  6
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 38.7
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  1,
+                  2,
+                  2,
+                  5,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 13.75
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  2,
+                  2,
+                  2,
+                  5,
+                  5
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 19.63
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  2,
+                  6,
+                  1,
+                  1,
+                  3
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 12.09
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  6,
+                  6,
+                  1,
+                  6,
+                  3
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": -0.45
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  5,
+                  5,
+                  1,
+                  5,
+                  4
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 3.18
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  4,
+                  5,
+                  5,
+                  5,
+                  4
+                ],
+                "category": null,
+                "category_idx": 11,
+                "expected_value": 0.0
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  1,
+                  4,
+                  1,
+                  1,
+                  5
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 6.27
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  3,
+                  3,
+                  4,
+                  3,
+                  4
+                ],
+                "category": null,
+                "category_idx": 7,
+                "expected_value": 0.0
+              }
+            ]
+          },
+          "value_score_only": {
+            "total_score": 147,
+            "upper_score": 55,
+            "upper_bonus": 0,
+            "yacht_score": 0,
+            "yacht_bonus_count": 0,
+            "zero_categories": 1,
+            "scorecard": [
+              1,
+              6,
+              3,
+              12,
+              15,
+              18,
+              13,
+              18,
+              16,
+              15,
+              30,
+              0
+            ],
+            "value_score_hits": 4,
+            "learned_value_score_hits": 0,
+            "value_score_fallbacks": 8,
+            "score_decisions": [
+              {
+                "turn": 1,
+                "dice": [
+                  5,
+                  6,
+                  1,
+                  5,
+                  5
+                ],
+                "category": "Fives",
+                "category_idx": 4,
+                "expected_value": 32.62
+              },
+              {
+                "turn": 2,
+                "dice": [
+                  4,
+                  2,
+                  3,
+                  5,
+                  3
+                ],
+                "category": "Small Straight",
+                "category_idx": 9,
+                "expected_value": 16.85
+              },
+              {
+                "turn": 3,
+                "dice": [
+                  3,
+                  5,
+                  6,
+                  2,
+                  4
+                ],
+                "category": "Large Straight",
+                "category_idx": 10,
+                "expected_value": 35.7
+              },
+              {
+                "turn": 4,
+                "dice": [
+                  6,
+                  2,
+                  2,
+                  6,
+                  6
+                ],
+                "category": "Sixes",
+                "category_idx": 5,
+                "expected_value": 38.7
+              },
+              {
+                "turn": 5,
+                "dice": [
+                  1,
+                  2,
+                  2,
+                  5,
+                  2
+                ],
+                "category": "Twos",
+                "category_idx": 1,
+                "expected_value": 13.75
+              },
+              {
+                "turn": 6,
+                "dice": [
+                  2,
+                  2,
+                  2,
+                  5,
+                  5
+                ],
+                "category": "Full House",
+                "category_idx": 8,
+                "expected_value": 19.63
+              },
+              {
+                "turn": 7,
+                "dice": [
+                  2,
+                  6,
+                  1,
+                  1,
+                  3
+                ],
+                "category": "Choice",
+                "category_idx": 6,
+                "expected_value": 12.09
+              },
+              {
+                "turn": 8,
+                "dice": [
+                  6,
+                  6,
+                  1,
+                  6,
+                  3
+                ],
+                "category": "Threes",
+                "category_idx": 2,
+                "expected_value": -0.45
+              },
+              {
+                "turn": 9,
+                "dice": [
+                  5,
+                  5,
+                  1,
+                  5,
+                  4
+                ],
+                "category": "Ones",
+                "category_idx": 0,
+                "expected_value": 25.6
+              },
+              {
+                "turn": 10,
+                "dice": [
+                  4,
+                  4,
+                  4,
+                  4,
+                  2
+                ],
+                "category": "4 of a Kind",
+                "category_idx": 7,
+                "expected_value": 31.08
+              },
+              {
+                "turn": 11,
+                "dice": [
+                  4,
+                  1,
+                  1,
+                  5,
+                  1
+                ],
+                "category": "Yacht",
+                "category_idx": 11,
+                "expected_value": 8.89
+              },
+              {
+                "turn": 12,
+                "dice": [
+                  4,
+                  3,
+                  4,
+                  6,
+                  4
+                ],
+                "category": "Fours",
+                "category_idx": 3,
+                "expected_value": 12.0
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -82,6 +82,13 @@ function countOpenCategories(card) {
 function renderScoreMetric(label, value, options = {}) {
     const idAttr = options.id ? ` id="${options.id}"` : '';
     const toneClass = options.tone ? ` ${options.tone}` : '';
+    const desc = options.desc || '';
+    const diceText = options.diceText || '';
+    const hasHelp = Boolean(desc || diceText);
+    const helpClass = hasHelp ? ' has-help' : '';
+    const helpAttrs = hasHelp
+        ? `${getTooltipHandlers()} tabindex="0" data-desc="${escapeHtml(desc)}" data-dice="${escapeHtml(diceText)}"`
+        : '';
     const sub = options.sub ? `<span class="score-overview-sub">${escapeHtml(options.sub)}</span>` : '';
     const meterValue = Number.isFinite(Number(options.meter))
         ? Math.max(0, Math.min(1, Number(options.meter)))
@@ -90,7 +97,7 @@ function renderScoreMetric(label, value, options = {}) {
         ? ''
         : `<span class="score-overview-meter"><i style="width:${meterValue * 100}%"></i></span>`;
     return `
-        <div class="score-overview-card${toneClass}">
+        <div class="score-overview-card${toneClass}${helpClass}" ${helpAttrs}>
             <span class="score-overview-label">${escapeHtml(label)}</span>
             <strong class="score-overview-value"${idAttr}>${value}</strong>
             ${sub}
@@ -99,12 +106,18 @@ function renderScoreMetric(label, value, options = {}) {
     `;
 }
 
-function formatUpperBonusProgress(totals) {
-    return totals.bonus > 0 ? `+${totals.bonus}` : `${Math.max(0, 63 - totals.upper)} 남음`;
+function getUpperHelp(totals, opponentTotals = null) {
+    const status = (target) => target.bonus > 0
+        ? `${target.upper}점 · 보너스 확보`
+        : `${target.upper}점 · ${Math.max(0, 63 - target.upper)}점 남음`;
+    const progress = opponentTotals
+        ? `나 ${status(totals)} / 상대 ${status(opponentTotals)}`
+        : `현재 ${status(totals)}`;
+    return `Upper는 Ones부터 Sixes까지 상단 6개 점수의 합계입니다. Upper 총합 63점 이상이면 보너스 35점을 받습니다. ${progress}.`;
 }
 
-function formatUpperBonusAward(totals) {
-    return totals.bonus > 0 ? `+${totals.bonus}` : '-';
+function formatUpperBonusProgress(totals) {
+    return totals.bonus > 0 ? `+${totals.bonus} 확보` : `${Math.max(0, 63 - totals.upper)}점 남음`;
 }
 
 function renderSingleScoreOverview(card, totals, options = {}) {
@@ -112,8 +125,18 @@ function renderSingleScoreOverview(card, totals, options = {}) {
     return `
         <div class="score-overview">
             ${renderScoreMetric('TOTAL', totals.total, { id: options.previewIds ? 'summary-total' : '', tone: 'primary' })}
-            ${renderScoreMetric('Upper', `${totals.upper}/63`, { id: options.previewIds ? 'summary-subtotal' : '', meter: totals.upper / 63 })}
-            ${renderScoreMetric('Bonus', formatUpperBonusProgress(totals), { id: options.previewIds ? 'summary-bonus' : '', tone: totals.bonus > 0 ? 'bonus' : '', meter: totals.bonus > 0 ? 1 : totals.upper / 63 })}
+            ${renderScoreMetric('Upper', `${totals.upper}/63`, {
+                id: options.previewIds ? 'summary-subtotal' : '',
+                desc: getUpperHelp(totals),
+                meter: totals.upper / 63,
+            })}
+            ${renderScoreMetric('Upper Bonus', formatUpperBonusProgress(totals), {
+                id: options.previewIds ? 'summary-bonus' : '',
+                tone: totals.bonus > 0 ? 'bonus' : '',
+                desc: getUpperHelp(totals),
+                sub: totals.bonus > 0 ? '상단 합계 63점 달성' : '상단 합계 63점 달성 시 +35점',
+                meter: totals.bonus > 0 ? 1 : totals.upper / 63,
+            })}
             ${renderScoreMetric('Open', openCount, { sub: '남은 칸', meter: countFilledCategories(card) / CATS.length })}
         </div>
     `;
@@ -133,11 +156,17 @@ function renderCompareOverview(leftCard, rightCard, leftTotals, rightTotals, opt
             ${renderScoreMetric(options.leftShortLabel || '나', leftTotals.total, { id: options.previewIds ? 'summary-total' : '', tone: 'primary' })}
             ${renderScoreMetric(options.rightShortLabel || '상대', rightTotals.total)}
             ${renderScoreMetric('차이', formatScoreDiff(leftTotals.total, rightTotals.total), { tone: diffTone })}
-            ${renderScoreMetric('Upper', `${leftTotals.upper}/63`, { id: options.previewIds ? 'summary-subtotal' : '', sub: rightTotals.upper ? `상대 ${rightTotals.upper}/63` : '', meter: leftTotals.upper / 63 })}
-            ${renderScoreMetric('Bonus', formatUpperBonusProgress(leftTotals), {
+            ${renderScoreMetric('Upper', `${leftTotals.upper}/63`, {
+                id: options.previewIds ? 'summary-subtotal' : '',
+                sub: rightTotals.upper ? `상대 ${rightTotals.upper}/63` : '',
+                desc: getUpperHelp(leftTotals, rightTotals),
+                meter: leftTotals.upper / 63,
+            })}
+            ${renderScoreMetric('Upper Bonus', formatUpperBonusProgress(leftTotals), {
                 id: options.previewIds ? 'summary-bonus' : '',
                 tone: leftTotals.bonus > 0 ? 'bonus' : '',
-                sub: `상대 ${formatUpperBonusProgress(rightTotals)}`,
+                desc: getUpperHelp(leftTotals, rightTotals),
+                sub: `63점 달성 시 +35점 · 상대 ${formatUpperBonusProgress(rightTotals)}`,
                 meter: leftTotals.bonus > 0 ? 1 : leftTotals.upper / 63,
             })}
         </div>
@@ -188,10 +217,6 @@ function renderCard(card, isMine, title) {
     const totals = calcTotals(card);
     let h = '';
     CATS.forEach((c, i) => {
-        if (i === 6) {
-            h += `<div class="score-item subtotal" style="background:rgba(255,255,255,0.1); cursor:default; min-width:140px;" data-desc="상단 항목의 점수 합계.\n목표는 63점 (각 숫자 3개씩)" data-dice="" onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"><span class="score-name">Subtotal</span><span class="score-val">${totals.upper}/63</span><div class='custom-tip' style='display:none;'></div></div>`;
-            h += `<div class="score-item bonus" style="min-width:140px;" data-desc="상단 합계 63점 이상 \n→ 보너스 35점" data-dice="" onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"><span class="score-name">Upper Bonus</span><span class="score-val">${formatUpperBonusAward(totals)}</span><div class='custom-tip' style='display:none;'></div></div>`;
-        }
         const clickable = isMine && !gameOver && isMyTurn() && card[i] === null && rollsLeft < 3;
         const showPreview = !gameOver && card[i] === null && rollsLeft < 3 && ((isMine && isMyTurn()) || (!isMine && !isMyTurn()));
         const sc = calcScore(dice, i);
@@ -491,14 +516,6 @@ function renderCompareBoard(leftCard, rightCard, options = {}) {
             rows += '<div class="compare-section-row"><span>Upper Section</span><em>63점 보너스 흐름</em></div>';
         }
         if (i === 6) {
-            rows += renderCompareStatRow('Subtotal', `${leftTotals.upper}/63`, `${rightTotals.upper}/63`, {
-                extraClass: ' compare-summary',
-                desc: '상단 항목의 점수 합계입니다. 목표는 63점입니다.',
-            });
-            rows += renderCompareStatRow('Upper Bonus', formatUpperBonusAward(leftTotals), formatUpperBonusAward(rightTotals), {
-                extraClass: ' compare-summary',
-                desc: '상단 합계 63점 이상이면 보너스 35점을 받습니다.',
-            });
             rows += '<div class="compare-section-row lower"><span>Lower Section</span><em>족보 점수와 고점</em></div>';
         }
         rows += renderCompareCategoryRow(i, leftCard, rightCard, {
@@ -527,7 +544,7 @@ function renderCompareBoard(leftCard, rightCard, options = {}) {
     `;
 }
 
-// 점수 설명은 점수판 상단의 고정 높이 인라인 도움말(#score-desc-area)에만 표시한다.
+// 점수 설명은 고정 높이 인라인 도움말(#score-desc-area)에만 표시한다.
 // (예전에는 커서를 따라다니는 플로팅 툴팁도 같이 띄워 설명이 중복되고 행을 가렸다.)
 function showTip(el) {
     const desc = el.getAttribute('data-desc') || '';

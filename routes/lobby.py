@@ -3,9 +3,9 @@ import time
 import psutil
 from flask import Blueprint, jsonify, request
 
-from app_state import rooms, lobby_clients
+from app_state import lobby_clients, rooms
 from config import CLIENT_TIMEOUT
-from utils.ai_utils import ai_metrics_snapshot, CPU_MODEL
+from utils.ai_utils import CPU_MODEL, ai_metrics_snapshot
 from utils.validation import normalize_username
 
 lobby_bp = Blueprint("lobby", __name__)

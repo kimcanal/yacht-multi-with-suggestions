@@ -3,13 +3,25 @@
  */
 
 const WinProbabilityPanel = (() => {
+    const FAST_SAMPLES = 30;
+    const REFINED_SAMPLES = 100;
     const cache = new Map();
     const pending = new Map();
     const histories = new Map();
-    let activeKey = '';
+    let activeStateKey = '';
 
     function requestKey(payload) {
         return JSON.stringify(payload);
+    }
+
+    function stateKey(payload) {
+        const normalized = {...payload};
+        delete normalized.samples;
+        return requestKey(normalized);
+    }
+
+    function stagePayload(payload, samples) {
+        return {...payload, samples};
     }
 
     function clampProbability(value) {
@@ -87,12 +99,21 @@ const WinProbabilityPanel = (() => {
         const myProbability = clampProbability(result.effective_win_rate);
         const myPct = Math.round(myProbability * 100);
         const oppPct = 100 - myPct;
-        const history = updateHistory(targetId, myProbability);
+        const history = options.refining
+            ? (histories.get(targetId) || [])
+            : updateHistory(targetId, myProbability);
         const margin = Math.round(Number(result.confidence_95 || 0) * 100);
+        const samples = Number(result.samples || 0);
+        const sampleLabel = samples >= REFINED_SAMPLES
+            ? `${samples}회 정밀 추정`
+            : `${samples}회 빠른 추정`;
+        const refinement = options.refining
+            ? ` → ${REFINED_SAMPLES}회 정밀 계산 중`
+            : '';
         root.innerHTML = `
             <div class="winprob-head">
                 <div class="winprob-title">최적 플레이 기준 승률</div>
-                <div class="winprob-sub">${Number(result.samples || 0)}회 시뮬레이션 · 표본 오차 약 ±${margin}%p</div>
+                <div class="winprob-sub">${sampleLabel}${refinement} · 표본 오차 약 ±${margin}%p</div>
             </div>
             <div class="winprob-bar" role="img" aria-label="${leftLabel} ${myPct}%, ${rightLabel} ${oppPct}%">
                 <div class="winprob-left" style="width:${myPct}%">${leftLabel} ${myPct}%</div>
@@ -103,7 +124,7 @@ const WinProbabilityPanel = (() => {
         `;
     }
 
-    async function fetchResult(targetId, payload, options, key) {
+    async function fetchStage(targetId, basePayload, payload, options, currentStateKey, key) {
         try {
             const response = await fetch('/api/win-probability', {
                 method: 'POST',
@@ -117,35 +138,77 @@ const WinProbabilityPanel = (() => {
                 result._retryAt = Date.now() + Math.max(500, Math.min(Number(result.retry_after_ms || 900), 2000));
             }
             cache.set(key, result);
-            while (cache.size > 32) cache.delete(cache.keys().next().value);
-            if (activeKey === key) render(targetId, result, options);
-            if (result.status === 'pending' && activeKey === key) {
+            while (cache.size > 64) cache.delete(cache.keys().next().value);
+            if (activeStateKey === currentStateKey) {
+                request(targetId, basePayload, options);
+            }
+            if (result.status === 'pending' && activeStateKey === currentStateKey) {
                 const retryMs = Math.max(500, Math.min(Number(result.retry_after_ms || 900), 2000));
-                window.setTimeout(() => request(targetId, payload, options, true), retryMs);
+                window.setTimeout(
+                    () => ensureStage(targetId, basePayload, payload, options, currentStateKey, true),
+                    retryMs,
+                );
             }
         } catch (error) {
-            if (activeKey === key) render(targetId, {status: 'error'}, options);
+            cache.set(key, {status: 'error'});
+            if (activeStateKey === currentStateKey) request(targetId, basePayload, options);
             console.warn('win probability failed', error);
         } finally {
             pending.delete(key);
         }
     }
 
-    function request(targetId, payload, options = {}, force = false) {
+    function ensureStage(targetId, basePayload, payload, options, currentStateKey, force = false) {
+        if (activeStateKey !== currentStateKey) return;
+        const key = requestKey(payload);
+        const cached = cache.get(key);
+        const waitingForRetry = cached?.status === 'pending'
+            && Date.now() < Number(cached._retryAt || 0);
+        if (pending.has(key)) return;
+        if (!force && (cached?.status === 'ready' || cached?.status === 'error' || waitingForRetry)) return;
+        pending.set(
+            key,
+            fetchStage(targetId, basePayload, payload, options, currentStateKey, key),
+        );
+    }
+
+    function request(targetId, payload, options = {}) {
         if (!options.readyToCompare) {
-            activeKey = '';
+            activeStateKey = '';
             render(targetId, null, options);
             return;
         }
-        const key = requestKey(payload);
-        activeKey = key;
-        const cached = cache.get(key);
-        if (cached) render(targetId, cached, options);
-        else render(targetId, {status: 'pending'}, options);
-        const waitingForRetry = cached?.status === 'pending' && Date.now() < Number(cached._retryAt || 0);
-        if ((!force && (cached?.status === 'ready' || waitingForRetry)) || pending.has(key)) return;
-        const work = fetchResult(targetId, payload, options, key);
-        pending.set(key, work);
+        const basePayload = {...payload};
+        delete basePayload.samples;
+        const currentStateKey = stateKey(basePayload);
+        activeStateKey = currentStateKey;
+
+        const fastPayload = stagePayload(basePayload, FAST_SAMPLES);
+        const refinedPayload = stagePayload(basePayload, REFINED_SAMPLES);
+        const fastResult = cache.get(requestKey(fastPayload));
+        const refinedResult = cache.get(requestKey(refinedPayload));
+
+        if (refinedResult?.status === 'ready') {
+            render(targetId, refinedResult, options);
+            return;
+        }
+        if (fastResult?.status === 'ready') {
+            render(targetId, fastResult, {
+                ...options,
+                refining: refinedResult?.status !== 'error',
+            });
+            if (refinedResult?.status !== 'error') {
+                ensureStage(targetId, basePayload, refinedPayload, options, currentStateKey);
+            }
+            return;
+        }
+        if (fastResult?.status === 'error') {
+            render(targetId, fastResult, options);
+            return;
+        }
+
+        render(targetId, fastResult || {status: 'pending'}, options);
+        ensureStage(targetId, basePayload, fastPayload, options, currentStateKey);
     }
 
     return {request, render};

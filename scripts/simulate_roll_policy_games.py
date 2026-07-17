@@ -15,7 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import yacht_engine
-from yacht_ai.constants import CATS, CATEGORY_NAMES
+from yacht_ai.constants import CATS
 from yacht_ai.ml_policy import RollPolicyModel
 from yacht_ai.scoring import calc_score
 
@@ -25,8 +25,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--games", type=int, default=32, help="games per policy")
     parser.add_argument("--seed", type=int, default=20260630, help="base random seed")
     parser.add_argument("--mode", choices=("focused", "cover"), default="focused", help="strategy mode")
-    parser.add_argument("--model-v1", default="artifacts/models/model-20260630-roll-policy-v1.json")
-    parser.add_argument("--model-v2", default="artifacts/models/model-20260630-roll-policy-v2.json")
+    parser.add_argument("--model-v1", default="artifacts/runtime/models/model-20260630-roll-policy-v1.json")
+    parser.add_argument("--model-v2", default="artifacts/runtime/models/model-20260630-roll-policy-v2.json")
     parser.add_argument("--min-confidence", type=float, default=0.95)
     parser.add_argument("--output", help="optional JSON report path")
     return parser.parse_args()

@@ -1,10 +1,11 @@
 import random
 import statistics
 
-from .constants import CATS, CATEGORY_NAMES
-from .scoring import calc_score
-from .solver import clear_solver_cache, solve_best_move
-from .value_model import normalize_scorecard, scorecard_totals, value_state_payload
+from yacht_core.constants import CATEGORY_NAMES, CATS
+from yacht_core.scoring import calc_score
+
+from .solvers import clear_solver_cache, solve_best_move
+from .value.model import normalize_scorecard, scorecard_totals, value_state_payload
 
 
 def reroll_from_keep(rng, dice, keep_indices):

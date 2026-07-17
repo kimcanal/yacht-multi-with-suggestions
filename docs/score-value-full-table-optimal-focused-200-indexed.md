@@ -3,7 +3,7 @@
 - Mode: `focused`
 - Games: `200` paired seeds
 - Seed: `20260708`
-- Value table: `artifacts/value/endgame-value-table-open12.npz`
+- Value table: `artifacts/runtime/value/endgame-value-table-open12.npz`
 - Random source: `indexed`
 
 ## Summary

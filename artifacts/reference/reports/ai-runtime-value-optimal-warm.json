@@ -1,0 +1,74 @@
+{
+  "repeats": 10,
+  "warm_cache": true,
+  "score_value_mode": "value_optimal",
+  "value_table": "artifacts/runtime/value/endgame-value-table-open12.npz",
+  "scenarios": [
+    {
+      "name": "straight_upgrade_focused",
+      "mode": "focused",
+      "rolls_left": 1,
+      "min_ms": 0.038750000385334715,
+      "avg_ms": 0.04454180016182363,
+      "max_ms": 0.07074999848555308,
+      "message": "[1, 2, 3, 4] Keep (기대점수 최적)",
+      "summary": "기대점수 최적 추천: [1, 2, 3, 4] Keep, 기대 최종점수 192.98점, 차선 대비 +2.22점",
+      "policy_source": "exact_value_optimal"
+    },
+    {
+      "name": "full_house_focus",
+      "mode": "focused",
+      "rolls_left": 2,
+      "min_ms": 0.03833399932773318,
+      "avg_ms": 0.042291799945815,
+      "max_ms": 0.06212500011315569,
+      "message": "[6, 6] Keep (기대점수 최적)",
+      "summary": "기대점수 최적 추천: [6, 6] Keep, 기대 최종점수 197.94점, 차선 대비 +0.28점",
+      "policy_source": "exact_value_optimal"
+    },
+    {
+      "name": "full_house_cover",
+      "mode": "cover",
+      "rolls_left": 2,
+      "min_ms": 0.044083999455324374,
+      "avg_ms": 0.047758399887243286,
+      "max_ms": 0.06308400043053553,
+      "message": "[6, 6] Keep (기대점수 최적)",
+      "summary": "기대점수 최적 추천: [6, 6] Keep, 기대 최종점수 197.94점, 차선 대비 +0.28점",
+      "policy_source": "exact_value_optimal"
+    },
+    {
+      "name": "yacht_bonus_focused",
+      "mode": "focused",
+      "rolls_left": 2,
+      "min_ms": 0.040916998841566965,
+      "avg_ms": 0.04414999966684263,
+      "max_ms": 0.06287500036705751,
+      "message": "[6, 6, 6] Keep (기대점수 최적)",
+      "summary": "기대점수 최적 추천: [6, 6, 6] Keep, 기대 최종점수 128.05점, 차선 대비 +6.48점",
+      "policy_source": "exact_value_optimal"
+    },
+    {
+      "name": "yacht_bonus_cover",
+      "mode": "cover",
+      "rolls_left": 2,
+      "min_ms": 0.04870799966738559,
+      "avg_ms": 0.05391240047174506,
+      "max_ms": 0.07220800034701824,
+      "message": "[6, 6, 6] Keep (기대점수 최적)",
+      "summary": "기대점수 최적 추천: [6, 6, 6] Keep, 기대 최종점수 128.05점, 차선 대비 +6.48점",
+      "policy_source": "exact_value_optimal"
+    },
+    {
+      "name": "upper_bonus_finish_focused",
+      "mode": "focused",
+      "rolls_left": 2,
+      "min_ms": 0.04516700028034393,
+      "avg_ms": 0.04914149976684712,
+      "max_ms": 0.06804199983889703,
+      "message": "[6, 6, 6] Keep (기대점수 최적)",
+      "summary": "기대점수 최적 추천: [6, 6, 6] Keep, 기대 최종점수 149.24점, 차선 대비 +2.18점",
+      "policy_source": "exact_value_optimal"
+    }
+  ]
+}

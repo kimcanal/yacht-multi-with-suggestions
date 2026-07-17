@@ -1,0 +1,349 @@
+{
+  "games": 100,
+  "seed": 20260709,
+  "random_source": "indexed",
+  "value_table": "artifacts/runtime/value/endgame-value-table-open12.npz",
+  "policies": [
+    {
+      "label": "focused",
+      "games": 100,
+      "avg_total_score": 176.01,
+      "avg_game_regret": 20.8927,
+      "median_game_regret": 20.7992,
+      "roll": {
+        "decisions": 2376,
+        "avg_regret": 0.4129,
+        "match_rate": 0.705,
+        "avg_mistake_size": 1.3996,
+        "max_regret": 9.9884
+      },
+      "score": {
+        "decisions": 1200,
+        "avg_regret": 0.9234,
+        "match_rate": 0.7975,
+        "avg_mistake_size": 4.5602,
+        "max_regret": 29.8054
+      },
+      "regret_by_turn": {
+        "1": 1.028,
+        "2": 1.1414,
+        "3": 0.8467,
+        "4": 0.93,
+        "5": 0.6022,
+        "6": 0.6084,
+        "7": 0.5479,
+        "8": 0.5094,
+        "9": 0.2888,
+        "10": 0.3078,
+        "11": 0.1653,
+        "12": 0.0292
+      },
+      "worst_decisions": [
+        {
+          "stage": "score",
+          "turn": 10,
+          "rolls_left": 0,
+          "dice": [
+            6,
+            6,
+            5,
+            5,
+            6
+          ],
+          "scorecard": [
+            2,
+            6,
+            null,
+            16,
+            15,
+            18,
+            22,
+            null,
+            24,
+            15,
+            null,
+            0
+          ],
+          "chosen": 2,
+          "chosen_label": "Threes",
+          "chosen_value": 16.6202,
+          "best_value": 46.4257,
+          "optimal_actions": [
+            {
+              "category_idx": 7,
+              "label": "4 of a Kind",
+              "value": 46.4257
+            }
+          ],
+          "regret": 29.8054
+        },
+        {
+          "stage": "score",
+          "turn": 2,
+          "rolls_left": 0,
+          "dice": [
+            1,
+            4,
+            5,
+            1,
+            6
+          ],
+          "scorecard": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            24,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "chosen": 5,
+          "chosen_label": "Sixes",
+          "chosen_value": 135.4742,
+          "best_value": 152.686,
+          "optimal_actions": [
+            {
+              "category_idx": 0,
+              "label": "Ones",
+              "value": 152.686
+            }
+          ],
+          "regret": 17.2119
+        },
+        {
+          "stage": "score",
+          "turn": 4,
+          "rolls_left": 0,
+          "dice": [
+            6,
+            5,
+            3,
+            6,
+            1
+          ],
+          "scorecard": [
+            null,
+            null,
+            null,
+            16,
+            15,
+            null,
+            21,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "chosen": 5,
+          "chosen_label": "Sixes",
+          "chosen_value": 110.1973,
+          "best_value": 124.7966,
+          "optimal_actions": [
+            {
+              "category_idx": 0,
+              "label": "Ones",
+              "value": 124.7966
+            }
+          ],
+          "regret": 14.5993
+        },
+        {
+          "stage": "score",
+          "turn": 7,
+          "rolls_left": 0,
+          "dice": [
+            1,
+            5,
+            5,
+            6,
+            3
+          ],
+          "scorecard": [
+            null,
+            null,
+            12,
+            12,
+            null,
+            18,
+            20,
+            10,
+            null,
+            15,
+            null,
+            null
+          ],
+          "chosen": 4,
+          "chosen_label": "Fives",
+          "chosen_value": 56.8027,
+          "best_value": 71.1571,
+          "optimal_actions": [
+            {
+              "category_idx": 11,
+              "label": "Yacht",
+              "value": 71.1571
+            }
+          ],
+          "regret": 14.3543
+        },
+        {
+          "stage": "score",
+          "turn": 8,
+          "rolls_left": 0,
+          "dice": [
+            5,
+            2,
+            5,
+            5,
+            5
+          ],
+          "scorecard": [
+            null,
+            null,
+            12,
+            12,
+            20,
+            18,
+            21,
+            null,
+            null,
+            15,
+            null,
+            50
+          ],
+          "chosen": 1,
+          "chosen_label": "Twos",
+          "chosen_value": 86.9775,
+          "best_value": 100.5687,
+          "optimal_actions": [
+            {
+              "category_idx": 7,
+              "label": "4 of a Kind",
+              "value": 100.5687
+            }
+          ],
+          "regret": 13.5912
+        },
+        {
+          "stage": "score",
+          "turn": 3,
+          "rolls_left": 0,
+          "dice": [
+            6,
+            6,
+            5,
+            5,
+            6
+          ],
+          "scorecard": [
+            null,
+            null,
+            null,
+            null,
+            15,
+            null,
+            23,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "chosen": 5,
+          "chosen_label": "Sixes",
+          "chosen_value": 139.8354,
+          "best_value": 152.9089,
+          "optimal_actions": [
+            {
+              "category_idx": 8,
+              "label": "Full House",
+              "value": 152.9089
+            }
+          ],
+          "regret": 13.0735
+        },
+        {
+          "stage": "score",
+          "turn": 2,
+          "rolls_left": 0,
+          "dice": [
+            6,
+            6,
+            3,
+            1,
+            1
+          ],
+          "scorecard": [
+            null,
+            null,
+            null,
+            null,
+            15,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "chosen": 5,
+          "chosen_label": "Sixes",
+          "chosen_value": 154.3919,
+          "best_value": 167.279,
+          "optimal_actions": [
+            {
+              "category_idx": 0,
+              "label": "Ones",
+              "value": 167.279
+            }
+          ],
+          "regret": 12.8871
+        },
+        {
+          "stage": "score",
+          "turn": 1,
+          "rolls_left": 0,
+          "dice": [
+            2,
+            4,
+            3,
+            5,
+            5
+          ],
+          "scorecard": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "chosen": 4,
+          "chosen_label": "Fives",
+          "chosen_value": 177.8855,
+          "best_value": 190.7507,
+          "optimal_actions": [
+            {
+              "category_idx": 9,
+              "label": "Small Straight",
+              "value": 190.7507
+            }
+          ],
+          "regret": 12.8652
+        }
+      ]
+    }
+  ]
+}

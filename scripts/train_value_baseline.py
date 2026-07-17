@@ -22,7 +22,7 @@ from yacht_ai.value_model import VALUE_FEATURE_NAMES
 def parse_args():
     parser = argparse.ArgumentParser(description="Train a linear value baseline from self-play JSONL.")
     parser.add_argument("--data", required=True)
-    parser.add_argument("--output", default="artifacts/models/scorecard-value-linear-v1.json")
+    parser.add_argument("--output", default="artifacts/generated/models/scorecard-value-linear-v1.json")
     parser.add_argument("--target", default="target_remaining_score")
     parser.add_argument("--ridge", type=float, default=1.0)
     parser.add_argument("--validation-ratio", type=float, default=0.2)

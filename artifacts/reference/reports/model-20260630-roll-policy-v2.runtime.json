@@ -1,0 +1,73 @@
+{
+  "model_path": "artifacts/runtime/models/model-20260630-roll-policy-v2.json",
+  "data_path": "artifacts/teacher_roll_32768.jsonl",
+  "val_ratio": 0.2,
+  "seed": 20260701,
+  "min_confidence": 0.95,
+  "guard_gap": 0.25,
+  "evaluated_examples": 6554,
+  "accepted_examples": 3078,
+  "acceptance_rate": 0.469637,
+  "rejected_by_confidence": 234,
+  "rejected_by_guard": 3242,
+  "missing_predictions": 0,
+  "accepted_top1_accuracy": 0.993827,
+  "accepted_excess_ev_gap": {
+    "count": 3078,
+    "mean_ev_gap": 0.0,
+    "median_ev_gap": 0.0,
+    "p95_ev_gap": 0.0,
+    "p99_ev_gap": 0.0,
+    "max_ev_gap": 0.0,
+    "gap_gt_0_25": 0,
+    "gap_gt_1": 0,
+    "gap_gt_2": 0
+  },
+  "accepted_mismatch_excess_ev_gap": {
+    "count": 19,
+    "mean_ev_gap": 0.0,
+    "median_ev_gap": 0.0,
+    "p95_ev_gap": 0.0,
+    "p99_ev_gap": 0.0,
+    "max_ev_gap": 0.0,
+    "gap_gt_0_25": 0,
+    "gap_gt_1": 0,
+    "gap_gt_2": 0
+  },
+  "effective_excess_ev_gap_with_fallback": {
+    "count": 6554,
+    "mean_ev_gap": 0.0,
+    "median_ev_gap": 0.0,
+    "p95_ev_gap": 0.0,
+    "p99_ev_gap": 0.0,
+    "max_ev_gap": 0.0,
+    "gap_gt_0_25": 0,
+    "gap_gt_1": 0,
+    "gap_gt_2": 0
+  },
+  "model_metadata": {
+    "model_id": "model-20260630-roll-policy-v2",
+    "model_type": "roll_mlp_v1",
+    "created_date": "2026-06-30",
+    "data_path": "artifacts/teacher_roll_32768.jsonl",
+    "input_dim": 41,
+    "hidden_dim": 96,
+    "num_classes": 462,
+    "epochs": 120,
+    "batch_size": 256,
+    "learning_rate": 0.003,
+    "weight_decay": 1e-05,
+    "seed": 20260701,
+    "best_epoch": 107,
+    "train_examples": 26214,
+    "val_examples": 6554,
+    "train_loss": 0.001854,
+    "train_accuracy": 1.0,
+    "val_loss": 0.101215,
+    "val_accuracy": 0.982301,
+    "strategy_counts": {
+      "focused": 16275,
+      "cover": 16493
+    }
+  }
+}

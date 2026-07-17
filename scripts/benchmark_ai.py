@@ -16,7 +16,6 @@ if str(ROOT) not in sys.path:
 
 import yacht_engine
 
-
 SCENARIOS = [
     {
         "name": "straight_upgrade_focused",

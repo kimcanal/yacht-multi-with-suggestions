@@ -1,23 +1,23 @@
 import hmac
 
-import database
 from flask import Blueprint, jsonify, request
 
+from app_state import get_services
 from config import RESET_ADMIN_TOKEN
-from routes.single import verify_ranked_single_session
 from utils.validation import normalize_username, safe_int
+from yacht_app.services.single_sessions import verify_ranked_single_session
 
 leaderboard_bp = Blueprint("leaderboard", __name__)
 
 
 @leaderboard_bp.route("/api/leaderboard", methods=["GET"])
 def leaderboard():
-    return jsonify(database.get_leaderboard())
+    return jsonify(get_services().results.get_leaderboard())
 
 
 @leaderboard_bp.route("/api/leaderboard/single", methods=["GET"])
 def leaderboard_single_get():
-    return jsonify(database.get_single_leaderboard())
+    return jsonify(get_services().results.get_single_leaderboard())
 
 
 @leaderboard_bp.route("/api/leaderboard/single", methods=["POST"])
@@ -42,13 +42,13 @@ def leaderboard_single_post():
     )
     if not verified:
         return jsonify({"success": False, "error": error}), 403
-    database.save_single_leaderboard(username, score)
+    get_services().results.save_single_leaderboard(username, score)
     return jsonify({"success": True})
 
 
 @leaderboard_bp.route("/api/leaderboard/multi", methods=["GET"])
 def leaderboard_multi():
-    return jsonify(database.get_leaderboard())
+    return jsonify(get_services().results.get_leaderboard())
 
 
 @leaderboard_bp.route("/api/leaderboard/recent", methods=["GET"])
@@ -59,7 +59,7 @@ def leaderboard_recent():
         return jsonify({"error": "Invalid username"}), 400
 
     limit = request.args.get("limit", 8)
-    return jsonify(database.get_recent_games(limit=limit, username=username))
+    return jsonify(get_services().results.get_recent_games(limit=limit, username=username))
 
 
 @leaderboard_bp.route("/api/leaderboard/users/<username>", methods=["GET"])
@@ -68,7 +68,7 @@ def leaderboard_user_profile(username):
     if not normalized_username:
         return jsonify({"error": "Invalid username"}), 400
 
-    profile = database.get_user_profile(
+    profile = get_services().results.get_user_profile(
         normalized_username,
         recent_limit=request.args.get("recent_limit", 5),
     )
@@ -84,7 +84,7 @@ def reset_leaderboard():
         return jsonify({"error": "관리자 토큰이 설정되지 않았습니다"}), 503
     if not hmac.compare_digest(admin_token, RESET_ADMIN_TOKEN):
         return jsonify({"error": "권한 없음"}), 403
-    database.reset_leaderboard()
+    get_services().results.reset_leaderboard()
     return jsonify({"status": "reset"})
 
 
