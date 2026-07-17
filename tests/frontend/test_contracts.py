@@ -67,7 +67,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("const FAST_SAMPLES = 30", self.winprob)
         self.assertIn("const REFINED_SAMPLES = 100", self.winprob)
         self.assertIn("REFINED_SAMPLES}회 정밀 계산 중", self.winprob)
-        self.assertIn("최적 대비 평균 -10.4점", self.multi)
+        self.assertIn("최적 정책보다 게임당 기대점수 10.4점 낮음", self.multi)
+        self.assertIn("최적 정책보다 게임당 기대점수 37.9점 낮음", self.multi)
+        self.assertIn("기대점수 기준 최적 · 이론 평균 198.4점", self.multi)
 
     def test_upper_bonus_is_explained_once_in_the_overview(self):
         self.assertIn("상단 합계 63점 달성 시 +35점", self.score_utils)
@@ -103,7 +105,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('data-ai-mode="cover"', self.single)
         self.assertIn('data-ai-mode="optimal"', self.single)
         self.assertNotIn('class="ai-mode-card"', self.single)
-        self.assertNotIn('최적 대비 평균 -10.4점', self.single)
+        self.assertNotIn('최적 정책보다 게임당 기대점수 10.4점 낮음', self.single)
 
     def test_single_settings_strip_is_collapsed_by_default_on_all_viewports(self):
         self.assertIn('.mode-config-grid {\n            display:none;', self.single)
