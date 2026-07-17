@@ -18,19 +18,11 @@ differently."
 from __future__ import annotations
 
 import random
-import sys
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-if str(ROOT / "scripts") not in sys.path:
-    sys.path.insert(0, str(ROOT / "scripts"))
-
-import simulate_score_value_games as base_sim  # noqa: E402
-import yacht_engine  # noqa: E402
-from yacht_ai.constants import CATS  # noqa: E402
-from yacht_ai.scoring import calc_score  # noqa: E402
+import yacht_engine
+from yacht_core.constants import CATS
+from yacht_core.scoring import calc_score
+from yacht_core.simulation import apply_score, initial_dice, reroll_from_keep, total_score
 
 _OPTIMAL_MODE = "focused"
 _OPTIMAL_SCORE_VALUE_MODE = "value_optimal"
@@ -52,7 +44,7 @@ def _play_remaining_turns(seed, scorecard, dice, rolls_left, turn_index, random_
 
     while any(value is None for value in scorecard):
         if pending_dice is None:
-            cur_dice = base_sim.initial_dice(rng, seed, turn_index, random_source)
+            cur_dice = initial_dice(rng, seed, turn_index, random_source)
             cur_rolls_left = 2
         else:
             cur_dice = list(pending_dice)
@@ -66,7 +58,7 @@ def _play_remaining_turns(seed, scorecard, dice, rolls_left, turn_index, random_
             keep_indices = list(result.get("keep_indices", []))
             if len(keep_indices) == 5:
                 break
-            cur_dice = base_sim.reroll_from_keep(
+            cur_dice = reroll_from_keep(
                 rng, cur_dice, keep_indices,
                 seed=seed, turn_index=turn_index, roll_step=3 - cur_rolls_left,
                 random_source=random_source,
@@ -78,10 +70,10 @@ def _play_remaining_turns(seed, scorecard, dice, rolls_left, turn_index, random_
         category_idx = CATS.get(result.get("primary_target"))
         if category_idx not in open_categories:
             category_idx = max(open_categories, key=lambda idx: calc_score(cur_dice, idx))
-        base_sim.apply_score(cur_dice, scorecard, category_idx)
+        apply_score(cur_dice, scorecard, category_idx)
         turn_index += 1
 
-    return base_sim.total_score(scorecard)
+    return total_score(scorecard)
 
 
 def estimate_win_probability(

@@ -544,7 +544,7 @@ function renderCompareBoard(leftCard, rightCard, options = {}) {
     `;
 }
 
-// 점수 설명은 점수판 상단의 고정 높이 인라인 도움말(#score-desc-area)에만 표시한다.
+// 점수 설명은 고정 높이 인라인 도움말(#score-desc-area)에만 표시한다.
 // (예전에는 커서를 따라다니는 플로팅 툴팁도 같이 띄워 설명이 중복되고 행을 가렸다.)
 function showTip(el) {
     const desc = el.getAttribute('data-desc') || '';

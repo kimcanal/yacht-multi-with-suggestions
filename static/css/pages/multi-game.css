@@ -1,0 +1,243 @@
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a3e 100%);
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        @media (max-width: 1024px) {
+            body { padding: 10px; }
+        }
+        .game-wrapper {
+            width: 100%;
+            max-width: 1560px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(0, 1.12fr) minmax(420px, 620px);
+            gap: 28px;
+            align-items: start;
+        }
+        .main-area {
+            min-width: 0;
+            max-width: 100%;
+        }
+        .title {
+            font-size: 3em;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-shadow: 0 0 30px rgba(0, 255, 200, 0.3);
+            color: #00ffcc;
+        }
+        .dice-area {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 30px;
+        }
+        .die-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 10px;
+            margin-bottom: 30px;
+        }
+        .primary-controls {
+            margin: 0 0 16px !important;
+            align-items: center;
+        }
+        .btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .info-bar {
+            background: rgba(0, 255, 204, 0.1);
+            border: 2px solid #00ffcc;
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.2em;
+            color: #00ffcc;
+            font-weight: bold;
+        }
+        .rolls-remaining { font-size: 1.5em; margin-bottom: 15px; }
+        .scorecard-area {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 24px 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+            position: sticky;
+            top: 18px;
+            align-self: start;
+        }
+        @media (max-width: 1024px) {
+            .game-wrapper { grid-template-columns: 1fr; }
+            .scorecard-area { position: static; }
+        }
+        @media (max-width: 1024px) {
+            .game-wrapper { gap: 24px; }
+            .main-area { max-width: 100%; }
+            .scorecard-area { max-width: 100%; }
+            .dice-area { padding: 20px 12px; }
+            .dice-grid { flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; padding: 0 6px; }
+            .dice-item { width: auto; flex: 0 0 30%; font-size: min(4.9vw, 20px); }
+        }
+        @media (max-width: 480px) {
+            .game-wrapper { gap: 16px; }
+            .dice-area { padding: 16px 10px; }
+            .scorecard-area { padding: 20px 12px; }
+        }
+        .observer-banner {
+            background: linear-gradient(135deg, rgba(255, 214, 102, 0.18), rgba(255, 160, 90, 0.12));
+            border: 1px solid rgba(255, 214, 102, 0.28);
+            color: #ffe7a1;
+            padding: 14px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+        }
+        .observer-banner-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        .observer-banner-title { font-size: 1.05rem; font-weight: 800; color: #fff2bf; }
+        .observer-banner-sub { font-size: 0.84rem; color: #ffd98b; margin-top: 2px; }
+        .observer-link-btn {
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.08);
+            color: #fff4cf;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s ease;
+            white-space: nowrap;
+        }
+        .observer-link-btn:hover { background: rgba(255,255,255,0.14); }
+        .observer-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+        .observer-meta-card {
+            min-width: 0;
+            background: rgba(7, 10, 20, 0.26);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+        .observer-meta-label {
+            color: #c2cbe0;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 6px;
+        }
+        .observer-meta-value {
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 700;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        @media (max-width: 768px) {
+            body { padding: 6px; }
+            .game-wrapper { width: 100%; max-width: 100%; padding: 0; margin: 0; }
+            .main-area { max-width: 100%; }
+            .dice-area { width: 100%; max-width: 100%; margin: 0 auto; padding: 16px 2px; }
+            .dice-grid { flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; max-width: none; margin: 0; padding: 0 6px; }
+            .dice-item { width: auto; flex: 0 0 30%; font-size: min(4.9vw, 20px); }
+        }
+        @media (max-width: 768px) {
+            .game-wrapper { display: block !important; max-width: 100% !important; margin: 0 !important; }
+            .main-area, .scorecard-area { width: 100% !important; max-width: 100% !important; flex: none !important; }
+            .title { font-size: 2rem !important; margin-bottom: 16px !important; text-align: center; }
+            .dice-area { padding: 16px 10px !important; border-radius: 18px !important; margin-bottom: 16px !important; }
+            .scorecard-area { padding: 16px 10px !important; border-radius: 18px !important; }
+            .controls { flex-wrap: wrap; gap: 10px !important; margin-bottom: 18px !important; }
+            .controls .btn { flex: 1 1 calc(50% - 6px); min-width: min(130px, 100%); padding: 11px 14px !important; font-size: 0.98rem !important; }
+            .rolls-remaining { font-size: 1.2rem; }
+            .observer-banner-head { flex-direction: column; align-items: stretch; }
+            .observer-link-btn { width: 100%; }
+            .observer-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        /* UX readability refresh */
+        body { background:#0b1020; color:#eaf2ff; }
+        .title {
+            font-size:2.8rem !important; letter-spacing:0 !important; color:#7ef3cb !important;
+            text-shadow:none !important; margin-bottom:16px !important;
+        }
+        .game-wrapper { gap:24px; }
+        .dice-area, .scorecard-area {
+            background:#101827 !important; border:1px solid rgba(148,163,184,0.24) !important;
+            border-radius:18px !important; box-shadow:0 18px 48px rgba(0,0,0,0.3) !important;
+        }
+        .info-bar {
+            background:rgba(126,243,203,0.05) !important; border:1px solid rgba(126,243,203,0.18) !important;
+            border-radius:14px !important; box-shadow:none !important;
+        }
+        .observer-banner {
+            background:rgba(255,209,102,0.06) !important; border:1px solid rgba(255,209,102,0.28) !important;
+            border-radius:14px !important; box-shadow:none !important;
+        }
+        .scorecard-area {
+            padding:20px !important; max-height:calc(100vh - 36px); overflow:auto; scrollbar-width:thin;
+            scrollbar-color:rgba(126,243,203,0.5) rgba(255,255,255,0.05);
+        }
+        .scorecard-area::-webkit-scrollbar { width:8px; }
+        .scorecard-area::-webkit-scrollbar-track { background:rgba(255,255,255,0.05); border-radius:999px; }
+        .scorecard-area::-webkit-scrollbar-thumb { background:rgba(126,243,203,0.55); border-radius:999px; }
+        .info-bar { color:#7ef3cb !important; }
+        .btn { border-radius:12px !important; }
+        /* 데스크톱: 세로 스크롤 없이 한 화면에 담기 */
+        @media (min-width: 1025px) {
+            html, body { height: 100%; }
+            body { overflow: hidden; padding: 14px 20px; }
+            .game-wrapper { height: calc(100vh - 28px); align-items: stretch; }
+            .main-area { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+            .title { margin-bottom: 10px !important; font-size: 2.3rem !important; }
+            .observer-banner { margin-bottom: 12px !important; }
+            .controls.primary-controls { margin-bottom: 14px !important; }
+            .dice-area {
+                flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-bottom: 0 !important;
+                padding: 20px 22px !important; scrollbar-width: thin;
+                scrollbar-color: rgba(126,243,203,0.5) rgba(255,255,255,0.05);
+            }
+            .dice-area::-webkit-scrollbar { width: 8px; }
+            .dice-area::-webkit-scrollbar-thumb { background: rgba(126,243,203,0.4); border-radius: 999px; }
+            #multiplayer-controls { margin-top: 12px !important; flex: 0 0 auto; }
+            .scorecard-area { height: 100%; max-height: none !important; }
+        }
+        @media (max-width: 768px) {
+            .scorecard-area { max-height:none; }
+        }

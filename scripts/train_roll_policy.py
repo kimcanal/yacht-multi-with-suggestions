@@ -11,7 +11,12 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from yacht_ai.ml_policy import FEATURE_NAMES, KEEP_COUNT_CLASSES, KEEP_COUNT_TO_INDEX, encode_roll_state
+from yacht_ai.ml_policy import (
+    FEATURE_NAMES,
+    KEEP_COUNT_CLASSES,
+    KEEP_COUNT_TO_INDEX,
+    encode_roll_state,
+)
 
 
 def parse_args():

@@ -4,10 +4,10 @@
 
 ## 산출물
 
-- Model: `artifacts/models/model-20260630-roll-policy-v2.json`
-- Eval report: `artifacts/reports/model-20260630-roll-policy-v2.eval.json`
+- Model: `artifacts/runtime/models/model-20260630-roll-policy-v2.json`
+- Eval report: `artifacts/reference/reports/model-20260630-roll-policy-v2.eval.json`
 - Teacher data: `artifacts/teacher_roll_32768.jsonl`
-- Baseline: `artifacts/models/model-20260630-roll-policy-v1.json`
+- Baseline: `artifacts/runtime/models/model-20260630-roll-policy-v1.json`
 
 ## 학습 설정
 
@@ -112,7 +112,7 @@ Focused mode, 100 games, seed `20260630` 기준:
 ```bash
 python3 scripts/train_roll_policy.py \
   --data artifacts/teacher_roll_32768.jsonl \
-  --output artifacts/models/model-20260630-roll-policy-v2.json \
+  --output artifacts/runtime/models/model-20260630-roll-policy-v2.json \
   --epochs 120 \
   --hidden-dim 96 \
   --batch-size 256 \
@@ -123,26 +123,26 @@ python3 scripts/train_roll_policy.py \
 
 python3 scripts/eval_roll_policy.py \
   --data artifacts/teacher_roll_32768.jsonl \
-  --model artifacts/models/model-20260630-roll-policy-v2.json \
+  --model artifacts/runtime/models/model-20260630-roll-policy-v2.json \
   --seed 20260701 \
-  --output artifacts/reports/model-20260630-roll-policy-v2.eval.json
+  --output artifacts/reference/reports/model-20260630-roll-policy-v2.eval.json
 
 python3 scripts/eval_roll_policy_ev_gap.py \
   --data artifacts/teacher_roll_32768.jsonl \
-  --model artifacts/models/model-20260630-roll-policy-v2.json \
+  --model artifacts/runtime/models/model-20260630-roll-policy-v2.json \
   --seed 20260701 \
-  --output artifacts/reports/model-20260630-roll-policy-v2.ev-gap.json
+  --output artifacts/reference/reports/model-20260630-roll-policy-v2.ev-gap.json
 
 python3 scripts/eval_roll_policy_runtime.py \
   --data artifacts/teacher_roll_32768.jsonl \
-  --model artifacts/models/model-20260630-roll-policy-v2.json \
+  --model artifacts/runtime/models/model-20260630-roll-policy-v2.json \
   --seed 20260701 \
   --min-confidence 0.95 \
   --guard-gap 0.25 \
-  --output artifacts/reports/model-20260630-roll-policy-v2.runtime.json
+  --output artifacts/reference/reports/model-20260630-roll-policy-v2.runtime.json
 
 python3 scripts/report_roll_policy_hard_cases.py \
-  --input artifacts/reports/model-20260630-roll-policy-v2.ev-gap.json \
+  --input artifacts/reference/reports/model-20260630-roll-policy-v2.ev-gap.json \
   --output docs/model-20260630-roll-policy-v2-hard-cases.md \
   --limit 10
 
@@ -150,7 +150,7 @@ python3 scripts/simulate_roll_policy_games.py \
   --games 100 \
   --seed 20260630 \
   --mode focused \
-  --output artifacts/reports/roll-policy-full-game-focused-100.json
+  --output artifacts/reference/reports/roll-policy-full-game-focused-100.json
 ```
 
 ## 해석

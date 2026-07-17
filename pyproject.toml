@@ -1,0 +1,20 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["artifacts", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# CLI scripts intentionally add the repository root to sys.path before local imports.
+"scripts/*.py" = ["E402"]
+
+[tool.coverage.run]
+branch = true
+source = ["yacht_app", "yacht_core", "yacht_ai", "routes"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

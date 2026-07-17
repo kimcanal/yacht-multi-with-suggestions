@@ -15,7 +15,6 @@ if str(ROOT) not in sys.path:
 from yacht_ai.self_play import simulate_state_distribution
 from yacht_ai.value_model import normalize_scorecard
 
-
 PRESET_SCORECARDS = {
     "empty": [None] * 12,
     "yacht_bonus_active": [None, None, None, None, 15, None, 18, None, None, None, None, 50],

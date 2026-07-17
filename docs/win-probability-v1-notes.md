@@ -24,7 +24,7 @@
   전체 240개 rollout 평균이 198.78점으로 이론적 exact EV(198.358)와 거의 일치. 개별 배치는
   win_rate 50.0%/61.0%로 흔들렸지만(표준오차 ~5~11pp), 이는 `n=100` 규모에서 기대되는 정상적인
   MC 노이즈이지 구조적 편향이 아니다.
-- 유닛 테스트(`tests/test_win_probability.py`)는 1칸만 남은 빠른 케이스로 shape/monotonicity만
+- 유닛 테스트(`tests/unit/test_win_probability.py`)는 1칸만 남은 빠른 케이스로 shape/monotonicity만
   확인한다(전체 스위트에 추가해도 <2초).
 
 ## API/UI 연결 (2026-07-11)

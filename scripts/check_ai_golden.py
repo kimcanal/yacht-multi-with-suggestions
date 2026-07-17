@@ -13,7 +13,6 @@ if str(ROOT) not in sys.path:
 
 import yacht_engine
 
-
 GOLDEN_CASES = [
     {
         "name": "straight_upgrade_focused",

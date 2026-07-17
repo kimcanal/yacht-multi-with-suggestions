@@ -16,10 +16,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import yacht_engine
-from yacht_ai.constants import CATS, CATEGORY_NAMES
+from yacht_ai.constants import CATEGORY_NAMES, CATS
 from yacht_ai.ml_policy import RollPolicyModel
 from yacht_ai.scoring import calc_score
-
 
 MODEL_CACHE: dict[str, RollPolicyModel] = {}
 

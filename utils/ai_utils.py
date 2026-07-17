@@ -3,10 +3,10 @@ import time
 
 import yacht_engine
 from app_state import ai_metrics
-from config import AI_POLICY_MODEL_PATH, AI_POLICY_MIN_CONFIDENCE
+from config import AI_POLICY_MIN_CONFIDENCE, AI_POLICY_MODEL_PATH
 
 try:
-    from yacht_ai.ml_policy import RollPolicyModel
+    from yacht_ai.policies.ml_policy import RollPolicyModel
 except Exception:
     RollPolicyModel = None
 

@@ -12,7 +12,6 @@ if str(ROOT) not in sys.path:
 
 import yacht_engine
 
-
 CATEGORY_NAMES = [
     "Ones",
     "Twos",

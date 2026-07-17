@@ -20,7 +20,6 @@ if str(ROOT) not in sys.path:
 
 import yacht_engine
 
-
 ALL_SORTED_DICE = list(itertools.combinations_with_replacement(range(1, 7), 5))
 POSSIBLE_SCORES = {
     idx: sorted({yacht_engine.calc_score(list(dice), idx) for dice in ALL_SORTED_DICE})

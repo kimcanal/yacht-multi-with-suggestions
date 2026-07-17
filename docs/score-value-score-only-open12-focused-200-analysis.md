@@ -1,10 +1,10 @@
 # Score Value Paired-case Analysis
 
-- Source report: `artifacts/reports/score-value-score-only-open12-focused-200.json`
+- Source report: `artifacts/reference/reports/score-value-score-only-open12-focused-200.json`
 - Mode: `focused`
 - Games: `200` paired seeds
 - Seed: `20260708`
-- Value table: `artifacts/value/endgame-value-table-open12.npz`
+- Value table: `artifacts/runtime/value/endgame-value-table-open12.npz`
 - Random source: `stream`
 
 ## value_score_only

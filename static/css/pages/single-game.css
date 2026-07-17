@@ -1,0 +1,206 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0f0f1e;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        .background-fx {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: linear-gradient(125deg, #0a0a1f, #141432, #1f1f45, #0f0f1e);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @media (max-width: 1024px) { body { padding: 10px; } }
+        .game-wrapper {
+            width: 100%;
+            max-width: 1560px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(0, 1.12fr) minmax(380px, 560px);
+            gap: 28px;
+            align-items: start;
+        }
+        .main-area { min-width: 0; max-width: 100%; }
+        .title {
+            font-size: 3em; font-weight: 700; margin-bottom: 30px;
+            text-shadow: 0 0 30px rgba(0, 255, 200, 0.3); color: #00ffcc;
+        }
+        .dice-area {
+            background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 40px;
+            backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 30px;
+        }
+        .controls {
+            display: flex; gap: 15px; justify-content: center; margin-top: 10px; margin-bottom: 30px;
+        }
+        .primary-controls {
+            margin: 0 0 16px !important;
+            align-items: center;
+        }
+        .btn {
+            padding: 12px 30px; font-size: 16px; font-weight: 600; border: none; border-radius: 30px;
+            cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;
+        }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-reset { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .info-bar {
+            background: rgba(0, 255, 204, 0.1); border: 2px solid #00ffcc; border-radius: 15px; padding: 15px;
+            text-align: center; font-size: 1.2em; color: #00ffcc; font-weight: bold;
+        }
+        .rolls-remaining { font-size: 1.5em; margin-bottom: 2px; line-height: 1.1; }
+        .scorecard-area {
+            background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 30px;
+            backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%; max-width: 100%; margin: 0 auto; position: sticky; top: 18px; align-self: start;
+        }
+        body.solo-play-mode .game-wrapper {
+            max-width: 1660px;
+            grid-template-columns: minmax(0, 1fr) minmax(460px, 690px);
+        }
+        body.solo-play-mode .scorecard-area {
+            padding: 32px 28px;
+        }
+        @media (max-width: 1024px) {
+            .game-wrapper { grid-template-columns: 1fr; }
+            .scorecard-area { position: static; }
+        }
+        @media (max-width: 1024px) {
+            .game-wrapper { gap: 24px; }
+            .main-area { max-width: 100%; }
+            .scorecard-area { max-width: 100%; }
+            .dice-area { padding: 20px 12px; }
+        }
+        @media (max-width: 480px) {
+            .game-wrapper { gap: 16px; }
+            .dice-area { padding: 16px 10px; }
+            .scorecard-area { padding: 20px 12px; }
+        }
+        .mode-strip {
+            display: grid; gap: 10px;
+            margin-bottom: 12px; padding: 0; border-radius: 16px;
+            background: transparent; border: 0;
+        }
+        .mode-strip.expanded {
+            padding: 12px 14px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+        }
+        .mode-config-grid {
+            display:none; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between;
+        }
+        .mode-strip.expanded .mode-config-grid { display:flex; }
+        .mode-group { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .mode-label { font-size: 0.82rem; color: #9fb0c2; font-weight: 700; }
+        .mode-strip-actions { display:flex; justify-content:flex-end; }
+        .mode-strip-toggle {
+            display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto;
+            border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:#dbe4ee;
+            border-radius:999px; padding:8px 12px; font-size:0.78rem; font-weight:800; cursor:pointer; transition:0.2s ease;
+        }
+        .mode-strip-toggle:hover { background:rgba(255,255,255,0.12); }
+        .seg-btn {
+            border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: #dbe4ee;
+            border-radius: 999px; padding: 8px 14px; font-size: 0.84rem; font-weight: 700; cursor: pointer; transition: 0.2s ease;
+        }
+        .seg-btn.active { background: #59f0c2; color: #07251d; border-color: #59f0c2; }
+        .single-insight-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(240px, 0.95fr);
+            gap: 12px;
+            align-items: stretch;
+            margin-top: 12px;
+        }
+        .single-insight-grid > .ai-breakdown,
+        .single-insight-grid > .score-help {
+            margin: 0 !important;
+        }
+        .single-insight-grid > .score-help {
+            min-height: 0;
+        }
+        @media (max-width: 1180px) {
+            .single-insight-grid { grid-template-columns: 1fr; }
+        }
+        /* 좁은 화면 최적화 */
+        @media (max-width: 1024px) {
+            body { padding: 6px; }
+            .game-wrapper { width: 100%; max-width: 100%; padding: 0; margin: 0; }
+            .main-area { max-width: 100%; }
+            .dice-area { width: 100%; max-width: 100%; margin: 0 auto; padding: 16px 2px; }
+            .dice-grid { flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; max-width: none; margin: 0; padding: 0 6px; }
+            .dice-item { width: auto; flex: 0 0 30%; font-size: min(4.9vw, 20px); }
+        }
+        @media (max-width: 768px) {
+            .game-wrapper { display: block !important; max-width: 100% !important; margin: 0 !important; }
+            .main-area, .scorecard-area { width: 100% !important; max-width: 100% !important; flex: none !important; }
+            .title { font-size: 2rem !important; margin-bottom: 16px !important; text-align: center; }
+            .mode-strip.expanded { padding: 12px; }
+            .mode-config-grid { gap:10px; }
+            .mode-group { width: 100%; }
+            .mode-strip-actions { display:flex; }
+            .mode-strip-toggle { display:inline-flex; }
+            .seg-btn { flex: 1 1 calc(50% - 6px); text-align: center; }
+            .dice-area { padding: 16px 10px !important; border-radius: 18px !important; margin-bottom: 16px !important; }
+            .scorecard-area { padding: 16px 10px !important; border-radius: 18px !important; }
+            .controls { flex-wrap: wrap; gap: 10px !important; margin-bottom: 18px !important; }
+            .controls .btn { flex: 1 1 calc(50% - 6px); min-width: min(130px, 100%); padding: 11px 14px !important; font-size: 0.98rem !important; }
+            .rolls-remaining { font-size: 1.2rem; }
+        }
+        /* UX readability refresh */
+        body { background:#0b1020; color:#eaf2ff; }
+        .background-fx { background:#0b1020; animation:none; }
+        .title {
+            font-size:2.8rem !important; letter-spacing:0 !important; color:#7ef3cb !important;
+            text-shadow:none !important; margin-bottom:16px !important;
+        }
+        .game-wrapper { gap:24px; }
+        .dice-area, .scorecard-area {
+            background:#101827 !important; border:1px solid rgba(148,163,184,0.24) !important;
+            border-radius:18px !important; box-shadow:0 18px 48px rgba(0,0,0,0.3) !important;
+        }
+        .mode-strip {
+            background:rgba(255,255,255,0.025) !important; border:1px solid rgba(148,163,184,0.14) !important;
+            border-radius:14px !important; box-shadow:none !important;
+        }
+        .info-bar {
+            background:rgba(126,243,203,0.05) !important; border:1px solid rgba(126,243,203,0.18) !important;
+            border-radius:14px !important; box-shadow:none !important;
+        }
+        .scorecard-area {
+            padding:20px !important; max-height:calc(100vh - 36px); overflow:auto; scrollbar-width:thin;
+            scrollbar-color:rgba(126,243,203,0.5) rgba(255,255,255,0.05);
+        }
+        .scorecard-area::-webkit-scrollbar { width:8px; }
+        .scorecard-area::-webkit-scrollbar-track { background:rgba(255,255,255,0.05); border-radius:999px; }
+        .scorecard-area::-webkit-scrollbar-thumb { background:rgba(126,243,203,0.55); border-radius:999px; }
+        .info-bar { color:#7ef3cb !important; }
+        .btn { border-radius:12px !important; }
+        /* 데스크톱: 세로 스크롤 없이 한 화면에 담기 */
+        @media (min-width: 1025px) {
+            html, body { height: 100%; }
+            body { overflow: hidden; padding: 14px 20px; }
+            .game-wrapper { height: calc(100vh - 28px); align-items: stretch; }
+            .main-area { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+            .title { margin-bottom: 10px !important; font-size: 2.3rem !important; }
+            .mode-strip { margin-bottom: 12px !important; }
+            .controls.game-primary-controls { margin-bottom: 14px !important; }
+            .dice-area {
+                flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-bottom: 0 !important;
+                padding: 20px 22px !important; scrollbar-width: thin;
+                scrollbar-color: rgba(126,243,203,0.5) rgba(255,255,255,0.05);
+            }
+            .dice-area::-webkit-scrollbar { width: 8px; }
+            .dice-area::-webkit-scrollbar-thumb { background: rgba(126,243,203,0.4); border-radius: 999px; }
+            body.solo-play-mode .scorecard-area,
+            .scorecard-area { height: 100%; max-height: none !important; position: static; }
+        }
+        @media (max-width: 768px) {
+            .scorecard-area { max-height:none; }
+        }

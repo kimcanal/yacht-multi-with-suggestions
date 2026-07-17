@@ -16,7 +16,6 @@ if str(ROOT) not in sys.path:
 from yacht_ai.self_play import simulate_state_distribution
 from yacht_ai.value_model import normalize_scorecard
 
-
 PRESET_SCORECARDS = {
     "empty": [None] * 12,
     "yacht_bonus_active": [None, None, None, None, 15, None, 18, None, None, None, None, 50],
@@ -35,7 +34,7 @@ def parse_args():
     parser.add_argument("--trials-per-state", type=int, default=32)
     parser.add_argument("--seed", type=int, default=20260708)
     parser.add_argument("--mode", choices=("focused", "cover"), default="focused")
-    parser.add_argument("--output", default="artifacts/value/self-play-value-distribution-focused.jsonl")
+    parser.add_argument("--output", default="artifacts/generated/data/self-play-value-distribution-focused.jsonl")
     parser.add_argument("--summary-output", default="")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--report-every", type=int, default=4)

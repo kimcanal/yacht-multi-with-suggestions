@@ -2,7 +2,7 @@
 
 - Games per policy: `100`
 - Seed: `20260709` / random source: `indexed`
-- Value table: `artifacts/value/endgame-value-table-open12.npz`
+- Value table: `artifacts/runtime/value/endgame-value-table-open12.npz`
 - Metric: regret = Q*(best action) - Q*(chosen action), in expected final-score points
 
 ## Summary

@@ -105,8 +105,8 @@ Runtime fallback을 넣으면 exact와 같은 점수대를 유지한다. 반대�
 
 - Model v2 report: [model-20260630-roll-policy-v2.md](./model-20260630-roll-policy-v2.md)
 - Hard cases: [model-20260630-roll-policy-v2-hard-cases.md](./model-20260630-roll-policy-v2-hard-cases.md)
-- Full-game simulation JSON: `artifacts/reports/roll-policy-full-game-focused-100.json`
-- Runtime validation JSON: `artifacts/reports/model-20260630-roll-policy-v2.runtime.json`
+- Full-game simulation JSON: `artifacts/reference/reports/roll-policy-full-game-focused-100.json`
+- Runtime validation JSON: `artifacts/reference/reports/model-20260630-roll-policy-v2.runtime.json`
 
 ## Takeaway
 

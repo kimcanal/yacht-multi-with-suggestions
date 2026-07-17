@@ -3,7 +3,7 @@
 - Mode: `focused`
 - Games: `200` paired seeds
 - Seed: `20260708`
-- Value table: `artifacts/value/endgame-value-table-open4.json`
+- Value table: `artifacts/runtime/value/endgame-value-table-open4.json`
 
 ## Summary
 

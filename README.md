@@ -68,8 +68,16 @@ export YACHT_DATA_FILE=/path/to/game_data.json
 ```bash
 export YACHT_ROOM_BACKEND=redis
 export YACHT_PRESENCE_BACKEND=redis
+export YACHT_SESSION_BACKEND=redis
 export YACHT_REDIS_URL=redis://localhost:6379/0
 python3 server.py
+```
+
+리더보드와 경기 결과는 JSON 호환 backend가 기본입니다. 다중 worker에서는 SQLite backend를 사용합니다.
+
+```bash
+export YACHT_RESULT_BACKEND=sqlite
+export YACHT_SQLITE_PATH=/var/lib/yacht/game_data.sqlite3
 ```
 
 ## AI 코치
@@ -164,6 +172,8 @@ full-game exact value table이 있으므로 추천 품질을 이론 최적 대�
 ## 검증 명령
 
 ```bash
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/ruff check .
 .venv/bin/python -m unittest discover -s tests
 .venv/bin/python scripts/check_ai_golden.py
 node --check static/js/ai_panel.js
@@ -178,7 +188,7 @@ AI 추천 품질/성능 측정:
 .venv/bin/python scripts/eval_decision_regret.py \
   --games 100 \
   --policies focused,cover,optimal \
-  --output artifacts/reports/decision-regret-100.json \
+  --output artifacts/reference/reports/decision-regret-100.json \
   --markdown-output docs/decision-regret-100.md
 ```
 
@@ -187,7 +197,7 @@ full-game value table 빌드:
 ```bash
 .venv/bin/python scripts/build_value_table.py \
   --batch-open-count 12 \
-  --output artifacts/value/endgame-value-table-open12.npz \
+  --output artifacts/generated/value/endgame-value-table-open12.npz \
   --output-format npz \
   --max-states 600000
 ```
@@ -196,21 +206,25 @@ full-game value table 빌드:
 
 ```text
 yacht-multi-with-suggestions/
-├── server.py                  # Flask app entrypoint
-├── wsgi.py                    # gunicorn entrypoint
-├── routes/                    # AI, lobby, room, leaderboard, single APIs
-├── yacht_ai/                  # solver, scoring, value table, win probability
-├── yacht_engine.py            # game-facing AI wrapper
-├── templates/                 # Flask templates
+├── server.py / wsgi.py        # compatibility and process entrypoints
+├── yacht_app/                 # app factory, web, services, stores, infrastructure
+├── yacht_core/                # AI-independent rules, scoring, simulation
+├── yacht_ai/                  # solver, policies, value models, reports
+├── routes/                    # thin Flask API controllers
+├── templates/                 # base template and page markup
 ├── static/
-│   ├── css/base.css           # shared UI styles
-│   └── js/                    # vanilla JS frontend modules
-├── tests/                     # route/AI/win-probability regression tests
-├── scripts/                   # benchmarks, simulations, value-table builders
-├── docs/                      # AI reports, screenshots, design notes
-├── artifacts/                 # value tables, reports, trained policy artifacts
-├── API.md
-└── README.md
+│   ├── css/pages/             # page-specific styles
+│   └── js/pages/              # page-specific controllers
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── frontend/
+├── scripts/                   # experiment and operations CLI entrypoints
+├── docs/
+└── artifacts/
+    ├── runtime/               # deployment-required models and value tables
+    ├── reference/             # versioned benchmark evidence
+    └── generated/             # ignored local experiment output
 ```
 
 ## 게임 규칙 요약
@@ -241,6 +255,7 @@ Ones~Sixes는 해당 숫자의 합계입니다. Upper Section 합계가 63점 �
 - [AI 결정 프레임워크](./docs/ai-decision-framework.md)
 - [성능 로드맵](./docs/performance-roadmap.md)
 - [승률 엔진 노트](./docs/win-probability-v1-notes.md)
+- [Artifact 관리 정책](./artifacts/README.md)
 
 ## 라이선스
 

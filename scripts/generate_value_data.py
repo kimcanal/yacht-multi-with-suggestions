@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument("--games", type=int, default=32, help="number of self-play games")
     parser.add_argument("--seed", type=int, default=20260708, help="base random seed")
     parser.add_argument("--mode", choices=("focused", "cover"), default="focused")
-    parser.add_argument("--output", default="artifacts/value/self-play-value-focused.jsonl")
+    parser.add_argument("--output", default="artifacts/generated/data/self-play-value-focused.jsonl")
     parser.add_argument("--summary-output", default="")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--report-every", type=int, default=8)

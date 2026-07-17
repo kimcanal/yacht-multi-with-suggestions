@@ -1,7 +1,7 @@
 import hmac
 import secrets
-from config import USERNAME_RE
 
+from config import USERNAME_RE
 
 _SCORECARD_SCORE_BOUNDS = (
     (0, 5),

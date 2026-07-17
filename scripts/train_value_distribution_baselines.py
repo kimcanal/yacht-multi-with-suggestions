@@ -18,7 +18,6 @@ if str(ROOT) not in sys.path:
 
 from yacht_ai.value_model import VALUE_FEATURE_NAMES
 
-
 DEFAULT_TARGETS = (
     "target_remaining_mean",
     "target_remaining_stdev",
@@ -32,7 +31,7 @@ DEFAULT_TARGETS = (
 def parse_args():
     parser = argparse.ArgumentParser(description="Train multi-target linear baselines for value distribution data.")
     parser.add_argument("--data", required=True)
-    parser.add_argument("--output", default="artifacts/models/scorecard-value-distribution-linear-v1.json")
+    parser.add_argument("--output", default="artifacts/generated/models/scorecard-value-distribution-linear-v1.json")
     parser.add_argument("--targets", default=",".join(DEFAULT_TARGETS))
     parser.add_argument("--ridge", type=float, default=1.0)
     parser.add_argument("--validation-ratio", type=float, default=0.2)

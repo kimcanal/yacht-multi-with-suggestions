@@ -3,13 +3,12 @@ import time
 from collections import OrderedDict
 from copy import deepcopy
 
-import yacht_engine
 from flask import Blueprint, jsonify, request
 
+import yacht_engine
 from app_state import ai_metrics
-from config import AI_SLOW_LOG_MS, AI_POLICY_MIN_CONFIDENCE, WIN_PROBABILITY_DEFAULT_SAMPLES
+from config import AI_POLICY_MIN_CONFIDENCE, AI_SLOW_LOG_MS, WIN_PROBABILITY_DEFAULT_SAMPLES
 from utils.ai_utils import record_ai_slow_sample
-from utils.observability import log_json
 from utils.validation import (
     normalize_dice,
     normalize_rolls_left,
@@ -17,8 +16,9 @@ from utils.validation import (
     normalize_strategy_mode,
     safe_int,
 )
-from utils.win_probability_service import request_win_probability
-from yacht_ai.report import build_decision_report
+from yacht_ai.reporting.decision import build_decision_report
+from yacht_app.infra.observability import log_json
+from yacht_app.services.win_probability import request_win_probability
 
 ai_bp = Blueprint("ai", __name__)
 

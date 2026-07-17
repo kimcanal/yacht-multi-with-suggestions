@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from yacht_ai.constants import CATS, CATEGORY_NAMES, FRESH_TURN_CATEGORY_EV, UPPER_BONUS_VALUE
+from yacht_ai.constants import CATEGORY_NAMES, CATS, FRESH_TURN_CATEGORY_EV, UPPER_BONUS_VALUE
 from yacht_ai.scoring import (
     DICE_STATES,
     calc_score,
@@ -412,7 +412,7 @@ def build_batch_payload(args: argparse.Namespace, started: float) -> tuple[dict,
 
 def resolve_batch_output(args: argparse.Namespace, payload: dict) -> tuple[Path, str]:
     default_suffix = "npz" if args.output_format == "npz" else "json"
-    default_output = f"artifacts/value/endgame-value-table-open{payload['batch_open_count']}.{default_suffix}"
+    default_output = f"artifacts/generated/value/endgame-value-table-open{payload['batch_open_count']}.{default_suffix}"
     output_path = Path(args.output or default_output)
     output_format = args.output_format
     if output_format == "auto":

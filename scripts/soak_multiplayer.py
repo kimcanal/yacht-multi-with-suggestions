@@ -23,7 +23,6 @@ if str(ROOT) not in sys.path:
 import yacht_engine
 from yacht_ai.advice import score_stage_category_advice
 
-
 CATEGORY_NAMES = list(yacht_engine.CATS.keys())
 CATEGORY_SET = set(CATEGORY_NAMES)
 YACHT_IDX = yacht_engine.CATS["Yacht"]

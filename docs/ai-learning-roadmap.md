@@ -60,20 +60,20 @@ python3 scripts/generate_value_data.py \
   --games 256 \
   --seed 20260708 \
   --mode focused \
-  --output artifacts/value/self-play-value-focused-256.jsonl \
-  --summary-output artifacts/reports/self-play-value-focused-256.summary.json \
+  --output artifacts/reference/data/self-play-value-focused-256.jsonl \
+  --summary-output artifacts/reference/reports/self-play-value-focused-256.summary.json \
   --overwrite
 
 python3 scripts/train_value_baseline.py \
-  --data artifacts/value/self-play-value-focused-256.jsonl \
-  --output artifacts/models/scorecard-value-linear-v1.json \
+  --data artifacts/reference/data/self-play-value-focused-256.jsonl \
+  --output artifacts/runtime/models/scorecard-value-linear-v1.json \
   --seed 20260708 \
   --ridge 1.0
 
 python3 scripts/eval_value_baseline.py \
-  --data artifacts/value/self-play-value-focused-256.jsonl \
-  --model artifacts/models/scorecard-value-linear-v1.json \
-  --output artifacts/reports/scorecard-value-linear-v1.eval.json \
+  --data artifacts/reference/data/self-play-value-focused-256.jsonl \
+  --model artifacts/runtime/models/scorecard-value-linear-v1.json \
+  --output artifacts/reference/reports/scorecard-value-linear-v1.eval.json \
   --markdown-output docs/scorecard-value-linear-v1-hard-cases.md \
   --limit 10
 
@@ -84,22 +84,22 @@ python3 scripts/simulate_value_state_distribution.py \
   --markdown-output docs/yacht-bonus-value-distribution.md
 
 python3 scripts/generate_value_distribution_data.py \
-  --source-jsonl artifacts/value/self-play-value-focused-256.jsonl \
+  --source-jsonl artifacts/reference/data/self-play-value-focused-256.jsonl \
   --max-states 64 \
   --trials-per-state 64 \
-  --output artifacts/value/self-play-value-distribution-focused-64x64.jsonl \
-  --summary-output artifacts/reports/self-play-value-distribution-focused-64x64.summary.json \
+  --output artifacts/reference/data/self-play-value-distribution-focused-64x64.jsonl \
+  --summary-output artifacts/reference/reports/self-play-value-distribution-focused-64x64.summary.json \
   --overwrite
 
 python3 scripts/train_value_distribution_baselines.py \
-  --data artifacts/value/self-play-value-distribution-focused-64x64.jsonl \
-  --output artifacts/models/scorecard-value-distribution-linear-v1.json \
+  --data artifacts/reference/data/self-play-value-distribution-focused-64x64.jsonl \
+  --output artifacts/runtime/models/scorecard-value-distribution-linear-v1.json \
   --seed 20260708
 
 python3 scripts/eval_value_distribution_baselines.py \
-  --data artifacts/value/self-play-value-distribution-focused-64x64.jsonl \
-  --model artifacts/models/scorecard-value-distribution-linear-v1.json \
-  --output artifacts/reports/scorecard-value-distribution-linear-v1.eval.json \
+  --data artifacts/reference/data/self-play-value-distribution-focused-64x64.jsonl \
+  --model artifacts/runtime/models/scorecard-value-distribution-linear-v1.json \
+  --output artifacts/reference/reports/scorecard-value-distribution-linear-v1.eval.json \
   --markdown-output docs/scorecard-value-distribution-linear-v1-hard-cases.md \
   --limit 10
 ```
@@ -149,12 +149,12 @@ score stage 휴리스틱을 장기 가치와 정면 비교하기 위해 후반 e
 ```bash
 python3 scripts/build_value_table.py \
   --batch-open-count 3 \
-  --output artifacts/value/endgame-value-table-open3.json \
+  --output artifacts/runtime/value/endgame-value-table-open3.json \
   --max-states 40000
 
 python3 scripts/build_value_table.py \
   --batch-open-count 4 \
-  --output artifacts/value/endgame-value-table-open4.json \
+  --output artifacts/runtime/value/endgame-value-table-open4.json \
   --max-states 110000
 ```
 
@@ -166,7 +166,7 @@ python3 scripts/build_value_table.py \
 
 N=12도 실시간 요청 중 계산할 대상은 아니지만, 오프라인 artifact로 만들면 런타임에서는 dense table lookup만 하면 된다.
 
-score stage value mode는 운영 기본값을 바꾸지 않는 opt-in 경로다. 기본 table 경로는 전체 12칸 dense artifact인 `artifacts/value/endgame-value-table-open12.npz`다.
+score stage value mode는 운영 기본값을 바꾸지 않는 opt-in 경로다. 기본 table 경로는 전체 12칸 dense artifact인 `artifacts/runtime/value/endgame-value-table-open12.npz`다.
 
 ```bash
 YACHT_SCORE_STAGE_MODE=value python3 server.py
@@ -212,7 +212,7 @@ full open12 table indexed 200게임 결과:
 - value-optimal cold-cache: 평균 58.54~140.25ms
 - value-optimal warm-cache: 평균 0.04~0.05ms
 
-결과 artifact는 `artifacts/reports/ai-runtime-heuristic-cold.json`, `artifacts/reports/ai-runtime-value-optimal-cold.json`, `artifacts/reports/ai-runtime-value-optimal-warm.json`이다. cold-cache는 solver DP 캐시를 매번 비우고, warm-cache는 각 시나리오를 prewarm한 뒤 측정한다.
+결과 artifact는 `artifacts/reference/reports/ai-runtime-heuristic-cold.json`, `artifacts/reference/reports/ai-runtime-value-optimal-cold.json`, `artifacts/reference/reports/ai-runtime-value-optimal-warm.json`이다. cold-cache는 solver DP 캐시를 매번 비우고, warm-cache는 각 시나리오를 prewarm한 뒤 측정한다.
 
 ## Learned Early Value Hybrid
 

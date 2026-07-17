@@ -23,8 +23,8 @@ if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 
 import simulate_score_value_games as base_sim
-import yacht_engine
-from yacht_ai.constants import CATS, CATEGORY_NAMES
+
+from yacht_ai.constants import CATEGORY_NAMES, CATS
 from yacht_ai.endgame_value import DEFAULT_ENDGAME_VALUE_TABLE_PATH, load_endgame_value_table
 from yacht_ai.scoring import calc_score, get_keep_options, get_transition_distribution
 
@@ -323,7 +323,7 @@ def render_markdown(report) -> str:
         f"- Games per policy: `{report['games']}`",
         f"- Seed: `{report['seed']}` / random source: `{report['random_source']}`",
         f"- Value table: `{report['value_table']}`",
-        f"- Metric: regret = Q*(best action) - Q*(chosen action), in expected final-score points",
+        "- Metric: regret = Q*(best action) - Q*(chosen action), in expected final-score points",
         "",
         "## Summary",
         "",

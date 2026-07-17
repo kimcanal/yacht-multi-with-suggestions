@@ -1,10 +1,10 @@
 # Score Value Paired-case Analysis
 
-- Source report: `artifacts/reports/score-value-score-only-focused-500-indexed.json`
+- Source report: `artifacts/reference/reports/score-value-score-only-focused-500-indexed.json`
 - Mode: `focused`
 - Games: `500` paired seeds
 - Seed: `20260708`
-- Value table: `artifacts/value/endgame-value-table-open4.json`
+- Value table: `artifacts/runtime/value/endgame-value-table-open4.json`
 - Random source: `indexed`
 
 ## value_score_only

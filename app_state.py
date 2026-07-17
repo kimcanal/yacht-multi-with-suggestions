@@ -1,31 +1,41 @@
-from collections import deque
-import threading
+"""Compatibility proxies for application-owned services.
 
-from config import AI_METRIC_WINDOW, AI_SLOW_SAMPLE_WINDOW
-from utils.presence_store import create_presence_store
-from utils.room_store import create_room_store
+New code should access ``current_app.extensions['yacht_services']`` through
+``get_services``. The proxies keep existing scripts and tests source-compatible.
+"""
 
-# 방 상태 저장소. 기본은 in-memory, 환경변수로 Redis backend를 선택할 수 있음.
-room_store = create_room_store()
-rooms = room_store
-presence_store = create_presence_store()
-lobby_clients = presence_store
-single_sessions = {}
-single_sessions_lock = threading.RLock()
+from flask import current_app, has_app_context
+from werkzeug.local import LocalProxy
+
+from yacht_app.container import AppServices, create_services
+
+_default_services: AppServices | None = None
 
 
-class AIMetrics:
-    """AI 요청 카운터, 레이턴시 기록, 정책 모델 상태를 한 곳에서 관리."""
-
-    def __init__(self):
-        self.recent_latencies = deque(maxlen=AI_METRIC_WINDOW)
-        self.recent_stages = deque(maxlen=AI_METRIC_WINDOW)
-        self.recent_slow_samples = deque(maxlen=AI_SLOW_SAMPLE_WINDOW)
-        self.request_count = 0
-        self.error_count = 0
-        self.max_latency_ms = 0.0
-        self.policy_model = None
-        self.policy_model_status = "disabled"
+def get_default_services() -> AppServices:
+    global _default_services
+    if _default_services is None:
+        _default_services = create_services()
+    return _default_services
 
 
-ai_metrics = AIMetrics()
+def set_default_services(services: AppServices) -> None:
+    global _default_services
+    _default_services = services
+
+
+def get_services() -> AppServices:
+    if has_app_context():
+        services = current_app.extensions.get("yacht_services")
+        if services is not None:
+            return services
+    return get_default_services()
+
+
+room_store = LocalProxy(lambda: get_services().room_store)
+rooms = LocalProxy(lambda: get_services().rooms)
+presence_store = LocalProxy(lambda: get_services().presence_store)
+lobby_clients = LocalProxy(lambda: get_services().presence)
+single_sessions = LocalProxy(lambda: get_services().single_sessions)
+single_sessions_lock = LocalProxy(lambda: get_services().single_sessions_lock)
+ai_metrics = LocalProxy(lambda: get_services().ai_metrics)

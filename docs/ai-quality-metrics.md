@@ -18,7 +18,7 @@ full-game exact value table(open12)이 있으므로, 모든 지표는 이론 최
 ```bash
 .venv/bin/python scripts/eval_decision_regret.py \
   --games 100 --policies focused,cover,optimal \
-  --output artifacts/reports/decision-regret-100.json \
+  --output artifacts/reference/reports/decision-regret-100.json \
   --markdown-output docs/decision-regret-100.md
 ```
 
@@ -119,6 +119,6 @@ Yacht 50 / Large Straight 30 같은 확정 고득점 족보가 상단 보너스 
 - 사용자에게 노출되는 `focused` 추천의 score-stage regret이 이제 이론상 항상 0이다 (환경변수 설정 없이도 적용).
 - `policy_source`/`decision_report.method.source`는 여전히 `"exact"`로 표시된다(새 값 강제 없음) — `report.py`의 `_source_label`/`_learning_note`가 미인식 소스에 안전한 기본 문구를 반환하는 걸 확인했다.
 - `scripts/check_ai_golden.py`는 `yacht_engine.solve_best_move`를 `score_value_mode` 없이 직접 호출하므로 이 변경의 영향을 받지 않는다(환경변수 `YACHT_SCORE_STAGE_MODE` 기본값은 그대로 `heuristic`).
-- roll-stage `keep_indices`는 값 변화 없음을 회귀 테스트로 확인(`tests/test_routes.py`의 `[0, 1, 2, 3]` 기대값 유지).
+- roll-stage `keep_indices`는 값 변화 없음을 회귀 테스트로 확인(`tests/integration/test_routes.py`의 `[0, 1, 2, 3]` 기대값 유지).
 
 프론트의 AI 모드 설명 카드에 노출하는 평균 점수/최적 대비 손실 수치는 이 문서와 regret 리포트를 기준으로 하며, 새 regret 리포트를 채택할 때 함께 갱신한다.

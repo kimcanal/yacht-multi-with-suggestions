@@ -113,6 +113,32 @@ function clearAiScoreHints() {
     });
 }
 
+function parseAiScoreValue(scoreRow) {
+    const rawScore = Number(scoreRow?.score);
+    if (Number.isFinite(rawScore)) return rawScore;
+    const match = String(scoreRow?.val_str || '').trim().match(/^(-?\d+(?:\.\d+)?)점$/);
+    return match ? Number(match[1]) : null;
+}
+
+function getCurrentAiTargetScore(categoryIndex, targetRow) {
+    if (
+        typeof calcScore === 'function'
+        && typeof dice !== 'undefined'
+        && Array.isArray(dice)
+        && dice.length === 5
+    ) {
+        const liveScore = Number(calcScore(dice, categoryIndex));
+        if (Number.isFinite(liveScore)) return liveScore;
+    }
+    return parseAiScoreValue(targetRow);
+}
+
+function isAiScoreSacrifice(categoryIndex, targetRow) {
+    const targetScore = getCurrentAiTargetScore(categoryIndex, targetRow);
+    if (targetScore !== null) return targetScore <= 0;
+    return targetRow?.type === 'sacrifice';
+}
+
 function getAiScoreTarget(aiRec) {
     if (!aiRec || typeof aiRec !== 'object') return null;
     const breakdown = Array.isArray(aiRec.breakdown) ? aiRec.breakdown : [];
@@ -125,7 +151,7 @@ function getAiScoreTarget(aiRec) {
     const targetRow = breakdown.find((row) => row && row.name === targetName) || breakdown[0] || {};
     return {
         categoryIndex,
-        isSacrifice: targetRow.type === 'sacrifice' || Number(targetRow.score) === 0 || String(targetRow.val_str || '').includes('0점'),
+        isSacrifice: isAiScoreSacrifice(categoryIndex, targetRow),
     };
 }
 
