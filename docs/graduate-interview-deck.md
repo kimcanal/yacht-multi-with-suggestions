@@ -161,23 +161,26 @@ flowchart LR
 
 ### 화면 문구
 
-| 배치 방식 | 채택 범위 | 정확도 | 추가 EV 손실 |
+| 검증 조건 | 채택 범위 | 정확도 | 추가 EV 손실 |
 | --- | ---: | ---: | ---: |
-| Raw model-only | 100% | Top-1 **98.52%** | 평균 0.0237, **최대 10.15** |
-| Guarded runtime | **46.96%** | 채택 구간 **99.38%** | 검증 split에서 평균·최대 **0** |
+| 학습 당시 held-out, raw | 100% | Top-1 **98.52%** | 평균 0.0237, 최대 10.15 |
+| 최신 독립 표본, raw | 100% | Top-1 **81.59%** | 평균 **1.211**, 최대 **27.77** |
+| 최신 독립 표본, guarded | **39.51%** | 채택 구간 **99.07%** | 평균 0.000031, 최대 0.125 |
 
 발견한 hard case:
 
-- 이미 완성된 강한 패에서 일부 주사위만 keep하는 드문 오류
-- 전체 6,554개 중 mismatch 97개
-- 그중 EV gap `> 0.25`인 사례 51개
+- 기존 split에서는 이미 완성된 강한 패에서 일부만 keep하는 rare error
+- 최신 표본에서는 focused 초반 상태의 label drift와 과신 발견
+- confidence `0.95`만 적용해도 정확도가 83.68%여서 exact gap guard가 필수
 
 응답 시간:
 
 - exact value cold: 시나리오 평균 **58.5–140.2 ms**
 - cache warm: 시나리오 평균 **0.042–0.054 ms**
 
-**결론:** 98% 정확도보다 rare worst-case와 fallback 비율이 배치 판단에 더 중요했다.
+**결론:** 내부 held-out 98%만으로는 부족했다. 독립 검증에서 drift를 발견해 learned model을 비활성으로 유지했고, 최신 teacher로 재학습하기 전에는 배포하지 않는다.
+
+**후속:** 최신 teacher 32,768개로 재학습한 v3는 같은 독립 표본에서 Top-1 94.04%, guard 채택률 52.60%로 회복했다. 하지만 model-only complete-game은 exact보다 12.18점 낮아, v3도 단독 배포하지 않고 staging 후보로만 유지한다. 자세한 수치: [v3 검증](./model-20260717-roll-policy-v3.md).
 
 ---
 
@@ -236,7 +239,7 @@ flowchart LR
 | Training | 120 epochs, best epoch 107 |
 | Runtime guard | confidence 0.95, EV gap 0.25 |
 
-재현 스크립트와 원본 JSON은 저장소에 함께 보관했다.
+재현 스크립트와 요약 JSON은 저장소에 보관했다. 다만 최초 32,768개 teacher 원본은 현재 저장소에 없어 당시 held-out 결과를 완전히 재현할 수 없다는 한계가 있다. 이를 보완하기 위해 최신 solver와 별도 seed로 4,096개 독립 표본을 생성해 재검증했고, 생성 명령과 SHA-256을 [독립 검증 보고서](./model-validation-20260717.md)에 남겼다.
 
 ---
 
@@ -260,3 +263,4 @@ flowchart LR
 - [Full value-optimal paired 분석](./score-value-full-table-optimal-focused-200-indexed-analysis.md)
 - [Roll policy v2 평가](./model-20260630-roll-policy-v2.md)
 - [Roll policy hard cases](./model-20260630-roll-policy-v2-hard-cases.md)
+- [Roll policy 최신 독립 검증](./model-validation-20260717.md)

@@ -27,6 +27,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mode", choices=("focused", "cover"), default="focused", help="strategy mode")
     parser.add_argument("--model-v1", default="artifacts/runtime/models/model-20260630-roll-policy-v1.json")
     parser.add_argument("--model-v2", default="artifacts/runtime/models/model-20260630-roll-policy-v2.json")
+    parser.add_argument("--label-v1", default="v1", help="report label for --model-v1")
+    parser.add_argument("--label-v2", default="v2", help="report label for --model-v2")
     parser.add_argument("--min-confidence", type=float, default=0.95)
     parser.add_argument("--output", help="optional JSON report path")
     return parser.parse_args()
@@ -197,10 +199,10 @@ def main() -> None:
     seeds = [args.seed + idx * 1009 for idx in range(args.games)]
     policies = [
         ("exact", {"type": "exact"}),
-        ("v1_runtime", {"type": "model_runtime", "model": v1, "min_confidence": args.min_confidence}),
-        ("v2_runtime", {"type": "model_runtime", "model": v2, "min_confidence": args.min_confidence}),
-        ("v1_model_only", {"type": "model_only", "model": v1}),
-        ("v2_model_only", {"type": "model_only", "model": v2}),
+        (f"{args.label_v1}_runtime", {"type": "model_runtime", "model": v1, "min_confidence": args.min_confidence}),
+        (f"{args.label_v2}_runtime", {"type": "model_runtime", "model": v2, "min_confidence": args.min_confidence}),
+        (f"{args.label_v1}_model_only", {"type": "model_only", "model": v1}),
+        (f"{args.label_v2}_model_only", {"type": "model_only", "model": v2}),
     ]
 
     raw_results = {}

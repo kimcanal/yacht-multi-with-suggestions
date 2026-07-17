@@ -2,6 +2,8 @@
 
 `model-20260630-roll-policy-v2`는 v1과 같은 roll-stage distillation 모델이다. 구조는 그대로 두고 seed를 바꿔 재학습했다. 목표는 네트워크를 키우는 것이 아니라, 같은 teacher data에서 더 좋은 수렴점을 찾는 것이었다.
 
+> **2026-07-17 재검증 상태:** 현재 solver로 새로 생성한 weighted 독립 표본에서는 Top-1이 81.59%로 하락했고 model-only 평균 총점도 exact 기준선보다 26.70점 낮았다. 이 모델은 단독 배포하면 안 되며, 현재는 비활성 상태를 유지한다. 자세한 결과는 [독립 검증 보고서](./model-validation-20260717.md)를 참고한다. 아래 98.52%는 학습 당시 teacher dataset의 held-out split 결과다.
+
 ## 산출물
 
 - Model: `artifacts/runtime/models/model-20260630-roll-policy-v2.json`
@@ -48,7 +50,7 @@ Confidence threshold별 운영 후보:
 
 made-hand safety override 이후에는 v1이 top-1 정확도와 confidence coverage에서 아주 근소하게 앞선다. v2는 teacher 대비 raw 평균 추가 EV 손실이 더 낮고, full-game runtime 평균도 더 높다. 그래서 `coverage/top-1 baseline`은 v1, `mean-EV/runtime candidate`는 v2로 보는 것이 정확하다.
 
-운영에서 둘 중 하나만 고르면 v2를 기본값으로 둔다. 이유는 fallback이 있기 때문에 low-confidence/high-gap 구간의 위험을 exact solver가 흡수하고, 전체 roll-stage 일치율과 평균 추가 EV 손실은 v2가 더 좋기 때문이다. 다만 confidence threshold 기반 A/B 테스트를 한다면 v1과 v2를 함께 비교하는 편이 좋다.
+학습 당시 비교만 보면 v2가 mean-EV/runtime 후보였다. 그러나 2026-07-17 독립 검증 이후의 배포 판단은 **v1/v2 모두 비활성 유지**다. 현재 solver label로 재학습하고 독립 검증을 통과하기 전에는 기본 모델로 두지 않는다.
 
 ## EV gap 검증
 
