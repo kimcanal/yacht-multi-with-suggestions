@@ -1,0 +1,55 @@
+{
+  "validation_date": "2026-07-17",
+  "decision": "do_not_deploy_model_only",
+  "recommended_runtime_state": "keep_disabled_until_retrained_and_revalidated",
+  "model": {
+    "id": "model-20260630-roll-policy-v2",
+    "path": "artifacts/runtime/models/model-20260630-roll-policy-v2.json",
+    "sha256": "e047b0d1ed2ce351b8d84e6aa4b8b495300074c48b93cf771a730a2bdef8b58a"
+  },
+  "independent_data": {
+    "generated_examples": 4096,
+    "evaluated_examples": 4095,
+    "seed": 20260717,
+    "stage": "roll",
+    "mode": "both",
+    "dice_source": "weighted",
+    "sha256": "7c75d4a09ca468fd63536f5156df302731add85dcf8368ffbf094238e65dce6a"
+  },
+  "model_only": {
+    "top1_accuracy": 0.815873,
+    "top3_accuracy": 0.890842,
+    "mismatches": 754,
+    "mean_excess_ev_gap": 1.211128,
+    "p95_excess_ev_gap": 8.243473,
+    "p99_excess_ev_gap": 14.102615,
+    "max_excess_ev_gap": 27.771514
+  },
+  "guarded_runtime": {
+    "min_confidence": 0.95,
+    "max_objective_gap": 0.25,
+    "accepted_examples": 1618,
+    "acceptance_rate": 0.395116,
+    "accepted_top1_accuracy": 0.990729,
+    "effective_mean_excess_ev_gap": 0.000031,
+    "effective_max_excess_ev_gap": 0.125091
+  },
+  "full_game_focused_100": {
+    "seed": 20260717,
+    "exact_avg_total": 175.7,
+    "v2_runtime_avg_total": 176.33,
+    "v2_runtime_avg_delta": 0.63,
+    "v2_runtime_paired_95ci": [-0.569, 1.829],
+    "v2_model_only_avg_total": 149.0,
+    "v2_model_only_avg_delta": -26.7,
+    "v2_model_only_paired_95ci": [-34.742, -18.658]
+  },
+  "regression_checks": {
+    "unittest_passed": 74,
+    "golden_passed": 7,
+    "warm_soak_cases": 250,
+    "cold_soak_cases": 80,
+    "failures": 0
+  },
+  "documentation": "docs/model-validation-20260717.md"
+}

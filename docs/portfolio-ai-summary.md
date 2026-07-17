@@ -8,9 +8,13 @@
 
 학습 모델은 "AI라서 무조건 믿는" 구조가 아니다. exact solver를 teacher로 삼아 roll-stage MLP를 학습했고, 운영에서는 confidence와 exact gap guard를 통과한 경우에만 모델 출력을 사용한다. 통과하지 못하면 exact solver로 fallback한다.
 
+2026-07-17 독립 재검증에서는 최신 solver label에 대한 model-only Top-1이 81.59%, complete-game 평균이 exact보다 26.70점 낮았다. 따라서 현재 배포에서는 learned model을 비활성으로 유지한다. 이 실패를 숨기지 않고 dataset/label drift와 confidence miscalibration을 찾아낸 것이 검증의 핵심 결과다.
+
+이후 최신 teacher 32,768개로 재학습한 v3는 같은 독립 표본에서 Top-1 94.04%, guard 채택률 52.60%로 회복했다. 그러나 model-only는 exact보다 12.18점 낮았으므로, v3 역시 단독 배포하지 않고 staging 후보로만 보관한다. [v3 검증 보고서](./model-20260717-roll-policy-v3.md)에 재현 명령과 배포 기준을 남겼다.
+
 포트폴리오에서 강조할 한 줄은 이렇다.
 
-> Exact solver로 기준선을 만들고, ML 모델의 위험 구간을 EV gap과 full-game simulation으로 검증한 뒤, runtime guard로 안전하게 배치한 AI 추천 시스템.
+> Exact solver로 기준선을 만들고, ML 모델의 drift를 독립 검증으로 발견한 뒤, 기준 미달 모델을 비활성화한 AI 추천 시스템.
 
 ## Interview Talking Points
 
@@ -85,6 +89,8 @@ Runtime guard 기준:
 
 결론은 명확하다. 모델은 exact solver를 대체하지 않는다. 모델은 빠른 후보를 만들고, exact guard가 위험한 후보를 걸러낸다.
 
+다만 위 수치는 학습 당시 dataset 내부 split이다. [2026-07-17 독립 검증](./model-validation-20260717.md)에서는 Top-1 81.59%, raw 평균 추가 EV 손실 1.211점이 나왔다. 특히 focused 초반 상태에서 confidence가 높으면서 오답인 사례가 많아, confidence만으로는 label drift를 막을 수 없었다. 현재 운영 판단은 모델 비활성 유지다.
+
 ## Full-Game Simulation
 
 single-turn accuracy만으로는 실제 게임 점수 영향을 알 수 없어서, 같은 seed 묶음으로 complete game simulation을 돌렸다. 점수 기록은 동일한 exact score-stage를 쓰고, roll-stage 정책만 바꿨다.
@@ -107,6 +113,8 @@ Runtime fallback을 넣으면 exact와 같은 점수대를 유지한다. 반대�
 - Hard cases: [model-20260630-roll-policy-v2-hard-cases.md](./model-20260630-roll-policy-v2-hard-cases.md)
 - Full-game simulation JSON: `artifacts/reference/reports/roll-policy-full-game-focused-100.json`
 - Runtime validation JSON: `artifacts/reference/reports/model-20260630-roll-policy-v2.runtime.json`
+- Latest independent validation: [model-validation-20260717.md](./model-validation-20260717.md)
+- Independent summary JSON: `artifacts/reference/reports/model-20260630-roll-policy-v2.independent-20260717.summary.json`
 
 ## Takeaway
 

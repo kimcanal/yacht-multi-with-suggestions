@@ -1,0 +1,72 @@
+{
+  "validation_date": "2026-07-17",
+  "decision": "guarded_staging_candidate_only",
+  "production_recommendation": "keep_disabled_pending_staging_latency_evidence",
+  "model": {
+    "id": "model-20260717-roll-policy-v3",
+    "path": "artifacts/runtime/models/model-20260717-roll-policy-v3.json",
+    "sha256": "9498743e0f19ce2e0e8fc1aa48236071286ba8404dd2bf3f2c832a6687015c1c"
+  },
+  "training_teacher": {
+    "examples": 32768,
+    "sha256": "ddf03b6fc1a9326729b0c16a8ddcc871bced60763c8b6821b0ae3b387583367d",
+    "seeds": [20260718, 20260719, 20260720, 20260721],
+    "dice_source": "weighted",
+    "strategy_mode": "both"
+  },
+  "internal_validation": {
+    "examples": 6554,
+    "best_epoch": 115,
+    "accuracy": 0.9425
+  },
+  "independent_evaluation": {
+    "examples": 4095,
+    "seed": 20260717,
+    "top1_accuracy": 0.940415,
+    "top3_accuracy": 0.995116,
+    "mean_excess_ev_gap": 0.174723,
+    "p99_excess_ev_gap": 5.880323,
+    "max_excess_ev_gap": 27.289239
+  },
+  "second_independent_evaluation": {
+    "examples": 4095,
+    "seed": 20260723,
+    "data_sha256": "c4569d68f3b1cee30b69457324edbf9e5e7d9f95ab1fa716e8832fe7b6bdf143",
+    "top1_accuracy": 0.941392,
+    "top3_accuracy": 0.993651,
+    "mean_excess_ev_gap": 0.175497,
+    "p99_excess_ev_gap": 6.234011,
+    "max_excess_ev_gap": 21.913392,
+    "guarded_runtime": {
+      "accepted_examples": 2128,
+      "acceptance_rate": 0.519658,
+      "accepted_top1_accuracy": 0.984492,
+      "effective_mean_excess_ev_gap": 0.0,
+      "effective_max_excess_ev_gap": 0.0
+    }
+  },
+  "guarded_runtime": {
+    "min_confidence": 0.95,
+    "max_objective_gap": 0.25,
+    "accepted_examples": 2154,
+    "acceptance_rate": 0.526007,
+    "accepted_top1_accuracy": 0.987001,
+    "effective_mean_excess_ev_gap": 0.000031,
+    "effective_max_excess_ev_gap": 0.125091
+  },
+  "full_game_focused_100": {
+    "seed": 20260717,
+    "exact_avg_total": 175.7,
+    "v3_runtime_avg_total": 178.32,
+    "v3_runtime_avg_delta": 2.62,
+    "v3_runtime_paired_95ci": [-0.703, 5.943],
+    "v3_model_only_avg_total": 163.52,
+    "v3_model_only_avg_delta": -12.18,
+    "v3_model_only_paired_95ci": [-20.212, -4.148]
+  },
+  "regression_checks": {
+    "unittest_passed": 74,
+    "simulate_roll_policy_games_py_compile": true
+  },
+  "documentation": "docs/model-20260717-roll-policy-v3.md"
+}

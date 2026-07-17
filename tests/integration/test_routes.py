@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -13,6 +14,7 @@ import routes.ai as ai_routes
 import routes.leaderboard as leaderboard_routes
 import server
 from app_state import ai_metrics, lobby_clients, rooms, single_sessions, single_sessions_lock
+from yacht_ai.ml_policy import RollPolicyModel
 from yacht_engine import CATS, calc_score
 
 
@@ -169,6 +171,45 @@ class RouteIntegrationTests(unittest.TestCase):
         )
         roll_payload = roll_response.get_json()
         self.assertEqual(roll_payload["keep_indices"], [0, 1, 2, 3])
+
+    def test_loaded_roll_policy_is_used_for_cover_but_not_focused_value_mode(self):
+        model_path = Path("artifacts/runtime/models/model-20260717-roll-policy-v3.json")
+        self.assertTrue(model_path.exists())
+        original_model = ai_metrics.policy_model
+        original_status = ai_metrics.policy_model_status
+        ai_metrics.policy_model = RollPolicyModel.load(model_path)
+        ai_metrics.policy_model_status = "loaded"
+        self.addCleanup(setattr, ai_metrics, "policy_model", original_model)
+        self.addCleanup(setattr, ai_metrics, "policy_model_status", original_status)
+
+        focused = self.client.post(
+            "/api/recommend",
+            json={
+                "dice": [3, 3, 5, 6, 6],
+                "rolls_left": 2,
+                "scorecard": [None, None, None, None, None, None, 13, None, None, None, None, None],
+                "strategy_mode": "focused",
+            },
+        )
+        self.assertEqual(focused.status_code, 200)
+        focused_payload = focused.get_json()
+        self.assertEqual(focused_payload["policy_source"], "exact")
+        self.assertEqual(focused_payload["score_value_mode"], "value_score_only")
+
+        ai_routes._RECOMMEND_RESULT_CACHE.clear()
+        cover = self.client.post(
+            "/api/recommend",
+            json={
+                "dice": [3, 4, 4, 6, 6],
+                "rolls_left": 1,
+                "scorecard": [3, 4, 9, 8, 10, 12, 19, 0, None, 15, None, 0],
+                "strategy_mode": "cover",
+            },
+        )
+        self.assertEqual(cover.status_code, 200)
+        cover_payload = cover.get_json()
+        self.assertEqual(cover_payload["policy_source"], "learned_roll_policy")
+        self.assertEqual(cover.headers["X-AI-Policy-Source"], "learned_roll_policy")
 
     def test_recommend_optimal_strategy_uses_exact_value_mode(self):
         response = self.client.post(
