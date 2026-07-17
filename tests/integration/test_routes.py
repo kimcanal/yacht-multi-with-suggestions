@@ -14,8 +14,8 @@ import routes.ai as ai_routes
 import routes.leaderboard as leaderboard_routes
 import server
 from app_state import ai_metrics, lobby_clients, rooms, single_sessions, single_sessions_lock
-from yacht_engine import CATS, calc_score
 from yacht_ai.ml_policy import RollPolicyModel
+from yacht_engine import CATS, calc_score
 
 
 class RouteIntegrationTests(unittest.TestCase):

@@ -18,7 +18,8 @@ import yacht_engine
 from yacht_ai.constants import CATS
 from yacht_ai.ml_policy import RollPolicyModel
 from yacht_ai.scoring import calc_score
-from yacht_core.simulation import initial_dice, reroll_from_keep as reroll_with_source
+from yacht_core.simulation import initial_dice
+from yacht_core.simulation import reroll_from_keep as reroll_with_source
 
 
 def parse_args() -> argparse.Namespace:
