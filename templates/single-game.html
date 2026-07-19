@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}<title>🎲 Yacht - Single Player</title>{% endblock %}
 {% block head %}
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260711-3') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/single-game.css', v='20260717-1') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico', v='20260719-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260719-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/single-game.css', v='20260719-3') }}">
 {% endblock %}
 {% block body_attrs %}{% endblock %}
 {% block body %}
@@ -59,13 +59,14 @@
                     </div>
                     <div class="single-insight-grid">
                         <div id="ai-breakdown" class="ai-breakdown" style="display:none;"></div>
-                        <div id="score-desc-area" class="ai-breakdown score-help"></div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="scorecard-area">
+            <div id="score-desc-area" class="ai-breakdown score-help"></div>
             <div id="scorecard"></div>
+            <div id="game-review" class="game-review" aria-live="polite"></div>
             <div class="footer-credit" style="text-align:center; margin-top:38px; font-size:0.98em; color:rgba(180,220,255,0.6);">
                 Made by <a href="https://kimcanal.github.io/" target="_blank" style="color:#00e6c3; font-weight:600; text-decoration:underline dotted;">kimcanal</a>
             </div>
@@ -87,9 +88,9 @@
             </div>
     <script src="{{ url_for('static', filename='js/dom_utils.js', v='20260417-6') }}"></script>
     <script src="{{ url_for('static', filename='js/game_state.js', v='20260406-5') }}"></script>
-    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260711-3') }}"></script>
-    <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260710-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260719-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260719-1') }}"></script>
     <script src="{{ url_for('static', filename='js/winprob.js', v='20260711-4') }}"></script>
     <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260713-1') }}"></script>
-    <script src="{{ url_for('static', filename='js/pages/single-game.js', v='20260717-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/single-game.js', v='20260719-2') }}"></script>
 {% endblock %}

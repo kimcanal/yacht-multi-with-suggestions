@@ -1,3 +1,6 @@
+from yacht_ai.decision_confidence import classify_alternative_gap
+
+
 def _as_percent(value):
     try:
         number = float(value)
@@ -95,6 +98,7 @@ def build_decision_report(result, dice, rolls_left, strategy_mode, scorecard, op
     stage = result.get("stage") or ("score" if rolls_left == 0 else "roll")
     policy_source = result.get("policy_source", "exact")
     confidence = result.get("policy_confidence")
+    action_margin = classify_alternative_gap(result.get("alternative_gap"))
     confidence_text = _as_percent(confidence) if confidence is not None else (
         "계산 확정" if policy_source in ("exact", "exact_value_optimal") else None
     )
@@ -116,6 +120,10 @@ def build_decision_report(result, dice, rolls_left, strategy_mode, scorecard, op
             "label": _source_label(policy_source),
             "confidence": confidence,
             "confidence_text": confidence_text,
+            "decision_margin": action_margin["gap"],
+            "decision_margin_key": action_margin["key"],
+            "decision_margin_text": action_margin["label"],
+            "decision_margin_note": action_margin["description"],
             "note": _method_note(policy_source, stage),
         },
         "why": _top_reason_lines(rows),

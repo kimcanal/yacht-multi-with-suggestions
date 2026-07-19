@@ -83,6 +83,8 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertTrue(report["conclusion"])
         self.assertIn(report["method"]["source"], {"exact", "learned_roll_policy"})
         self.assertTrue(report["method"]["label"])
+        self.assertIn("decision_margin_text", report["method"])
+        self.assertIn("decision_margin_key", report["method"])
         self.assertTrue(report["learning_note"])
         self.assertGreaterEqual(len(report["why"]), 1)
         self.assertEqual(response.headers["Cache-Control"], "no-store, private")

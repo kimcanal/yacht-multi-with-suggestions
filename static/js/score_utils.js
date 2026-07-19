@@ -220,7 +220,7 @@ function renderCard(card, isMine, title) {
         const clickable = isMine && !gameOver && isMyTurn() && card[i] === null && rollsLeft < 3;
         const showPreview = !gameOver && card[i] === null && rollsLeft < 3 && ((isMine && isMyTurn()) || (!isMine && !isMyTurn()));
         const sc = calcScore(dice, i);
-        const p = showPreview ? `<span class="score-preview">(${sc})</span>` : '';
+        const p = showPreview ? `<span class="score-preview">${sc}점</span>` : '';
         const classes = `score-item ${card[i] !== null ? 'filled' : ''} ${!isMine ? 'disabled' : ''}`;
         const desc = CAT_DESC[c] || '';
         const diceEx = '예시) ' + CAT_DICE[c] || '';
@@ -368,9 +368,56 @@ function flashScoreSelection(categoryIndex) {
 
 function buildValueMarkup(value, preview) {
     if (preview !== null && preview !== undefined) {
-        return `<span class="compare-score-main">${value}</span><span class="score-preview">(${preview})</span>`;
+        return `<span class="compare-score-main">${value}</span><span class="score-preview">${preview}점</span>`;
     }
     return `<span class="compare-score-main">${value}</span>`;
+}
+
+function renderGameReview(card, options = {}) {
+    const totals = calcTotals(card);
+    const filled = card.filter((value) => value !== null && value !== undefined);
+    const zeroCount = filled.filter((value) => Number(value) === 0).length;
+    const best = card.reduce((current, value, index) => {
+        if (value === null || value === undefined || Number(value) <= current.score) return current;
+        return { category: CATS[index], score: Number(value) };
+    }, { category: '', score: -1 });
+    const bonusNote = totals.bonus > 0
+        ? '상단 보너스 +35점을 확보했어요.'
+        : `상단 보너스까지 ${Math.max(0, 63 - totals.upper)}점이 남았어요.`;
+    const recoveryNote = zeroCount === 0
+        ? '0점 없이 모든 칸을 채웠습니다.'
+        : `0점으로 닫은 칸은 ${zeroCount}개입니다.`;
+    const nextGoal = totals.bonus > 0
+        ? (zeroCount === 0 ? '다음 판에는 최고 점수에 도전해 보세요.' : '다음 판에는 0점 칸을 하나만 더 줄여 보세요.')
+        : '다음 판에는 Fives·Sixes를 더 오래 가져가 보세요.';
+    const opponentTotal = Number(options.opponentTotal);
+    const comparison = Number.isFinite(opponentTotal)
+        ? `<span class="game-review-chip">상대 ${opponentTotal}점</span>`
+        : '';
+    const bestMarkup = best.score >= 0
+        ? `<strong>${escapeHtml(best.category)} ${best.score}점</strong>`
+        : '<strong>기록 없음</strong>';
+
+    return `
+        <section class="game-review-card" aria-label="게임 회고">
+            <div class="game-review-head">
+                <div>
+                    <div class="game-review-kicker">GAME REVIEW</div>
+                    <h2>한 판 회고</h2>
+                </div>
+                <div class="game-review-chips">
+                    <span class="game-review-chip accent">총점 ${totals.total}점</span>
+                    ${comparison}
+                </div>
+            </div>
+            <div class="game-review-grid">
+                <div><span>이번 판 하이라이트</span>${bestMarkup}</div>
+                <div><span>상단 흐름</span><strong>${escapeHtml(bonusNote)}</strong></div>
+                <div><span>정리할 부분</span><strong>${escapeHtml(recoveryNote)}</strong></div>
+            </div>
+            <p class="game-review-next">다음 목표 · ${escapeHtml(nextGoal)}</p>
+        </section>
+    `;
 }
 
 function renderCompactScoreRow(card, categoryIndex, options = {}) {

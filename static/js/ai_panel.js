@@ -162,6 +162,9 @@ function renderDecisionReport(report, expanded) {
     const confidenceChip = method.confidence_text
         ? `<span class="ai-report-chip">${escapeHtml(confidenceLabel)}</span>`
         : '';
+    const marginChip = method.decision_margin_text && method.decision_margin_key !== 'unknown'
+        ? `<span class="ai-report-chip">${escapeHtml(method.decision_margin_text)}</span>`
+        : '';
     const stateChip = expanded && Number.isFinite(Number(state.open_slots))
         ? `<span class="ai-report-chip">열린 칸 ${escapeHtml(state.open_slots)}</span>`
         : '';
@@ -185,12 +188,13 @@ function renderDecisionReport(report, expanded) {
         <div class="ai-report-card">
             <div class="ai-report-head">
                 <div class="ai-report-title">${escapeHtml(report.title || 'AI 결론 리포트')}</div>
-                <div class="ai-report-chips">${methodChip}${confidenceChip}${stateChip}</div>
+                <div class="ai-report-chips">${methodChip}${confidenceChip}${marginChip}${stateChip}</div>
             </div>
             <div class="ai-report-conclusion">${escapeHtml(report.conclusion || '추천을 계산했습니다.')}</div>
             ${renderAiReportList(whyItems)}
             ${tradeoffBlock}
             ${methodNote}
+            ${expanded && method.decision_margin_note ? `<div class="ai-report-method">${escapeHtml(method.decision_margin_note)}</div>` : ''}
             ${note}
         </div>
     `;
