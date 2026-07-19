@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}<title>🎲 Yacht - Multiplayer</title>{% endblock %}
 {% block head %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260711-3') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/multi-game.css', v='20260717-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260719-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/multi-game.css', v='20260719-1') }}">
 {% endblock %}
 {% block body_attrs %}class="multiplayer-page"{% endblock %}
 {% block body %}
@@ -76,6 +76,7 @@
         <div class="scorecard-area">
             <div id="score-desc-area" class="ai-breakdown score-help"></div>
             <div id="scorecard"></div>
+            <div id="game-review" class="game-review" aria-live="polite"></div>
         </div>
     </div>
 
@@ -99,9 +100,9 @@
 
     <script src="{{ url_for('static', filename='js/dom_utils.js', v='20260417-6') }}"></script>
     <script src="{{ url_for('static', filename='js/game_state.js', v='20260406-5') }}"></script>
-    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260711-3') }}"></script>
-    <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260710-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260719-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260719-1') }}"></script>
     <script src="{{ url_for('static', filename='js/winprob.js', v='20260711-4') }}"></script>
     <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260713-1') }}"></script>
-    <script src="{{ url_for('static', filename='js/pages/multi-game.js', v='20260717-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/multi-game.js', v='20260719-1') }}"></script>
 {% endblock %}

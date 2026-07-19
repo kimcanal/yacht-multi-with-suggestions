@@ -361,17 +361,15 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             clearTurnTimer();
             if (rollsLeft !== 0 && rollsLeft !== 3 && !gameOver && !isRolling && isMyTurn()) {
                 timerLeft = 30;
-                document.getElementById('timer-bar').style.display = 'block';
-                document.getElementById('timer-count').innerText = timerLeft;
+                restoreTimerCountdown();
                 timerInterval = setInterval(() => {
                     timerLeft--;
-                    document.getElementById('timer-count').innerText = timerLeft;
+                    const timerCount = document.getElementById('timer-count');
+                    if (timerCount) timerCount.innerText = timerLeft;
                     if (timerLeft <= 0) {
-                        clearTurnTimer();
-                        if (rollsLeft > 0 && !gameOver && !isRolling && isMyTurn()) {
-                            rollDice();
-                            timeOut();
-                        }
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                        showTimerExpiredNotice();
                     }
                 }, 1000);
             } else {
@@ -385,6 +383,14 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                 timerInterval = null;
             }
             document.getElementById('timer-bar').style.display = 'none';
+        }
+
+        function restoreTimerCountdown() {
+            const timerBar = document.getElementById('timer-bar');
+            if (!timerBar) return;
+            timerBar.style.display = 'block';
+            timerBar.style.color = '';
+            timerBar.innerHTML = '⏳<span id="timer-count">30</span>초 남았습니다';
         }
 
         function updateTurnProgressUI() {
@@ -581,10 +587,9 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             document.getElementById('rolls-left').innerText = rollsLeft;
             document.getElementById('roll-btn').disabled = rollsLeft <= 0 || gameOver || isRolling || !isMyTurn();
 
-            if (rollsLeft !== 0 && rollsLeft !== 3 && !gameOver && isMyTurn()) {
-                document.getElementById('timer-bar').style.display = 'block';
-            } else {
-                document.getElementById('timer-bar').style.display = 'none';
+            const timerBar = document.getElementById('timer-bar');
+            if (timerBar && (rollsLeft === 0 || rollsLeft === 3 || gameOver || !isMyTurn())) {
+                timerBar.style.display = 'none';
             }
         }
 
@@ -762,9 +767,15 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             });
         }
 
-        function timeOut() {
+        function showTimerExpiredNotice() {
+            const timerBar = document.getElementById('timer-bar');
+            if (timerBar) {
+                timerBar.style.display = 'block';
+                timerBar.style.color = '#ffd36b';
+                timerBar.innerHTML = '⏸ 시간이 지났습니다 · 주사위는 그대로 유지됩니다';
+            }
             const toast = document.getElementById('score-toast');
-            toast.innerHTML = '<div class="toast-cat">⏰ 시간 초과!</div><div class="toast-score">자동 Roll이 실행됩니다...</div>';
+            toast.innerHTML = '<div class="toast-cat">⏰ 시간 안내</div><div class="toast-score">주사위는 그대로예요. 직접 선택해 주세요.</div>';
             toast.classList.add('show');
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -813,6 +824,14 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             applyAiScoreHints(aiRec, { enabled: coachEnabled && !gameOver });
             updateTurnProgressUI();
             updateScoreHelp();
+            const review = document.getElementById('game-review');
+            if (review) {
+                review.innerHTML = gameOver
+                    ? renderGameReview(myCard, {
+                        opponentTotal: isVersusAI() ? calcTotals(oppCard).total : undefined,
+                    })
+                    : '';
+            }
         }
 
         async function rollDice() {

@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import yacht_engine
+from yacht_ai.decision_confidence import classify_alternative_gap
 
 CATEGORY_NAMES = [
     "Ones",
@@ -208,6 +209,7 @@ def serialize_sample(sample_id, dice, rolls_left, strategy_mode, scorecard, resu
     open_categories = [idx for idx, value in enumerate(scorecard) if value is None]
     upper_score = sum((value or 0) for value in scorecard[:6])
     keep_idx = list(result.get("keep_indices", []))
+    action_margin = classify_alternative_gap(result.get("alternative_gap"))
     sample = {
         "sample_id": sample_id,
         "dice": list(dice),
@@ -227,6 +229,8 @@ def serialize_sample(sample_id, dice, rolls_left, strategy_mode, scorecard, resu
         "label_primary_target": result.get("primary_target"),
         "label_primary_target_idx": CATS.get(result.get("primary_target")),
         "label_expected_value": result.get("expected_value"),
+        "label_alternative_gap": action_margin["gap"],
+        "label_action_margin_band": action_margin["key"],
         "label_message": result.get("message"),
         "label_summary": result.get("summary"),
         "label_keep_indices": keep_idx,

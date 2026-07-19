@@ -1,10 +1,17 @@
 import unittest
 
 from yacht_ai.constants import CATS
+from yacht_ai.decision_confidence import classify_alternative_gap
 from yacht_ai.ml_policy import _made_hand_safety_action, _should_apply_safety_action
 
 
 class RollPolicySafetyTests(unittest.TestCase):
+    def test_action_margin_bands_capture_ties_and_clear_edges(self):
+        self.assertEqual(classify_alternative_gap(0.1)["key"], "near_tie")
+        self.assertEqual(classify_alternative_gap(0.7)["key"], "slight_edge")
+        self.assertEqual(classify_alternative_gap(1.2)["key"], "clear_edge")
+        self.assertEqual(classify_alternative_gap(-0.4)["key"], "strategy_tradeoff")
+
     def test_safety_keeps_made_yacht(self):
         action = _made_hand_safety_action([5, 5, 5, 5, 5], 1, [None] * 12)
 

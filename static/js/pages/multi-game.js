@@ -1308,6 +1308,13 @@ function updateScorecard() {
             previewIds: true,
         });
     }
+
+    const review = document.getElementById('game-review');
+    if (review) {
+        review.innerHTML = gameOver
+            ? renderGameReview(safeMyCard, { opponentTotal: calcTotals(safeOppCard).total })
+            : '';
+    }
     const boardAiRec = GameState.getAiRec ? GameState.getAiRec() : aiRec;
     applyAiScoreHints(boardAiRec, { enabled: !isObserver && isMyTurn() && !gameOver });
 }

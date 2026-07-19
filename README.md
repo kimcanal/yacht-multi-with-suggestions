@@ -1,46 +1,47 @@
-# Yacht Multi With Suggestions
+# YACHT — 주사위는 운, 선택은 전략
 
-Flask 기반의 웹 요트 다이스 게임입니다. 싱글플레이, VS AI, 실시간 1:1 멀티플레이, 관전, 리더보드, 실시간 감정표현, AI 추천 코치를 제공합니다.
+5개의 주사위를 최대 세 번 굴리고, 12개 족보를 한 번씩 채우는 웹 요트 다이스 게임입니다. 혼자 점수를 노리거나 AI와 겨룰 수 있고, 친구와 실시간 1:1 대전·관전도 할 수 있습니다.
 
-이 프로젝트의 핵심은 "추천을 보여주는 게임"을 넘어서, **exact solver를 기준선으로 삼고 추천 품질을 수치로 검증하는 게임 AI 시스템**을 제품 UI에 연결한 점입니다.
+[바로 플레이하기](https://app.yatch-game.cloud/) · [게임 소개](https://app.yatch-game.cloud/intro) · [API 문서](./API.md)
 
-- Live: https://app.yatch-game.cloud/
-- Stack: Python / Flask / Vanilla JavaScript / CSS
-- AI 기준선: full-game exact value table, turn DP, decision-regret evaluation
-- 현재 기본 코치: Focused roll policy + score-stage exact value lookup
+<img src="./docs/screenshots/yacht-turn-demo.gif" width="960" alt="주사위를 굴린 뒤 AI가 추천한 주사위를 KEEP하고, 점수판에서 현재 기록 점수를 확인하는 Yacht 실제 플레이" />
 
----
+## 한 턴은 이렇게 합니다
 
-## 한눈에 보기
+1. **ROLL** — 5개 주사위를 굴립니다. 한 턴에는 최대 세 번까지 굴릴 수 있습니다.
+2. **KEEP 또는 재굴림** — 남길 주사위를 눌러 고정하고, 나머지만 다시 굴립니다.
+3. **점수 기록** — 빈 족보 하나를 골라 이번 주사위를 기록합니다. 점수판의 `지금 N점`은 그 칸을 바로 선택했을 때의 점수입니다.
 
-| 영역 | 제공 기능 |
-| --- | --- |
-| 게임 모드 | 솔로 챌린지, VS AI, 실시간 1:1 멀티, 관전 |
-| AI 코치 | Focused, Cover, Optimal 3가지 추천 모드 |
-| 추천 UI | keep 주사위 하이라이트, 추천 점수칸 표시, 결정 근거 패널 |
-| 멀티 안정성 | 서버 권위 주사위 굴림, 점수 재검증, commit-reveal fairness |
-| 기록 | 싱글/멀티 리더보드, 최근 경기, 플레이어 전적 |
-| 운영 | health/system-status API, AI latency metric, golden/regression tests |
+### 잘 안 풀린 턴도 선택입니다
 
-## 화면
+모든 족보는 게임당 한 번만 기록할 수 있습니다. 조건을 만족하지 못한 족보에 **0점으로 기록하면 그 칸은 닫히고**, 대신 다른 중요한 족보를 다음 턴까지 남길 수 있습니다. 이것이 흔히 말하는 “이번 턴을 버린다”는 판단입니다.
 
-### 로비
+예를 들어 남은 굴림이 없고 Full House가 불가능하다면, Full House를 0점으로 닫아 Sixes나 Large Straight 같은 더 중요한 칸을 보존할 수 있습니다. 다만 Yacht·Large Straight처럼 고점 족보를 너무 이르게 0점 처리하면 후반 선택지가 크게 줄어듭니다.
 
-<img src="./docs/screenshots/lobby.png" width="900" alt="Yacht lobby screenshot" />
+> 0점은 실수가 아니라 선택지입니다. 다만 한 번 기록하면 되돌릴 수 없으니, 점수판에 남은 칸과 상단 보너스 진행도를 함께 보세요.
 
-### 게임 소개
+## AI 코치, 이렇게 보면 됩니다
 
-<img src="./docs/screenshots/intro.png" width="900" alt="Yacht intro page screenshot" />
+AI는 자동으로 플레이하지 않습니다. 어떤 주사위를 KEEP할지와 어떤 족보를 기록할지는 플레이어가 결정합니다.
 
-### 싱글플레이 + AI 추천
+| 모드 | 이럴 때 쓰세요 | 무엇을 우선하나요 |
+| --- | --- | --- |
+| **집중** | 한 족보를 끝까지 노리고 싶을 때 | 지금 가장 유망한 한 목표 |
+| **커버** | 여러 가능성을 남기고 싶을 때 | 하나 이상 성공할 확률 |
+| **최적** | 최종 기대점수를 최대화하고 싶을 때 | 남은 점수판까지 포함한 기대값 |
 
-<img src="./docs/screenshots/single-cover.png" width="900" alt="Yacht single player AI recommendation screenshot" />
+추천 패널은 KEEP할 주사위, 추천 또는 희생 점수칸, 그리고 간단한 근거를 보여줍니다. 처음에는 **집중** 모드로 시작하면 이해하기 편합니다.
 
-### 멀티 로비 + 대기실
+## 플레이 모드
 
-<img src="./docs/screenshots/multi-live.png" width="900" alt="Yacht multiplayer lobby and waiting room screenshot" />
+- **솔로** — 내 최고 점수에 도전합니다. AI 코치를 끄면 랭킹 기록으로 플레이할 수 있습니다.
+- **VS AI** — AI와 12턴씩 진행해 총점을 겨룹니다.
+- **실시간 멀티** — 방 코드를 공유해 친구와 1:1로 플레이합니다. 관전자 입장과 재대결도 지원합니다.
+- **관전** — 방에 들어가 경기 흐름과 점수판을 읽기 전용으로 봅니다.
 
-## 빠른 실행
+멀티플레이의 주사위와 점수는 서버가 판정합니다. 참가자는 감정표현을 보낼 수 있고, 경기 상태는 실시간 이벤트와 polling fallback으로 동기화됩니다.
+
+## 실행하기
 
 ```bash
 python3 -m venv .venv
@@ -49,127 +50,59 @@ pip install -r requirements.txt
 python3 server.py
 ```
 
-기본 주소는 `http://localhost:8080`입니다.
+브라우저에서 `http://localhost:8080`을 엽니다.
 
-운영 환경에서는 gunicorn 설정을 사용할 수 있습니다.
+운영 환경에서는 Gunicorn을 사용할 수 있습니다.
 
 ```bash
 gunicorn -c gunicorn.conf.py wsgi:application
 ```
 
-리더보드/게임 결과 파일 경로는 필요하면 바꿀 수 있습니다.
+## 프로젝트가 특별히 보는 것
 
-```bash
-export YACHT_DATA_FILE=/path/to/game_data.json
-```
+이 프로젝트의 AI는 단순히 “족보 완성 확률”만 보여주지 않습니다. 현재 주사위, 남은 재굴림, 열린 점수칸, 상단 63점 보너스, Yacht Bonus와 희생 칸의 장기 비용을 함께 고려합니다.
 
-멀티 room/presence 상태는 기본적으로 in-memory backend를 사용합니다. 다중 worker나 장기 운영에서는 Redis backend를 켤 수 있습니다.
+추천 품질은 exact solver를 기준으로 검증합니다. 즉, UI의 추천과 이론적 최적 판단의 차이를 측정하고 개선하는 구조입니다.
+
+<details>
+<summary>개발·운영 정보 펼치기</summary>
+
+### 기술 구성
+
+- Python / Flask / Vanilla JavaScript / CSS
+- AI: full-game exact value table, turn DP, decision-regret evaluation
+- 기본 코치: Focused roll policy + score-stage exact value lookup
+
+### AI 품질 지표
+
+| 지표 | 결과 |
+| --- | --- |
+| 초기 상태 exact EV | 198.358185점 |
+| Focused score-stage regret | 0.0000 |
+| Focused 200게임 A/B | heuristic 175.52점 → value_score_only 184.56점 |
+| Optimal 200게임 평균 | 198.645점 |
+| AI cold-cache 응답 | heuristic 38~194ms, value-optimal 59~140ms |
+
+상세 내용은 [AI 품질 지표](./docs/ai-quality-metrics.md), [AI 수식 설명](./docs/ai-math.md), [AI 결정 프레임워크](./docs/ai-decision-framework.md)에서 확인할 수 있습니다.
+
+### 멀티플레이 운영 설정
+
+기본 상태 저장은 in-memory입니다. 다중 worker나 장기 운영에는 Redis와 SQLite backend를 설정할 수 있습니다.
 
 ```bash
 export YACHT_ROOM_BACKEND=redis
 export YACHT_PRESENCE_BACKEND=redis
 export YACHT_SESSION_BACKEND=redis
 export YACHT_REDIS_URL=redis://localhost:6379/0
+
+export YACHT_RESULT_BACKEND=sqlite
+export YACHT_SQLITE_PATH=/var/lib/yacht/game_data.sqlite3
 python3 server.py
 ```
 
-리더보드와 경기 결과는 JSON 호환 backend가 기본입니다. 다중 worker에서는 SQLite backend를 사용합니다.
+주요 API와 요청 예시는 [API.md](./API.md)를 참고하세요. 멀티플레이는 서버 권위 주사위, 점수 재검증, commit-reveal fairness 검증을 사용합니다.
 
-```bash
-export YACHT_RESULT_BACKEND=sqlite
-export YACHT_SQLITE_PATH=/var/lib/yacht/game_data.sqlite3
-```
-
-## AI 코치
-
-추천 엔진은 현재 주사위, 남은 reroll 수, 열린 점수칸, Upper Bonus, Yacht Bonus, 희생 칸의 장기 손실을 함께 봅니다. `/api/recommend` 응답은 `keep_indices`, `dice_recommendations`, `primary_target`, `breakdown`, `decision_report`를 내려주고, 프론트는 이를 주사위/점수판 하이라이트와 설명 패널로 표시합니다.
-
-| 모드 | 성격 | 현재 구현 |
-| --- | --- | --- |
-| Focused | 기본값. 한 목표를 잡고 설명 가능한 방식으로 밀어주는 모드 | roll 단계는 focused 휴리스틱, score 단계는 `value_score_only` exact V(next_state) |
-| Cover | 여러 하단 족보 중 하나 이상 성공할 가능성을 넓게 보는 모드 | exact union 확률과 실패 확률을 함께 표시 |
-| Optimal | 기대 최종점수 최대화 모드 | full-game value table 기반 `value_optimal` |
-
-### 품질 검증 수치
-
-full-game exact value table이 있으므로 추천 품질을 이론 최적 대비로 측정할 수 있습니다.
-
-| 지표 | 결과 |
-| --- | --- |
-| 초기 상태 exact EV | 198.358185점 |
-| Focused score-stage regret | score 단계 exact value 승격 후 0.0000 |
-| Focused 100게임 decision regret | 19.49점/게임 -> 10.39점/게임 |
-| Focused 200게임 paired A/B | heuristic 175.52점 vs value_score_only 184.56점, 평균 +9.04점 |
-| Optimal 200게임 평균 | 198.645점 |
-| AI cold-cache 응답 | heuristic 38~194ms, value-optimal 59~140ms |
-
-상세 지표와 개선 기록:
-
-- [AI 추천 품질 지표 체계](./docs/ai-quality-metrics.md)
-- [Score-only exact value 재검증](./docs/decision-regret-100-value-score-only.md)
-- [Full-table optimal A/B](./docs/score-value-full-table-optimal-focused-200-indexed-analysis.md)
-- [AI 수식 설명](./docs/ai-math.md)
-- [AI 학습/실험 로드맵](./docs/ai-learning-roadmap.md)
-
-## 멀티플레이어
-
-멀티플레이는 방 코드로 참가하고, 관전자도 같은 방 상태를 볼 수 있습니다. 게임 종료 후에는 재대결 동의 흐름과 최근 경기/전적 기록으로 이어집니다.
-
-중요한 신뢰 경계는 서버 쪽에 있습니다.
-
-- 주사위는 `/api/rooms/<code>/roll`에서 서버가 생성합니다.
-- `/sync`는 클라이언트가 보낸 dice 값을 신뢰하지 않습니다.
-- 점수 기록은 서버가 현재 주사위와 점수판으로 다시 계산합니다.
-- roll 결과는 commit-reveal fairness 상태로 검증할 수 있습니다.
-- 멀티 참가자는 허용된 감정표현을 보낼 수 있고, 상대와 관전자 화면에는 전용 SSE 이벤트로 큰 이모지와 효과음이 즉시 재생됩니다. 서버와 UI에 2초 쿨다운이 적용됩니다.
-- 참가자 토큰은 URL이 아니라 `X-Player-Token` 헤더 또는 POST body로만 전송합니다.
-- 상태 변경은 SSE로 감지하고, 연결 실패 시 polling으로 자동 복귀합니다.
-
-## 승률 분석
-
-멀티 화면은 점수판별 exact value table 예상 최종점수를 즉시 표시하고, 백그라운드 Monte Carlo 결과가 준비되면 승률과 표본 오차를 갱신합니다. 양쪽 플레이어가 남은 게임을 `value_optimal` 정책으로 진행한다고 가정하며, 상태별 결과는 서버에서 캐시됩니다.
-
-- `POST /api/win-probability`는 첫 요청에 `202 pending`을 반환하고 계산 완료 후 같은 요청에 `200 ready`를 반환합니다.
-- UI는 30샘플 빠른 추정을 먼저 표시하고 같은 상태를 100샘플로 자동 보정하며, 각 단계의 표본 오차를 함께 표시합니다.
-- 승률 최대화 정책이 아니라 양쪽 모두 EV 최적 플레이를 계속한다는 조건부 전망입니다.
-
-- fast-path 적용 후 `samples=20, seed=1`: 46.87초 -> 2.86초
-- 100샘플 재검증: 약 7.97초
-- 300샘플 추정: 환경/캐시 상태에 따라 약 24~43초
-
-자세한 설계와 한계는 [멀티플레이어 승률 v1 노트](./docs/win-probability-v1-notes.md)에 정리되어 있습니다.
-
-## 주요 API
-
-| API | 용도 |
-| --- | --- |
-| `POST /api/recommend` | AI 추천 |
-| `POST /api/win-probability` | exact 기대 최종점수 + 캐시된 Monte Carlo 승률 |
-| `POST /api/single/start` | 싱글 랭킹용 서버 검증 세션 시작 |
-| `POST /api/single/roll` | 싱글 랭킹 세션 주사위 굴림 |
-| `POST /api/single/score` | 싱글 랭킹 세션 점수 기록 |
-| `GET /api/rooms` | 방 목록 |
-| `POST /api/rooms` | 방 생성 |
-| `POST /api/rooms/<code>/join` | 방 입장 |
-| `POST /api/rooms/<code>/observe` | 관전 입장 |
-| `POST /api/rooms/<code>/roll` | 서버 권위 주사위 굴림 |
-| `POST /api/rooms/<code>/sync` | 멀티 상태 동기화/점수 기록 |
-| `POST /api/rooms/<code>/reaction` | 멀티 감정표현 전송 |
-| `GET /api/rooms/<code>/fairness` | 현재 fairness commit/reveal 상태 |
-| `POST /api/rooms/<code>/rematch` | 재대결 동의 |
-| `GET /api/leaderboard/single` | 싱글 리더보드 |
-| `GET /api/leaderboard/multi` | 멀티 리더보드 |
-| `GET /api/leaderboard/recent` | 최근 경기 |
-| `GET /health` | 헬스 체크 |
-| `GET /api/system-status` | 운영 상태와 AI 메트릭 |
-
-요청/응답 예시는 [API.md](./API.md)를 참고하세요.
-
-## 오픈소스 에셋
-
-감정표현 SVG는 [OpenMoji](https://openmoji.org/) 17.0.0의 컬러 에셋을 사용합니다. OpenMoji는 HfG Schwäbisch Gmünd와 기여자들이 만든 오픈소스 이모지 프로젝트이며, 그래픽은 [CC BY-SA 4.0](./static/assets/openmoji/LICENSE.txt)으로 제공됩니다.
-
-## 검증 명령
+### 검증 명령
 
 ```bash
 .venv/bin/pip install -r requirements-dev.txt
@@ -180,83 +113,16 @@ node --check static/js/ai_panel.js
 node --check static/js/score_utils.js
 ```
 
-AI 추천 품질/성능 측정:
+</details>
 
-```bash
-.venv/bin/python scripts/benchmark_ai.py --repeats 3
+## 더 읽기
 
-.venv/bin/python scripts/eval_decision_regret.py \
-  --games 100 \
-  --policies focused,cover,optimal \
-  --output artifacts/reference/reports/decision-regret-100.json \
-  --markdown-output docs/decision-regret-100.md
-```
-
-full-game value table 빌드:
-
-```bash
-.venv/bin/python scripts/build_value_table.py \
-  --batch-open-count 12 \
-  --output artifacts/generated/value/endgame-value-table-open12.npz \
-  --output-format npz \
-  --max-states 600000
-```
-
-## 프로젝트 구조
-
-```text
-yacht-multi-with-suggestions/
-├── server.py / wsgi.py        # compatibility and process entrypoints
-├── yacht_app/                 # app factory, web, services, stores, infrastructure
-├── yacht_core/                # AI-independent rules, scoring, simulation
-├── yacht_ai/                  # solver, policies, value models, reports
-├── routes/                    # thin Flask API controllers
-├── templates/                 # base template and page markup
-├── static/
-│   ├── css/pages/             # page-specific styles
-│   └── js/pages/              # page-specific controllers
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── frontend/
-├── scripts/                   # experiment and operations CLI entrypoints
-├── docs/
-└── artifacts/
-    ├── runtime/               # deployment-required models and value tables
-    ├── reference/             # versioned benchmark evidence
-    └── generated/             # ignored local experiment output
-```
-
-## 게임 규칙 요약
-
-주사위 5개를 최대 세 번 굴려 12개 카테고리에 한 번씩 기록하고 합계로 경쟁합니다.
-
-**Upper Section**
-
-Ones~Sixes는 해당 숫자의 합계입니다. Upper Section 합계가 63점 이상이면 보너스 35점을 얻습니다.
-
-**Lower Section**
-
-| 카테고리 | 점수 |
-| --- | --- |
-| Choice | 주사위 5개 총합 |
-| 4 of a Kind | 같은 숫자 4개 이상이면 총합 |
-| Full House | 3개 + 2개 조합이면 총합 |
-| Small Straight | 연속 4개, 고정 15점 |
-| Large Straight | 연속 5개, 고정 30점 |
-| Yacht | 5개 동일, 고정 50점 |
-| Yacht Bonus | Yacht 기록 후 다시 Yacht가 나오면 추가 100점 |
-
-## 관련 문서
-
-- [API 문서](./API.md)
+- [게임 API](./API.md)
 - [변경 이력](./CHANGELOG.md)
-- [포트폴리오용 AI 요약](./docs/portfolio-ai-summary.md)
-- [AI 결정 프레임워크](./docs/ai-decision-framework.md)
-- [성능 로드맵](./docs/performance-roadmap.md)
 - [승률 엔진 노트](./docs/win-probability-v1-notes.md)
+- [성능 로드맵](./docs/performance-roadmap.md)
 - [Artifact 관리 정책](./artifacts/README.md)
 
-## 라이선스
+## 오픈소스 에셋과 라이선스
 
-MIT
+감정표현 SVG는 [OpenMoji](https://openmoji.org/) 17.0.0 컬러 에셋이며 [CC BY-SA 4.0](./static/assets/openmoji/LICENSE.txt)으로 제공됩니다. 이 프로젝트의 라이선스는 MIT입니다.

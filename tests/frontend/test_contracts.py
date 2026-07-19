@@ -8,6 +8,7 @@ class FrontendContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.base_css = (ROOT / "static/css/base.css").read_text(encoding="utf-8")
+        cls.intro_template = (ROOT / "templates/intro.html").read_text(encoding="utf-8")
         cls.single_template = (ROOT / "templates/single-game.html").read_text(encoding="utf-8")
         cls.multi_template = (ROOT / "templates/multi-game.html").read_text(encoding="utf-8")
         cls.single = "\n".join((
@@ -25,10 +26,28 @@ class FrontendContractTests(unittest.TestCase):
         cls.yacht_game = (ROOT / "static/js/yacht_game.js").read_text(encoding="utf-8")
 
     def test_page_templates_use_base_and_external_assets(self):
-        for template in (self.single_template, self.multi_template):
+        for template in (self.intro_template, self.single_template, self.multi_template):
             self.assertIn('{% extends "base.html" %}', template)
             self.assertNotIn('<style>', template)
             self.assertNotRegex(template, r'<script(?![^>]*src=)[^>]*>')
+
+    def test_local_static_assets_use_versioned_urls(self):
+        for template in (self.intro_template, self.single_template, self.multi_template):
+            for line in template.splitlines():
+                if "url_for('static'" in line:
+                    self.assertIn(', v=', line)
+
+    def test_intro_guide_covers_turns_scoring_ai_and_multiplayer_features(self):
+        self.assertIn('id="turn-flow"', self.intro_template)
+        self.assertIn('id="scoring"', self.intro_template)
+        self.assertIn('id="first-game"', self.intro_template)
+        self.assertIn('id="ai-guide"', self.intro_template)
+        self.assertIn('id="multiplayer-guide"', self.intro_template)
+        self.assertIn('상단 합계가 63 이상이면 Upper Bonus +35', self.intro_template)
+        self.assertIn('조건을 못 맞춘 칸도 기록할 수 있지만 그 칸은 0점으로 닫힙니다.', self.intro_template)
+        self.assertIn('최적 판단 모드', self.intro_template)
+        self.assertIn('추천은 자동으로 플레이하지 않습니다.', self.intro_template)
+        self.assertIn('👍·🔥·😂·😱·🎲·👏', self.intro_template)
 
     def test_mobile_dice_animation_and_unrolled_placeholder_are_shared(self):
         self.assertIn("@keyframes roll3dMobile", self.base_css)
@@ -116,16 +135,23 @@ class FrontendContractTests(unittest.TestCase):
         self.assertNotIn('function isCompactModeViewport()', self.single)
         self.assertNotIn("window.addEventListener('resize', updateModeStripUI)", self.single)
 
-    def test_single_score_help_sits_with_dice_insights_not_above_scorecard(self):
+    def test_single_score_help_sits_at_the_top_of_the_scorecard(self):
         self.assertIn('class="single-insight-grid"', self.single)
+        self.assertIn('.single-insight-grid {\n            display: block;', self.single)
         self.assertIn('id="score-desc-area" class="ai-breakdown score-help"', self.single)
         insight_index = self.single.index('class="single-insight-grid"')
         help_index = self.single.index('id="score-desc-area"')
         scorecard_area_index = self.single.index('<div class="scorecard-area">')
         scorecard_index = self.single.index('id="scorecard"')
-        self.assertLess(insight_index, help_index)
-        self.assertLess(help_index, scorecard_area_index)
+        self.assertLess(insight_index, scorecard_area_index)
+        self.assertLess(scorecard_area_index, help_index)
         self.assertLess(scorecard_area_index, scorecard_index)
+        self.assertLess(help_index, scorecard_index)
+
+    def test_single_timer_restores_its_countdown_after_an_expiry_notice(self):
+        self.assertIn('function restoreTimerCountdown()', self.single)
+        self.assertIn("timerBar.innerHTML = '⏳<span id=\"timer-count\">30</span>초 남았습니다';", self.single)
+        self.assertIn('restoreTimerCountdown();', self.single)
 
 
 if __name__ == "__main__":

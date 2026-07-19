@@ -1373,6 +1373,10 @@ def _solve_best_move_cached(
     }
     if ev_optimal_mode:
         result.update(_optimal_projection_fields(scorecard, chosen_ev, alternative_gap))
+    else:
+        # Focused/Cover labels also need the exact nearest-action gap.  The
+        # learner can use this to distinguish clear teacher labels from ties.
+        result["alternative_gap"] = None if alternative_gap is None else round(float(alternative_gap), 2)
     return result
 
 

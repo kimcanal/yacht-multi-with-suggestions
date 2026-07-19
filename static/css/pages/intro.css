@@ -22,7 +22,7 @@
             margin-bottom: 28px;
         }
         .brand {
-            font-family: 'Rajdhani', sans-serif;
+            font-family: 'Rajdhani', var(--font-ui);
             font-size: clamp(2rem, 4vw, 3.4rem);
             font-weight: 700;
             letter-spacing: 0.08em;
@@ -95,7 +95,7 @@
             margin-bottom: 16px;
         }
         .hero h1 {
-            font-family: 'Rajdhani', sans-serif;
+            font-family: 'Rajdhani', var(--font-ui);
             font-size: clamp(2.6rem, 7vw, 5rem);
             line-height: 0.95;
             letter-spacing: 0.03em;
@@ -107,11 +107,71 @@
             font-size: clamp(1rem, 2.2vw, 1.12rem);
             line-height: 1.75;
         }
+        .guide-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 22px;
+        }
+        .guide-nav a {
+            color: var(--text-cool);
+            text-decoration: none;
+            font-size: 0.86rem;
+            font-weight: 700;
+            padding: 8px 12px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+            transition: 0.2s ease;
+        }
+        .guide-nav a:hover,
+        .guide-nav a:focus-visible {
+            color: var(--ink-deep);
+            background: var(--mint);
+            border-color: var(--mint);
+            outline: none;
+        }
         .hero-grid {
             display: grid;
             grid-template-columns: 1.25fr 0.95fr;
             gap: 18px;
             margin-top: 24px;
+        }
+        .demo-panel {
+            display: grid;
+            grid-template-columns: minmax(240px, 0.72fr) minmax(0, 1.28fr);
+            align-items: center;
+            gap: 28px;
+            margin-top: 18px;
+            padding: clamp(20px, 4vw, 34px);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: linear-gradient(135deg, rgba(12, 28, 48, 0.88), rgba(9, 16, 32, 0.78));
+            box-shadow: 0 20px 54px rgba(0, 0, 0, 0.24);
+        }
+        .demo-kicker {
+            color: var(--mint);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+        }
+        .demo-panel h2 {
+            margin: 8px 0 12px;
+            color: var(--text-strong);
+            font-size: clamp(1.3rem, 2.3vw, 1.8rem);
+            line-height: 1.35;
+        }
+        .demo-panel p {
+            color: var(--muted);
+            line-height: 1.7;
+        }
+        .demo-panel img {
+            display: block;
+            width: 100%;
+            border: 1px solid rgba(126, 243, 203, 0.28);
+            border-radius: 14px;
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
         }
         .hero-card,
         .panel {
@@ -203,7 +263,8 @@
         }
         .feature-list,
         .rule-list,
-        .cat-list {
+        .cat-list,
+        .playbook-list {
             display: grid;
             gap: 12px;
         }
@@ -232,11 +293,51 @@
         .rule-list {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
+        .sacrifice-rule {
+            border-color: rgba(255, 211, 107, 0.28);
+            background: linear-gradient(135deg, rgba(255, 211, 107, 0.09), rgba(255,255,255,0.03));
+        }
         .cat-list {
             grid-template-columns: 1fr;
         }
         .ai-feature-list {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .playbook-step {
+            display: grid;
+            grid-template-columns: 42px 1fr;
+            gap: 14px;
+            align-items: start;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .playbook-step:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+        .playbook-step > span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            color: var(--ink-deep);
+            background: linear-gradient(135deg, var(--mint), var(--sky-soft));
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+        .playbook-step strong {
+            display: block;
+            color: var(--text-strong);
+            margin-bottom: 5px;
+        }
+        .playbook-step p {
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 0.95rem;
         }
         .section-note {
             margin-top: 14px;
@@ -265,7 +366,8 @@
             .section-grid,
             .rule-list,
             .cat-list,
-            .ai-feature-list {
+            .ai-feature-list,
+            .demo-panel {
                 grid-template-columns: 1fr;
             }
             .stat-grid {
@@ -284,6 +386,13 @@
             .topbar-actions {
                 width: 100%;
                 justify-content: stretch;
+            }
+            .guide-nav {
+                gap: 7px;
+            }
+            .guide-nav a {
+                padding: 7px 10px;
+                font-size: 0.8rem;
             }
             .btn {
                 width: 100%;

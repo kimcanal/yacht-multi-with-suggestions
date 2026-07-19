@@ -2,9 +2,8 @@
 {% block title %}<title>🎲 Yacht - 게임 소개</title>{% endblock %}
 {% block head %}
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260711-1') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/intro.css', v='20260713-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260719-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/intro.css', v='20260719-1') }}">
 {% endblock %}
 {% block body_attrs %}{% endblock %}
 {% block body %}
@@ -27,8 +26,17 @@
                 AI 추천, 실시간 멀티플레이, 관전 모드까지 함께 담았습니다.
             </p>
 
+            <nav class="guide-nav" aria-label="게임 소개 빠른 이동">
+                <a href="#turn-flow">턴 진행</a>
+                <a href="#turn-demo">실제 한 턴</a>
+                <a href="#scoring">점수 규칙</a>
+                <a href="#first-game">처음 한 판</a>
+                <a href="#ai-guide">AI 추천</a>
+                <a href="#multiplayer-guide">멀티플레이</a>
+            </nav>
+
             <div class="hero-grid">
-                <div class="hero-card">
+                <div class="hero-card" id="turn-flow">
                     <div class="hero-card-title">한 판이 어떻게 진행되나요?</div>
                     <div class="timeline">
                         <div class="timeline-step">
@@ -49,7 +57,7 @@
                             <div class="step-no">3</div>
                             <div>
                                 <strong>SCORE</strong>
-                                턴이 끝나면 12개 카테고리 중 아직 비어 있는 칸 하나에 점수를 기록합니다.
+                                턴이 끝나면 12개 카테고리 중 아직 비어 있는 칸 하나에 점수를 기록합니다. 점수판의 ‘N점’은 바로 기록할 때의 점수입니다.
                             </div>
                         </div>
                         <div class="timeline-step">
@@ -73,7 +81,7 @@
                         <div class="stat">
                             <div class="stat-label">Rolls</div>
                             <div class="stat-value">3</div>
-                            <div class="stat-sub">첫 굴림 이후 30초 안에 다음 액션을 하지 않으면 자동 롤이 실행됩니다.</div>
+                            <div class="stat-sub">싱글은 시간이 지나도 주사위가 유지됩니다. 멀티는 경기 진행을 위해 제한 시간이 적용됩니다.</div>
                         </div>
                         <div class="stat">
                             <div class="stat-label">Categories</div>
@@ -85,8 +93,17 @@
             </div>
         </section>
 
+        <section class="demo-panel" id="turn-demo" aria-labelledby="turn-demo-title">
+            <div>
+                <div class="demo-kicker">ACTUAL PLAY</div>
+                <h2 id="turn-demo-title">한 번 굴린 뒤, AI 표시를 보고 직접 결정합니다</h2>
+                <p>AI가 KEEP 후보와 각 족보의 현재 점수를 보여주지만 자동으로 선택하지는 않습니다. 좋은 조합을 더 노릴지, 지금 점수를 기록할지는 직접 정합니다.</p>
+            </div>
+            <img src="{{ url_for('static', filename='assets/yacht-turn-demo.gif', v='20260719-1') }}" alt="Yacht에서 주사위를 굴린 뒤 AI KEEP 표시와 점수판의 현재 점수를 확인하는 실제 플레이" loading="lazy">
+        </section>
+
         <div class="section-grid">
-            <section class="panel">
+            <section class="panel" id="scoring">
                 <div class="section-title">게임 규칙 요약</div>
                 <div class="rule-list">
                     <div class="rule-item">
@@ -99,15 +116,19 @@
                     </div>
                     <div class="rule-item">
                         <strong>Hand Categories</strong>
-                        <p>4 of a Kind, Full House, Small Straight, Large Straight, Yacht는 특정 족보를 맞추면 큰 점수를 줍니다.</p>
+                        <p>4 of a Kind와 Full House는 다섯 주사위의 합, Small Straight·Large Straight·Yacht는 각각 15·30·50점 고정입니다.</p>
                     </div>
                     <div class="rule-item">
                         <strong>Yacht Bonus</strong>
                         <p>이미 Yacht 50점을 기록한 뒤 다시 Yacht를 굴리면, 다른 칸에 0이 아닌 점수를 적을 때 추가로 +100을 받습니다.</p>
                     </div>
+                    <div class="rule-item sacrifice-rule">
+                        <strong>0점 희생</strong>
+                        <p>조건을 못 맞춘 칸도 기록할 수 있지만 그 칸은 0점으로 닫힙니다. 이번 게임에서 영구히 닫히므로, 가장 아쉬움이 적은 족보인지 먼저 확인하세요.</p>
+                    </div>
                 </div>
                 <div class="section-note">
-                    이 게임은 단순히 가장 큰 족보만 쫓는 것보다, 언제 희생하고 언제 상단 점수를 쌓을지 판단하는 운영이 중요합니다.
+                    0점은 패널티가 아니라 선택지입니다. 이번 턴을 정리해 핵심 족보를 남길 수 있지만, Yacht나 Large Straight처럼 고점 족보를 너무 이르게 닫으면 후반 선택지가 크게 줄어듭니다.
                 </div>
             </section>
 
@@ -129,6 +150,53 @@
                     <div class="cat-item">
                         <strong>Small / Large Straight / Yacht</strong>
                         <p>Small Straight 15점, Large Straight 30점, Yacht 50점 고정입니다.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="section-grid">
+            <section class="panel" id="first-game">
+                <div class="section-title">처음 한 판은 이렇게 해보세요</div>
+                <div class="playbook-list">
+                    <div class="playbook-step">
+                        <span>01</span>
+                        <div><strong>첫 굴림에서 겹친 눈을 찾기</strong><p>같은 숫자가 3개 이상이면 우선 KEEP해 보세요. 상단 점수와 4 of a Kind·Full House 양쪽 가능성을 남길 수 있습니다.</p></div>
+                    </div>
+                    <div class="playbook-step">
+                        <span>02</span>
+                        <div><strong>연속된 눈은 Straight 후보</strong><p>예를 들어 2·3·4·5가 보이면 네 개를 고정해 Small Straight를 확보하거나, 1 또는 6을 노려 Large Straight까지 시도할 수 있습니다.</p></div>
+                    </div>
+                    <div class="playbook-step">
+                        <span>03</span>
+                        <div><strong>상단 63점 보너스를 계속 확인</strong><p>특히 Fives·Sixes는 상단 합계와 Choice·4 of a Kind 점수를 함께 올릴 수 있습니다. 단, 같은 눈이 많다고 항상 상단 칸이 정답은 아닙니다.</p></div>
+                    </div>
+                    <div class="playbook-step">
+                        <span>04</span>
+                        <div><strong>막힌 턴은 피해를 작게</strong><p>0점 기록은 그 족보를 영구히 닫는 선택입니다. 남은 칸 중 장기 가치가 가장 낮은 곳을 정리해 핵심 족보를 보존하세요. Choice는 항상 합계를 받으므로 보통 희생 칸이 아닙니다.</p></div>
+                    </div>
+                </div>
+                <div class="section-note">매 턴의 정답은 남은 칸과 상단 보너스 진행도에 따라 달라집니다. 예를 들어 6이 네 개여도 Sixes와 4 of a Kind 중 어느 쪽이 유리한지는 현재 점수판을 함께 봐야 합니다.</div>
+            </section>
+
+            <section class="panel" id="multiplayer-guide">
+                <div class="section-title">친구와 플레이하기</div>
+                <div class="feature-list">
+                    <div class="feature">
+                        <strong>방 만들기 → 코드 공유</strong>
+                        <p>로비에서 방을 만들고 표시되는 코드를 친구에게 보내세요. 두 플레이어가 들어오면 차례대로 12턴씩 진행합니다.</p>
+                    </div>
+                    <div class="feature">
+                        <strong>내 턴에만 조작</strong>
+                        <p>상대 턴에는 주사위와 점수판을 실시간으로 볼 수 있습니다. 첫 굴림 전에는 필요하면 선공권을 넘길 수도 있습니다.</p>
+                    </div>
+                    <div class="feature">
+                        <strong>이모지로 반응</strong>
+                        <p>게임 중 하단의 👍·🔥·😂·😱·🎲·👏 버튼을 누르면 상대 화면에도 반응이 표시됩니다. 소리는 버튼으로 끄고 켤 수 있습니다.</p>
+                    </div>
+                    <div class="feature">
+                        <strong>관전과 재대결</strong>
+                        <p>관전자는 점수와 진행 상황을 실시간으로 볼 수 있고, 게임이 끝난 뒤 두 사람이 동의하면 같은 방에서 재대결할 수 있습니다.</p>
                     </div>
                 </div>
             </section>
@@ -157,7 +225,7 @@
                 </div>
             </section>
 
-            <section class="panel">
+            <section class="panel" id="ai-guide">
                 <div class="section-title">AI 추천은 무엇을 보나요?</div>
                 <div class="feature-list ai-feature-list">
                     <div class="feature">
@@ -184,8 +252,12 @@
                         <strong>커버 플레이 모드</strong>
                         <p>열린 하단 족보를 묶어 하나 이상 성공할 확률을 계산합니다. 동시에 전부 실패할 확률도 보여줘서 애매한 턴 판단에 도움이 됩니다.</p>
                     </div>
+                    <div class="feature">
+                        <strong>최적 판단 모드</strong>
+                        <p>남은 점수판과 보너스 흐름까지 반영해, 현재 시점의 기대점수가 가장 높은 선택을 계산합니다.</p>
+                    </div>
                 </div>
-                <div class="section-note">모드 차이는 굴림 단계에서 가장 크게 드러납니다. 점수 기록 단계에서는 현재 보드와 보너스 흐름을 기준으로 별도 추천을 제공합니다.</div>
+                <div class="section-note">추천은 자동으로 플레이하지 않습니다. KEEP할 주사위와 기록할 칸은 직접 선택합니다. 모드 차이는 굴림 단계에서 가장 크게 드러나며, 점수 기록 단계에서는 현재 보드와 보너스 흐름을 기준으로 별도 추천을 제공합니다.</div>
             </section>
         </div>
 

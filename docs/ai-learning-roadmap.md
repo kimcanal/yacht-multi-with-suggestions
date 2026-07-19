@@ -31,7 +31,8 @@
 
 1. Teacher data 확장
    - 다양한 scorecard 맥락과 roll state를 더 많이 생성한다.
-   - exact 결과, 차선책 gap, stop-now 비교를 함께 저장한다.
+   - exact 결과와 stop-now 비교를 함께 저장한다.
+   - `label_alternative_gap`, `label_action_margin_band`으로 차선책과의 차이를 저장한다. 학습 시에는 거의 동률인 label을 과하게 정답으로 취급하지 않고, 뚜렷한 선택을 우선 검증할 수 있다.
 
 2. Policy distillation 강화
    - roll stage keep policy를 더 안정적으로 학습한다.
@@ -44,7 +45,8 @@
      `scripts/train_value_baseline.py`로 선형 baseline을 먼저 검증한다.
 
 4. 리포트 고도화
-   - `decision_report`를 기반으로 EV 변화, 성공 확률, 차선책 gap을 그래프화한다.
+   - `decision_report`는 차선책 gap을 `대안도 거의 비슷함`·`추천이 조금 우세`·`추천이 뚜렷하게 우세`로 표시한다.
+   - 다음 단계로 EV 변화와 성공 확률을 그래프화한다.
    - "모델 판단"과 "exact fallback 판단"의 차이를 UI에서 구분해 보여준다.
 
 ## 판단 기준
