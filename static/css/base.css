@@ -357,16 +357,28 @@ button {
     margin-bottom: 20px;
 }
 
+.dice-action-row {
+    display: flex;
+    justify-content: center;
+    margin: -4px 0 18px;
+}
+
+.dice-action-row .btn-roll {
+    min-width: min(100%, 260px);
+}
+
 .die-container {
     position: relative;
     width: min(5em, 100%);
     aspect-ratio: 1 / 1;
     perspective: 1000px;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    will-change: transform;
 }
 
 .die-container.locked {
     transform: translateY(-15px);
+    filter: drop-shadow(0 12px 12px rgba(0, 255, 204, 0.2));
 }
 
 .die {
@@ -590,7 +602,26 @@ button {
     border-color: rgba(45, 212, 191, 0.24);
     border-left-color: var(--teal-bright);
     background: var(--success-soft);
+    cursor: not-allowed;
+    opacity: 0.68;
+}
+
+.score-item.score-ready,
+.compare-value-cell.score-ready {
+    border-color: rgba(126, 243, 203, 0.28);
+    border-left-color: rgba(126, 243, 203, 0.7);
+    background: rgba(30, 41, 59, 0.82);
+}
+
+.score-item.score-pending,
+.compare-value-cell.score-pending {
+    opacity: 0.8;
     cursor: default;
+}
+
+.compare-value-cell.score-locked {
+    cursor: not-allowed;
+    opacity: 0.68;
 }
 
 .score-item.bonus {
@@ -1211,7 +1242,7 @@ button {
     text-align: left;
 }
 
-.info-bar > .ai-breakdown {
+.dice-area > .ai-breakdown {
     margin-top: var(--space-3);
 }
 
@@ -1556,9 +1587,8 @@ button {
 
 .ai-report-head {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .ai-report-title {
@@ -1570,7 +1600,7 @@ button {
 .ai-report-chips {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
     flex-wrap: wrap;
     gap: 6px;
 }
@@ -1588,18 +1618,69 @@ button {
 
 .ai-report-conclusion {
     color: var(--text-soft);
-    font-size: 0.86rem;
-    line-height: 1.5;
+    font-size: 0.88rem;
+    line-height: 1.7;
+}
+
+.ai-probability-card {
+    display: grid;
+    gap: 7px;
+    padding: 10px;
+    border-left: 3px solid var(--mint-strong);
+    background: rgba(89, 240, 194, 0.08);
+}
+
+.ai-probability-primary,
+.ai-probability-support {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.ai-probability-primary > span,
+.ai-probability-support > span {
+    color: var(--text-muted-blue);
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.ai-probability-primary strong {
+    color: var(--text-panel);
+    font-size: 0.9rem;
+}
+
+.ai-probability-primary em {
+    color: var(--mint-strong);
+    font-style: normal;
+}
+
+.ai-probability-support span:not(:first-child) {
+    padding: 3px 6px;
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-soft);
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+.ai-probability-basis {
+    color: var(--text-muted-deep);
+    font-size: 0.76rem;
+    line-height: 1.45;
 }
 
 .ai-report-list {
     display: grid;
-    gap: 5px;
+    gap: 8px;
     margin: 0;
     padding-left: 17px;
     color: var(--text-muted-soft);
-    font-size: 0.8rem;
-    line-height: 1.45;
+    font-size: 0.82rem;
+    line-height: 1.65;
+}
+
+.ai-report-list li {
+    padding: 2px 0;
 }
 
 .ai-report-list.compact {
@@ -1607,10 +1688,17 @@ button {
 }
 
 .ai-report-subtitle {
-    margin-top: 2px;
+    margin-bottom: 6px;
     color: var(--mint-strong);
-    font-size: 0.74rem;
+    font-size: 0.78rem;
     font-weight: 900;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.ai-report-tradeoffs {
+    padding-top: 12px;
+    border-top: 1px solid rgba(126, 243, 203, 0.14);
 }
 
 .ai-report-method,

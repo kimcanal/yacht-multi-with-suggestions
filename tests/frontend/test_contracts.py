@@ -22,6 +22,7 @@ class FrontendContractTests(unittest.TestCase):
             (ROOT / "static/js/pages/multi-game.js").read_text(encoding="utf-8"),
         ))
         cls.score_utils = (ROOT / "static/js/score_utils.js").read_text(encoding="utf-8")
+        cls.ai_panel = (ROOT / "static/js/ai_panel.js").read_text(encoding="utf-8")
         cls.winprob = (ROOT / "static/js/winprob.js").read_text(encoding="utf-8")
         cls.yacht_game = (ROOT / "static/js/yacht_game.js").read_text(encoding="utf-8")
 
@@ -106,6 +107,11 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn(expected, self.single)
         self.assertIn(expected, self.multi)
 
+    def test_ai_panel_renders_a_human_readable_target_probability(self):
+        self.assertIn('function renderProbabilityContext(context)', self.ai_panel)
+        self.assertIn('report.probability_context', self.ai_panel)
+        self.assertIn('ai-probability-basis', self.ai_panel)
+
     def test_ai_score_hint_uses_actual_zero_score_for_sacrifice_badge(self):
         self.assertIn("calcScore(dice, categoryIndex)", self.yacht_game)
         self.assertIn("if (targetScore !== null) return targetScore <= 0;", self.yacht_game)
@@ -147,6 +153,41 @@ class FrontendContractTests(unittest.TestCase):
         self.assertLess(scorecard_area_index, help_index)
         self.assertLess(scorecard_area_index, scorecard_index)
         self.assertLess(help_index, scorecard_index)
+
+    def test_game_status_bar_does_not_wrap_dice_or_ai_panels(self):
+        for page in (self.single_template, self.multi_template):
+            info_start = page.index('<div class="info-bar">')
+            info_end = page.index('                </div>\n                <div class="dice-grid"', info_start)
+            dice_grid = page.index('<div class="dice-grid"', info_start)
+            ai_panel = page.index('id="ai-breakdown"', info_start)
+            self.assertLess(info_end, dice_grid)
+            self.assertLess(info_end, ai_panel)
+
+    def test_roll_control_follows_the_dice_grid_on_both_game_pages(self):
+        for page in (self.single_template, self.multi_template):
+            dice_grid = page.index('<div class="dice-grid"')
+            roll_action = page.index('class="dice-action-row"')
+            roll_button = page.index('id="roll-btn"', roll_action)
+            self.assertLess(dice_grid, roll_action)
+            self.assertLess(roll_action, roll_button)
+
+    def test_scorecard_marks_ready_pending_and_locked_rows(self):
+        self.assertIn("'filled score-locked'", self.score_utils)
+        self.assertIn("'score-ready compact-clickable'", self.score_utils)
+        self.assertIn("'score-pending'", self.score_utils)
+        self.assertIn('.score-item.score-ready', self.base_css)
+        self.assertIn('.compare-value-cell.score-locked', self.base_css)
+
+    def test_single_desktop_scorecard_uses_full_height_without_a_fixed_offset(self):
+        self.assertIn('height: 100%;', self.single)
+        self.assertIn('margin-top: 0;', self.single)
+        self.assertNotIn('margin-top: 164px;', self.single)
+
+    def test_single_solo_layout_stacks_below_desktop_breakpoint(self):
+        responsive_rule = (
+            'body.solo-play-mode .game-wrapper { grid-template-columns: minmax(0, 1fr); }'
+        )
+        self.assertIn(responsive_rule, self.single)
 
     def test_single_timer_restores_its_countdown_after_an_expiry_notice(self):
         self.assertIn('function restoreTimerCountdown()', self.single)

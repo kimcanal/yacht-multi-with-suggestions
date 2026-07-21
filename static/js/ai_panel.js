@@ -148,50 +148,135 @@ function renderAiReportList(items, className = 'ai-report-list') {
     `;
 }
 
+const METHOD_LABEL_MAP = {
+    'Full-game exact V': '기대 최종점수',
+    'Exact solver': '정밀 계산',
+    '학습 정책 모델': '학습 모델'
+};
+
+const METHOD_NOTE_MAP = {
+    '현재 Yacht 상태공간은 작아서 모든 합리적 keep 후보를 동적계획법으로 직접 비교할 수 있습니다.': 
+        '현재 주사위 조합별 확률과 이후 점수판에 미칠 영향을 함께 비교했습니다.',
+    '점수 기록 단계는 현재 점수와 남은 칸의 장기 가치를 utility로 비교한 계산 결과입니다.':
+        '현재 얻는 점수와 남은 칸의 가치를 함께 비교했습니다.',
+    '현재 기록 점수와 이번 선택 이후의 기대점수를 합산해 기대 최종점수가 가장 큰 선택을 고릅니다. 이후 기대점수에는 이번 턴의 기록과 남은 모든 턴의 full-game exact V가 포함됩니다.':
+        '이번 기록과 남은 턴의 기대 점수를 합쳐 최종 점수가 가장 커지는 선택을 찾았습니다.',
+    '이번 굴림 선택은 exact solver가 만든 teacher 데이터를 학습한 정책 모델이 먼저 냈고, confidence 기준을 넘은 경우에만 채택됩니다.':
+        '학습 모델의 후보를 검증해 신뢰할 수 있는 경우에만 추천에 반영합니다.'
+};
+
+const LEARNING_NOTE_MAP = {
+    '이 결정에는 ML/DL 모델이 꼭 필요하지 않습니다. 지금 게임처럼 상태공간이 작으면 exact solver가 teacher 역할을 하며, 모델은 그 결정을 빠르게 근사하거나 상대/승률 같은 더 큰 맥락을 학습할 때 가치가 커집니다.':
+        '이 추천은 현재 선택 기준의 여러 가능성을 확률로 비교한 결과입니다.',
+    '모델은 스스로 결정을 흉내 내는 실행 정책이고, 낮은 확신이나 위험한 상태에서는 exact solver로 돌아갑니다. 다음 단계의 self-learning은 self-play 데이터를 더 쌓아 win-rate/value model을 붙이는 방식이 좋습니다.':
+        '이 추천은 학습 모델의 예측을 사용하며, 확신이 낮거나 위험하면 정밀 계산 결과를 사용합니다.',
+    '이 모드는 학습 모델 없이 full-game exact value table을 직접 조회합니다. 현재 목표는 승률이 아니라 기대 최종점수 최대화입니다.':
+        '남은 점수판까지 고려해 기대 최종점수가 가장 큰 선택을 찾습니다.'
+};
+
+function cleanEvText(text) {
+    if (!text) return '';
+    return text
+        .replace(/EV\s*([0-9.]+)/g, '기대 $1점')
+        .replace(/full-game exact V/gi, '정밀 기대 분석')
+        .replace(/exact solver/gi, '정밀 확률 계산');
+}
+
+function formatAiProbability(value) {
+    const probability = Number(value);
+    if (!Number.isFinite(probability) || probability < 0 || probability > 1) return '';
+    return `${(probability * 100).toFixed(1)}%`;
+}
+
+function renderProbabilityContext(context) {
+    if (!context || typeof context !== 'object') return '';
+    const primaryProbability = formatAiProbability(context.probability);
+    if (!context.name || !primaryProbability) return '';
+    const supporting = Array.isArray(context.supporting) ? context.supporting
+        .map((item) => {
+            const probability = formatAiProbability(item?.probability);
+            if (!item?.name || !probability) return '';
+            return `<span>${escapeHtml(item.name)} ${escapeHtml(probability)}</span>`;
+        })
+        .filter(Boolean)
+        .join('') : '';
+    const basis = context.basis
+        ? `<div class="ai-probability-basis">${escapeHtml(context.basis)}</div>`
+        : '';
+
+    return `
+        <div class="ai-probability-card">
+            <div class="ai-probability-primary">
+                <span>${escapeHtml(context.label || '주목표')}</span>
+                <strong>${escapeHtml(context.name)} <em>${escapeHtml(primaryProbability)}</em></strong>
+            </div>
+            ${supporting ? `<div class="ai-probability-support"><span>함께 가능한 결과</span>${supporting}</div>` : ''}
+            ${basis}
+        </div>
+    `;
+}
+
 function renderDecisionReport(report, expanded) {
     if (!report || typeof report !== 'object') return '';
     const method = report.method || {};
     const state = report.state || {};
-    const methodChip = method.label
-        ? `<span class="ai-report-chip">${escapeHtml(method.label)}</span>`
+    
+    const displayLabel = METHOD_LABEL_MAP[method.label] || method.label;
+    const methodChip = displayLabel
+        ? `<span class="ai-report-chip">${escapeHtml(displayLabel)}</span>`
         : '';
+        
     const isExactSource = method.source === 'exact' || method.source === 'exact_value_optimal';
-    const confidenceLabel = isExactSource
-        ? method.confidence_text
-        : `확신 ${method.confidence_text}`;
-    const confidenceChip = method.confidence_text
+    let confidenceLabel = method.confidence_text;
+    if (confidenceLabel === '계산 확정') {
+        confidenceLabel = '정밀 계산 완료';
+    } else if (confidenceLabel && !isExactSource) {
+        confidenceLabel = `확신 ${confidenceLabel}`;
+    }
+    const confidenceChip = confidenceLabel
         ? `<span class="ai-report-chip">${escapeHtml(confidenceLabel)}</span>`
         : '';
+        
     const marginChip = method.decision_margin_text && method.decision_margin_key !== 'unknown'
         ? `<span class="ai-report-chip">${escapeHtml(method.decision_margin_text)}</span>`
         : '';
     const stateChip = expanded && Number.isFinite(Number(state.open_slots))
         ? `<span class="ai-report-chip">열린 칸 ${escapeHtml(state.open_slots)}</span>`
         : '';
-    const whyItems = Array.isArray(report.why)
-        ? report.why.slice(0, expanded ? 3 : 2)
+        
+    // 접혀 있을 때는 중복 텍스트를 숨겨 피로도를 낮추고, 펼쳤을 때만 보여줍니다.
+    const whyItems = expanded && Array.isArray(report.why)
+        ? report.why.slice(0, 3).map(cleanEvText)
         : [];
     const tradeoffs = expanded && Array.isArray(report.tradeoffs)
-        ? report.tradeoffs.slice(0, 2)
+        ? report.tradeoffs.slice(0, 2).map(cleanEvText)
         : [];
-    const note = expanded && report.learning_note
-        ? `<div class="ai-report-note">${escapeHtml(report.learning_note)}</div>`
+        
+    const rawNote = report.learning_note;
+    const cleanNote = LEARNING_NOTE_MAP[rawNote] || cleanEvText(rawNote);
+    const note = expanded && cleanNote
+        ? `<div class="ai-report-note">${escapeHtml(cleanNote)}</div>`
         : '';
-    const methodNote = expanded && method.note
-        ? `<div class="ai-report-method">${escapeHtml(method.note)}</div>`
+        
+    const rawMethodNote = method.note;
+    const cleanMethodNote = METHOD_NOTE_MAP[rawMethodNote] || cleanEvText(rawMethodNote);
+    const methodNote = expanded && cleanMethodNote
+        ? `<div class="ai-report-method">${escapeHtml(cleanMethodNote)}</div>`
         : '';
+        
     const tradeoffBlock = tradeoffs.length > 0
-        ? `<div class="ai-report-subtitle">비교 포인트</div>${renderAiReportList(tradeoffs, 'ai-report-list compact')}`
+        ? `<div class="ai-report-tradeoffs"><div class="ai-report-subtitle">비교 포인트</div>${renderAiReportList(tradeoffs, 'ai-report-list compact')}</div>`
         : '';
+        
+    const displayConclusion = cleanEvText(report.conclusion || '추천을 계산했습니다.');
 
     return `
         <div class="ai-report-card">
-            <div class="ai-report-head">
-                <div class="ai-report-title">${escapeHtml(report.title || 'AI 결론 리포트')}</div>
-                <div class="ai-report-chips">${methodChip}${confidenceChip}${marginChip}${stateChip}</div>
-            </div>
-            <div class="ai-report-conclusion">${escapeHtml(report.conclusion || '추천을 계산했습니다.')}</div>
-            ${renderAiReportList(whyItems)}
+            <div class="ai-report-title">${escapeHtml(report.title || 'AI 결론 리포트')}</div>
+            <div class="ai-report-chips">${methodChip}${confidenceChip}${marginChip}${stateChip}</div>
+            <div class="ai-report-conclusion">${escapeHtml(displayConclusion)}</div>
+            ${renderProbabilityContext(report.probability_context)}
+            ${expanded ? renderAiReportList(whyItems) : ''}
             ${tradeoffBlock}
             ${methodNote}
             ${expanded && method.decision_margin_note ? `<div class="ai-report-method">${escapeHtml(method.decision_margin_note)}</div>` : ''}

@@ -52,6 +52,88 @@ def _tradeoff_lines(rows, limit=2):
     return lines
 
 
+def _as_probability(value):
+    try:
+        probability = float(value)
+    except (TypeError, ValueError):
+        return None
+    if 0.0 <= probability <= 1.0:
+        return probability
+    return None
+
+
+def _same_keep_indices(left, right):
+    return sorted(left or []) == sorted(right or [])
+
+
+def _breakdown_probability_candidates(rows, keep_indices):
+    """Use existing explanation rows when a policy did not supply exact targets."""
+    candidates = []
+    for row in rows:
+        probability = _as_probability(row.get("prob"))
+        if probability is None or row.get("type") not in ("cover", "hand", "upper"):
+            continue
+        if row.get("keep_indices") and not _same_keep_indices(row.get("keep_indices"), keep_indices):
+            continue
+        candidates.append({
+            "name": row.get("name"),
+            "probability": probability,
+            "kind": row.get("type"),
+        })
+    return candidates
+
+
+def _probability_context(result, rows):
+    """Return the human-facing probability explanation for a roll recommendation."""
+    if result.get("stage") != "roll":
+        return None
+
+    candidates = []
+    for item in result.get("target_probabilities") or []:
+        probability = _as_probability(item.get("probability")) if isinstance(item, dict) else None
+        if probability is None or not item.get("name"):
+            continue
+        candidates.append({
+            "name": item["name"],
+            "probability": probability,
+            "kind": item.get("kind", "hand"),
+        })
+    if not candidates:
+        candidates = _breakdown_probability_candidates(rows, result.get("keep_indices", []))
+    if not candidates:
+        return None
+
+    primary_target = result.get("primary_target")
+    primary = next((item for item in candidates if item["name"] == primary_target), None)
+    targeted = primary is not None
+    if primary is None:
+        primary = max(candidates, key=lambda item: item["probability"])
+
+    supporting = sorted(
+        (item for item in candidates if item is not primary),
+        key=lambda item: item["probability"],
+        reverse=True,
+    )[:2]
+    kind = primary.get("kind")
+    if kind == "cover":
+        basis = "현재 keep 뒤 남은 재굴림에서 열린 하단 족보 중 하나 이상을 만들 정확한 확률입니다."
+    elif kind == "upper":
+        basis = "현재 keep 뒤 다음 굴림에서 같은 눈을 하나 이상 더 얻을 확률입니다."
+    else:
+        basis = "현재 keep 뒤 남은 재굴림을 이 족보에 맞춰 사용했을 때의 정확한 완성 확률입니다."
+
+    return {
+        "label": "주목표" if targeted else "가능한 족보",
+        "name": primary["name"],
+        "probability": round(primary["probability"], 6),
+        "basis": basis,
+        "supporting": [
+            {"name": item["name"], "probability": round(item["probability"], 6)}
+            for item in supporting
+        ],
+    }
+
+
 def _source_label(policy_source):
     if policy_source == "learned_roll_policy":
         return "학습 정책 모델"
@@ -127,7 +209,8 @@ def build_decision_report(result, dice, rolls_left, strategy_mode, scorecard, op
             "note": _method_note(policy_source, stage),
         },
         "why": _top_reason_lines(rows),
-        "tradeoffs": _tradeoff_lines(rows),
+        "tradeoffs": _tradeoff_lines(rows[1:]),
+        "probability_context": _probability_context(result, rows),
         "learning_note": _learning_note(policy_source),
         "state": {
             "dice": list(dice)[:5] if isinstance(dice, list) else [],
