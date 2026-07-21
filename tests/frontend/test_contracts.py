@@ -116,7 +116,12 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("emoji.src = reaction.asset", self.multi)
         self.assertNotIn("/api/rooms/${roomCode}/chat", self.multi)
         self.assertIn("startSyncPolling({immediate: true})", self.multi)
-        self.assertIn("switchGameLayout('table')", self.multi_template)
+
+    def test_roll_uses_a_snapshot_of_the_keep_mask(self):
+        self.assertIn("const keptForRoll = [...kept];", self.single)
+        self.assertIn("const keptForRoll = [...kept];", self.multi)
+        self.assertIn("kept: keptForRoll", self.single)
+        self.assertIn("kept: keptForRoll", self.multi)
 
     def test_alternate_table_layout_keeps_the_same_game_contract(self):
         self.assertIn('class="table-game-shell"', self.multi_table_template)
@@ -125,13 +130,12 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('id="ai-breakdown"', self.multi_table_template)
         self.assertIn("css/pages/multi-game-table.css", self.multi_table_template)
         self.assertIn("js/pages/multi-game.js", self.multi_table_template)
-        self.assertIn("switchGameLayout('default')", self.multi_table_template)
 
     def test_desktop_defaults_to_table_while_mobile_keeps_the_original_layout(self):
         self.assertIn("js/game_layout.js", self.multi_template)
         self.assertIn("js/game_layout.js", self.single_template)
         self.assertIn("(min-width: 1025px)", self.game_layout)
-        self.assertIn("params.get('layout') === 'classic'", self.game_layout)
+        self.assertNotIn("layout=classic", self.game_layout)
         self.assertIn("window.location.replace", self.game_layout)
 
     def test_table_panels_reserve_scrollbar_space_for_text_updates(self):
@@ -147,8 +151,6 @@ class FrontendContractTests(unittest.TestCase):
             self.assertIn(f'id="{element_id}"', self.single_table_template)
         self.assertIn("css/pages/single-game-table.css", self.single_table_template)
         self.assertIn("js/pages/single-game.js", self.single_table_template)
-        self.assertIn("switchSingleLayout('table')", self.single_template)
-        self.assertIn("switchSingleLayout('default')", self.single_table_template)
 
     def test_vs_ai_table_scorecard_prioritizes_all_score_rows(self):
         self.assertIn(".scorecard-mode-compare .compare-board", self.single_table_layout_css)

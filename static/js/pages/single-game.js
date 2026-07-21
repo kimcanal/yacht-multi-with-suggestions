@@ -79,18 +79,6 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             return '집중 공략';
         }
 
-        function switchSingleLayout(layout) {
-            if (hasMeaningfulProgress() && !window.confirm(
-                '화면을 바꾸면 현재 싱글 게임은 새로 시작됩니다. 계속할까요?'
-            )) return;
-            const targetPath = layout === 'table' ? '/game/single/table' : '/game/single';
-            const targetParams = new URLSearchParams(window.location.search);
-            if (layout === 'table') targetParams.delete('layout');
-            else targetParams.set('layout', 'classic');
-            const query = targetParams.toString();
-            window.location.href = `${targetPath}${query ? `?${query}` : ''}`;
-        }
-
         function sleep(ms) {
             return new Promise((resolve) => setTimeout(resolve, ms));
         }
@@ -203,9 +191,9 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             return nextKept;
         }
 
-        function rollUnlockedDice() {
+        function rollUnlockedDice(keepMask = kept) {
             for (let i = 0; i < 5; i++) {
-                if (!kept[i]) dice[i] = Math.floor(Math.random() * 6) + 1;
+                if (!keepMask[i]) dice[i] = Math.floor(Math.random() * 6) + 1;
             }
         }
 
@@ -795,6 +783,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
         async function rollDice() {
             if (rollsLeft <= 0 || gameOver || isRolling || !isMyTurn()) return;
             clearTurnTimer();
+            const keptForRoll = [...kept];
 
             playDiceRollSound();
 
@@ -813,7 +802,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             updateScorecard();
 
             for (let i = 0; i < 5; i++) {
-                if (!kept[i]) document.getElementById(`die-${i}`).classList.add('rolling');
+                if (!keptForRoll[i]) document.getElementById(`die-${i}`).classList.add('rolling');
             }
 
             setTimeout(async () => {
@@ -836,7 +825,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                             body: JSON.stringify({
                                 session_id: singleSessionId,
                                 session_token: singleSessionToken,
-                                kept,
+                                kept: keptForRoll,
                             }),
                         });
                         const payload = await response.json();
@@ -845,7 +834,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                         }
                         applySingleSessionState(payload.state);
                     } else {
-                        rollUnlockedDice();
+                        rollUnlockedDice(keptForRoll);
                         rollsLeft = Math.max(0, rollsLeft - 1);
                     }
                     isRolling = false;

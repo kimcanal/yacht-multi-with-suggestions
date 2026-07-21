@@ -425,19 +425,19 @@ def sync_room(code):
         if state.get("turn") and state["turn"] != username and not data.get("game_over"):
             return jsonify({"error": "상대 턴"}), 403
 
-        # 주사위 상태는 서버 소유다. 이전 클라이언트와의 API 호환을 위해 필드가
-        # 포함된 경우 형식만 검증하고, 값 자체는 아래 서버 상태를 사용한다.
+        # 주사위와 남은 굴림은 서버 소유다. Keep은 다음 굴림에서 어떤 주사위를
+        # 보존할지 정하는 의도라서, 현재 턴 플레이어의 선택만 저장한다.
         if "dice" in data and normalize_dice(data["dice"]) is None:
             return jsonify({"error": "잘못된 주사위 데이터"}), 400
-        if "kept" in data and normalize_kept(data["kept"]) is None:
+        requested_kept = normalize_kept(data.get("kept", state.get("kept", [0, 0, 0, 0, 0])))
+        if requested_kept is None:
             return jsonify({"error": "잘못된 keep 데이터"}), 400
         if "rolls_left" in data and normalize_rolls_left(data["rolls_left"], 0, 3) is None:
             return jsonify({"error": "rolls_left는 0~3 정수여야 합니다"}), 400
 
         dice = normalize_dice(state.get("dice", [1, 1, 1, 1, 1]))
-        kept = normalize_kept(state.get("kept", [0, 0, 0, 0, 0]))
         rolls_left = normalize_rolls_left(state.get("rolls_left", 3), 0, 3)
-        if dice is None or kept is None or rolls_left is None:
+        if dice is None or rolls_left is None:
             return jsonify({"error": "서버 주사위 상태가 올바르지 않습니다"}), 500
 
         scores_payload = data.get("scores", state["scores"])
@@ -457,7 +457,7 @@ def sync_room(code):
         player_kept = state.setdefault("player_kept", {})
         player_rolls_left = state.setdefault("player_rolls_left", {})
         player_dice[username] = dice
-        player_kept[username] = kept
+        player_kept[username] = requested_kept
         player_rolls_left[username] = rolls_left
 
         prev_turn = state.get("turn")
@@ -469,7 +469,7 @@ def sync_room(code):
         is_game_over = bool(transition["all_done"])
         score_action = transition.get("score_action")
         next_dice = dice
-        next_kept = kept
+        next_kept = requested_kept
         next_rolls_left = rolls_left
         if score_action and not is_game_over and new_turn in room["players"]:
             next_dice = [1, 1, 1, 1, 1]

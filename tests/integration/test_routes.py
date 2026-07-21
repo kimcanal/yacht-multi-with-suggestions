@@ -756,6 +756,40 @@ class RouteIntegrationTests(unittest.TestCase):
             self.skipTest("deterministic roll happened to be Yacht")
         self.assertEqual(forged_score.status_code, 400)
 
+    def test_multiplayer_keep_is_persisted_and_preserved_by_the_next_roll(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        code = created.get_json()["code"]
+        host_token = created.get_json()["player_token"]
+        joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
+        self.assertEqual(joined.status_code, 200)
+
+        first_roll = self.client.post(
+            f"/api/rooms/{code}/roll",
+            json={"username": "host1", "player_token": host_token, "kept": [0, 0, 0, 0, 0]},
+        ).get_json()
+        keep_mask = [1, 0, 0, 0, 0]
+        synced = self.client.post(
+            f"/api/rooms/{code}/sync",
+            json={
+                "username": "host1",
+                "player_token": host_token,
+                "kept": keep_mask,
+                "scores": {"host1": [None] * 12, "guest1": [None] * 12},
+                "turn": "host1",
+                "game_over": False,
+            },
+        )
+        self.assertEqual(synced.status_code, 200)
+        self.assertEqual(synced.get_json()["state"]["kept"], keep_mask)
+        self.assertEqual(synced.get_json()["state"]["player_kept"]["host1"], keep_mask)
+
+        second_roll = self.client.post(
+            f"/api/rooms/{code}/roll",
+            json={"username": "host1", "player_token": host_token, "kept": keep_mask},
+        )
+        self.assertEqual(second_roll.status_code, 200)
+        self.assertEqual(second_roll.get_json()["dice"][0], first_roll["dice"][0])
+
     def test_multiplayer_zero_score_sacrifice_resets_next_turn_state(self):
         created = self.client.post("/api/rooms", json={"username": "host1"})
         self.assertEqual(created.status_code, 200)

@@ -4,15 +4,6 @@
         let roomCode = params.get('room') || localStorage.getItem('yacht_room') || '';
         const roomTokenKey = (code) => `yacht_player_token_${code}`;
 
-        function switchGameLayout(layout) {
-            const targetPath = layout === 'table' ? '/game/multi/table' : '/game/multi';
-            const targetParams = new URLSearchParams(window.location.search);
-            if (layout === 'table') targetParams.delete('layout');
-            else targetParams.set('layout', 'classic');
-            const query = targetParams.toString();
-            window.location.href = `${targetPath}${query ? `?${query}` : ''}`;
-        }
-
         // 방 정보가 없으면 즉시 퇴장
         if (!roomCode) {
             alert('잘못된 접근입니다. 로비에서 방을 생성하거나 참가해주세요.');
@@ -951,6 +942,7 @@
 
             return {
                 username, scores,
+                kept: [...kept],
                 turn: turnOwner || username,
                 game_over: gameOver,
                 ai_rec: aiRec,
@@ -1134,6 +1126,7 @@ function applyRemoteState(state) {
                 return;
             }
             clearTurnTimer();
+            const keptForRoll = [...kept];
 
             playDiceRollSound();
 
@@ -1145,7 +1138,7 @@ function applyRemoteState(state) {
             updateScorecard();
 
             for (let i = 0; i < 5; i++) {
-                if (!kept[i]) document.getElementById(`die-${i}`).classList.add('rolling');
+                if (!keptForRoll[i]) document.getElementById(`die-${i}`).classList.add('rolling');
             }
 
             setTimeout(async () => {
@@ -1156,7 +1149,7 @@ function applyRemoteState(state) {
                         {
                             method: 'POST',
                             headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({username, kept, player_token: playerToken}),
+                            body: JSON.stringify({username, kept: keptForRoll, player_token: playerToken}),
                         },
                         currentRoomRequestTimeoutMs(),
                     );
@@ -1179,6 +1172,7 @@ function applyRemoteState(state) {
                         dice = data.dice;
                         rollsLeft = data.rolls_left;
                         GameState.setDice(dice);
+                        kept = [...keptForRoll];
                         GameState.setKept(kept);
                         GameState.setRollsLeft(rollsLeft);
                         turnLeftSeconds = 30;

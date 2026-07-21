@@ -3,7 +3,7 @@
 {% block head %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260721-14') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/multi-game.css', v='20260719-1') }}">
-    <script src="{{ url_for('static', filename='js/game_layout.js', v='20260721-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/game_layout.js', v='20260721-2') }}"></script>
 {% endblock %}
 {% block body_attrs %}class="multiplayer-page"{% endblock %}
 {% block body %}
@@ -21,11 +21,9 @@
                 <div id="observer-summary-grid" class="observer-meta-grid"></div>
             </div>
             <div class="controls primary-controls" id="player-controls">
-                <button class="btn btn-warm" onclick="switchGameLayout('table')">🧩 테이블 보기</button>
                 <button class="btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
             </div>
             <div class="controls primary-controls" id="observer-controls" style="display:none;">
-                <button class="btn btn-warm" onclick="switchGameLayout('table')">🧩 테이블 보기</button>
                 <button class="btn btn-warm" data-copy-observer-link onclick="copyObserverLink()">🔗 링크 복사</button>
                 <button class="btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
             </div>
@@ -110,5 +108,5 @@
     <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260721-4') }}"></script>
     <script src="{{ url_for('static', filename='js/winprob.js', v='20260721-1') }}"></script>
     <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260721-6') }}"></script>
-    <script src="{{ url_for('static', filename='js/pages/multi-game.js', v='20260721-9') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/multi-game.js', v='20260721-11') }}"></script>
 {% endblock %}

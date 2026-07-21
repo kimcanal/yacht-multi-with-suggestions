@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/single-game.css', v='20260721-2') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/multi-game-table.css', v='20260721-9') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/single-game-table.css', v='20260721-7') }}">
-    <script src="{{ url_for('static', filename='js/game_layout.js', v='20260721-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/game_layout.js', v='20260721-2') }}"></script>
 {% endblock %}
 {% block body_attrs %}class="table-layout-page single-table-layout-page"{% endblock %}
 {% block body %}
@@ -23,7 +23,6 @@
             <div class="table-titlebar">
                 <div class="title">🎲 YACHT <span id="mode-badge"></span></div>
                 <div class="controls primary-controls game-primary-controls">
-                    <button class="btn btn-warm" onclick="switchSingleLayout('default')">↔ 기본 보기</button>
                     <button class="btn btn-reset" onclick="resetGame()" id="new-game-btn">🔄 RESET</button>
                     <button class="btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
                 </div>
@@ -99,5 +98,5 @@
     <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260721-4') }}"></script>
     <script src="{{ url_for('static', filename='js/winprob.js', v='20260721-1') }}"></script>
     <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260721-6') }}"></script>
-    <script src="{{ url_for('static', filename='js/pages/single-game.js', v='20260721-11') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/single-game.js', v='20260721-13') }}"></script>
 {% endblock %}
