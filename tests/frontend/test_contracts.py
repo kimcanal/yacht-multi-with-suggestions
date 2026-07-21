@@ -116,6 +116,10 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("if (!options.enabled || !aiRec || aiRec.stage === 'score') return;", self.yacht_game)
         self.assertIn("if (aiRec.stage === 'score') return true;", self.yacht_game)
 
+    def test_ai_panel_compares_reroll_with_record_now(self):
+        self.assertIn('function renderActionComparison(comparison)', self.ai_panel)
+        self.assertIn('renderActionComparison(aiRec.action_comparison)', self.ai_panel)
+
     def test_ai_score_hint_uses_actual_zero_score_for_sacrifice_badge(self):
         self.assertIn("calcScore(dice, categoryIndex)", self.yacht_game)
         self.assertIn("if (targetScore !== null) return targetScore <= 0;", self.yacht_game)

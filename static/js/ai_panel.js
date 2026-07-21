@@ -216,6 +216,25 @@ function renderProbabilityContext(context) {
     `;
 }
 
+function renderActionComparison(comparison) {
+    if (!comparison || comparison.recommended !== 'reroll') return '';
+    const score = Number(comparison.record_score);
+    const gap = Number(comparison.gap);
+    if (!comparison.record_target || !Number.isFinite(score) || !Number.isFinite(gap)) return '';
+    const metric = comparison.comparison === 'expected_final_score' ? '기대 최종점수' : '평가';
+    const result = gap > 0.01
+        ? `재굴림이 ${metric} +${gap.toFixed(2)}`
+        : gap < -0.01
+            ? `지금 기록이 ${metric} +${Math.abs(gap).toFixed(2)}`
+            : '두 선택이 거의 동률';
+    return `
+        <div class="ai-action-comparison">
+            <span>선택 비교</span>
+            <strong>지금 ${escapeHtml(comparison.record_target)} ${score}점 기록 ↔ ${escapeHtml(result)}</strong>
+        </div>
+    `;
+}
+
 function renderDecisionReport(report, expanded) {
     if (!report || typeof report !== 'object') return '';
     const method = report.method || {};
@@ -337,6 +356,7 @@ function renderAiPanel(targetId, aiRec, options = {}) {
                 <div class="ai-summary-main">
                     <div class="ai-primary-pill">${escapeHtml(getAiPrimaryText(aiRec))}</div>
                     ${summary}
+                    ${renderActionComparison(aiRec.action_comparison)}
                 </div>
                 <div class="ai-meta-row">
                     <span class="ai-meta-chip">${escapeHtml(getAiStageLabel(aiRec))}</span>

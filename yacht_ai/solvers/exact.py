@@ -130,7 +130,7 @@ def _compute_hand_targets(
 
 def _build_cover_mode_result(
     dice, dice_tuple, rolls_left, hand_targets, keep_ev_map,
-    evaluate_keep_fn, target_success_fn, terminal_target_hit_fn,
+    evaluate_keep_fn, target_success_fn, terminal_target_hit_fn, scorecard, open_categories,
 ):
     """Cover 모드 전용 계산. exact union probability로 keep을 결정하고 결과 dict 반환."""
 
@@ -224,6 +224,18 @@ def _build_cover_mode_result(
         value for kept_tuple, value in keep_ev_map.items() if kept_tuple != best_keep_tuple
     ]
     alternative_gap = chosen_ev - max(alternative_values) if alternative_values else None
+    stop_now_advice = build_score_stage_advice(dice, scorecard, open_categories, "cover")
+    stop_now_target = stop_now_advice.get("primary_target") or stop_now_advice.get("message")
+    stop_gain = chosen_ev - float(stop_now_advice.get("expected_value", 0.0))
+    action_comparison = None
+    if len(best_keep_indices) < 5 and CATS.get(stop_now_target) is not None:
+        action_comparison = {
+            "recommended": "reroll",
+            "record_target": stop_now_target,
+            "record_score": calc_score(dice, CATS[stop_now_target]),
+            "gap": round(stop_gain, 2),
+            "comparison": "utility",
+        }
 
     breakdown = [
         {
@@ -281,6 +293,7 @@ def _build_cover_mode_result(
         "cover_success_prob": round(cover_success_prob, 6),
         "cover_fail_prob": round(cover_fail_prob, 6),
         "alternative_gap": None if alternative_gap is None else round(alternative_gap, 2),
+        "action_comparison": action_comparison,
         "target_probabilities": [
             {
                 "name": "핸드 하나 이상 성공",
@@ -1078,7 +1091,7 @@ def _solve_best_move_cached(
     if mode == "cover" and hand_targets and not ev_optimal_mode:
         return _build_cover_mode_result(
             dice, dice_tuple, rolls_left, hand_targets, keep_ev_map,
-            evaluate_keep_transition, target_success_value, terminal_target_hit,
+            evaluate_keep_transition, target_success_value, terminal_target_hit, scorecard, open_categories,
         )
 
     cover_fallback = mode == "cover" and not hand_targets
@@ -1332,6 +1345,16 @@ def _solve_best_move_cached(
         learned_value_max_mae=learned_value_max_mae,
         learned_value_min_turns=learned_value_min_turns,
     )
+    stop_now_target = stop_now_advice.get("primary_target") or stop_now_advice.get("message")
+    action_comparison = None
+    if not all_dice_kept and CATS.get(stop_now_target) is not None and stop_gain is not None:
+        action_comparison = {
+            "recommended": "reroll",
+            "record_target": stop_now_target,
+            "record_score": calc_score(dice, CATS[stop_now_target]),
+            "gap": round(stop_gain, 2),
+            "comparison": "expected_final_score" if ev_optimal_mode else "utility",
+        }
 
     if ev_optimal_mode:
         if best_alternative:
@@ -1414,6 +1437,7 @@ def _solve_best_move_cached(
         "stage": "roll",
         "policy_source": "exact_value_optimal" if ev_optimal_mode else "exact",
         "target_probabilities": selected_keep_target_probabilities,
+        "action_comparison": action_comparison,
     }
     if ev_optimal_mode:
         result.update(_optimal_projection_fields(scorecard, chosen_ev, alternative_gap))

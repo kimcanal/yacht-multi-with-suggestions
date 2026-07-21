@@ -87,6 +87,10 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertIn("decision_margin_key", report["method"])
         self.assertTrue(report["learning_note"])
         self.assertGreaterEqual(len(report["why"]), 1)
+        comparison = payload["action_comparison"]
+        self.assertEqual(comparison["recommended"], "reroll")
+        self.assertTrue(comparison["record_target"])
+        self.assertIsInstance(comparison["record_score"], int)
         self.assertEqual(response.headers["Cache-Control"], "no-store, private")
         self.assertIn("X-AI-Elapsed-Ms", response.headers)
         self.assertIn("X-Request-ID", response.headers)
