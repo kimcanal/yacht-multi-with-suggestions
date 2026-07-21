@@ -61,8 +61,16 @@ def reroll_from_keep(
     return [value if idx in keep else rng.randint(1, 6) for idx, value in enumerate(dice)]
 
 
-def apply_score(dice: list[int], scorecard: list[int | None], category_idx: int) -> None:
+def apply_score(
+    dice: list[int], scorecard: list[int | None], category_idx: int
+) -> tuple[int, int]:
+    """Record a category score and return ``(score, yacht_bonus)``.
+
+    This is the single mutation point for the repeated-Yacht rule used by the
+    web app, simulations, and training-data generators.
+    """
     score = calc_score(dice, category_idx)
+    yacht_bonus = 0
     yacht_idx = CATS["Yacht"]
     if (
         calc_score(dice, yacht_idx) == 50
@@ -72,4 +80,6 @@ def apply_score(dice: list[int], scorecard: list[int | None], category_idx: int)
         and score > 0
     ):
         scorecard[yacht_idx] += 100
+        yacht_bonus = 100
     scorecard[category_idx] = score
+    return score, yacht_bonus

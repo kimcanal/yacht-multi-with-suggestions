@@ -1,0 +1,148 @@
+/* Table-layout additions specific to solo and VS-AI play. */
+.single-table-layout-page .background-fx { background: #0b1f22; animation: none; }
+
+.single-table-game-shell .table-main-area .mode-strip {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+}
+
+.single-table-game-shell .mode-config-grid { justify-content: flex-start; }
+.single-table-game-shell .table-titlebar .game-primary-controls { margin: 0 !important; }
+.single-table-game-shell .table-titlebar .game-primary-controls .btn { padding: 9px 12px !important; }
+
+.single-table-insight-area .ai-mode-row {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 12px;
+}
+
+.single-table-insight-area .ai-mode-row-label { flex: 0 0 100%; }
+.single-table-insight-area .ai-mode-btn { flex: 1 1 30%; }
+.single-table-insight-area .single-insight-grid { margin-top: 0; }
+
+/* VS AI uses one card for both players. Keep every scoring row in view and
+   spend the limited vertical space on that table instead of duplicate help. */
+@media (min-width: 1201px) {
+    .single-table-layout-page .table-scorecard:has(#scorecard.table-solo-scorecard) {
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+    }
+
+    .single-table-layout-page .table-scorecard:has(#scorecard.table-solo-scorecard) .table-panel-title,
+    .single-table-layout-page .table-scorecard:has(#scorecard.table-solo-scorecard) .score-help {
+        display: none;
+    }
+
+    .single-table-layout-page #scorecard.table-solo-scorecard {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .single-table-layout-page #scorecard.table-solo-scorecard .solo-table-board {
+        height: 100%;
+        gap: 2px;
+        grid-template-rows: auto repeat(6, minmax(0, 1fr)) auto auto repeat(6, minmax(0, 1fr)) auto;
+    }
+
+    .single-table-layout-page #scorecard.table-solo-scorecard .solo-table-head,
+    .single-table-layout-page #scorecard.table-solo-scorecard .solo-table-row {
+        grid-template-columns: minmax(100px, 1.12fr) minmax(64px, 0.72fr);
+        gap: 4px;
+    }
+
+    .single-table-layout-page #scorecard.table-solo-scorecard .solo-table-head > div,
+    .single-table-layout-page #scorecard.table-solo-scorecard .compare-cat-cell,
+    .single-table-layout-page #scorecard.table-solo-scorecard .compare-value-cell {
+        min-height: 0;
+        padding: 4px 7px;
+        font-size: 0.76rem;
+        line-height: 1.12;
+    }
+
+    .single-table-layout-page #scorecard.table-solo-scorecard .solo-table-head > div {
+        padding-bottom: 2px;
+    }
+
+    .single-table-layout-page .table-scorecard:has(#scorecard.scorecard-mode-compare) {
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+    }
+
+    .single-table-layout-page .table-scorecard:has(#scorecard.scorecard-mode-compare) .table-panel-title {
+        display: none;
+    }
+
+    .single-table-layout-page .table-scorecard:has(#scorecard.scorecard-mode-compare) .score-help {
+        display: none;
+    }
+
+    .single-table-layout-page #scorecard.scorecard-mode-compare .compare-board {
+        height: 100%;
+        gap: 2px;
+        grid-template-rows: auto repeat(6, minmax(0, 1fr)) auto auto repeat(6, minmax(0, 1fr)) auto;
+    }
+
+    .single-table-layout-page #scorecard.scorecard-mode-compare {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .single-table-layout-page #scorecard.scorecard-mode-compare .score-duel-overview {
+        display: none;
+    }
+
+    .single-table-layout-page #scorecard.scorecard-mode-compare .compare-board-head,
+    .single-table-layout-page #scorecard.scorecard-mode-compare .compare-row {
+        grid-template-columns: minmax(100px, 1.12fr) minmax(54px, 0.64fr) minmax(54px, 0.64fr);
+        gap: 4px;
+    }
+
+    .single-table-layout-page #scorecard.scorecard-mode-compare .compare-board-head {
+        padding-bottom: 2px;
+    }
+
+    .single-table-layout-page #scorecard.scorecard-mode-compare .compare-cat-head,
+    .single-table-layout-page #scorecard.scorecard-mode-compare .compare-side-head,
+    .single-table-layout-page #scorecard.scorecard-mode-compare .compare-cat-cell,
+    .single-table-layout-page #scorecard.scorecard-mode-compare .compare-value-cell {
+        min-height: 0;
+        padding: 4px 7px;
+        font-size: 0.76rem;
+        line-height: 1.12;
+    }
+
+    .single-table-layout-page #scorecard.scorecard-mode-compare .compare-side-head {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .single-table-layout-page #scorecard.scorecard-mode-compare .compare-section-row {
+        min-height: 0;
+        padding: 3px 7px;
+        font-size: 0.64rem;
+        line-height: 1.1;
+    }
+
+    .single-table-layout-page #scorecard.scorecard-mode-compare .compare-section-row em {
+        display: none;
+    }
+}
+
+@media (max-width: 1200px) {
+    .single-table-game-shell .table-main-area { order: 1; }
+    .single-table-game-shell .table-scorecard { order: 2; }
+    .single-table-game-shell .single-table-insight-area { order: 3; }
+}
+
+@media (max-width: 640px) {
+    .single-table-game-shell .table-titlebar { flex-direction: column; }
+    .single-table-game-shell .table-titlebar .game-primary-controls { width: 100%; justify-content: stretch; }
+    .single-table-game-shell .table-titlebar .game-primary-controls .btn { flex: 1 1 30%; }
+}

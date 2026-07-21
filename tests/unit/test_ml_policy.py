@@ -1,7 +1,7 @@
 import unittest
 
 from yacht_ai.constants import CATS
-from yacht_ai.decision_confidence import classify_alternative_gap
+from yacht_ai.decision_confidence import classify_alternative_gap, recommendation_strength
 from yacht_ai.ml_policy import _made_hand_safety_action, _should_apply_safety_action
 
 
@@ -11,6 +11,9 @@ class RollPolicySafetyTests(unittest.TestCase):
         self.assertEqual(classify_alternative_gap(0.7)["key"], "slight_edge")
         self.assertEqual(classify_alternative_gap(1.2)["key"], "clear_edge")
         self.assertEqual(classify_alternative_gap(-0.4)["key"], "strategy_tradeoff")
+        self.assertEqual(recommendation_strength(0.1)["points"], 5)
+        self.assertEqual(recommendation_strength(0.7)["points"], 7)
+        self.assertEqual(recommendation_strength(1.2)["points"], 9)
 
     def test_safety_keeps_made_yacht(self):
         action = _made_hand_safety_action([5, 5, 5, 5, 5], 1, [None] * 12)

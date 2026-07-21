@@ -149,7 +149,7 @@ function renderAiReportList(items, className = 'ai-report-list') {
 }
 
 const METHOD_LABEL_MAP = {
-    'Full-game exact V': '기대 최종점수',
+    'Full-game exact V': '남은 턴까지 계산',
     'Exact solver': '정밀 계산',
     '학습 정책 모델': '학습 모델'
 };
@@ -159,8 +159,8 @@ const METHOD_NOTE_MAP = {
         '현재 주사위 조합별 확률과 이후 점수판에 미칠 영향을 함께 비교했습니다.',
     '점수 기록 단계는 현재 점수와 남은 칸의 장기 가치를 utility로 비교한 계산 결과입니다.':
         '현재 얻는 점수와 남은 칸의 가치를 함께 비교했습니다.',
-    '현재 기록 점수와 이번 선택 이후의 기대점수를 합산해 기대 최종점수가 가장 큰 선택을 고릅니다. 이후 기대점수에는 이번 턴의 기록과 남은 모든 턴의 full-game exact V가 포함됩니다.':
-        '이번 기록과 남은 턴의 기대 점수를 합쳐 최종 점수가 가장 커지는 선택을 찾았습니다.',
+    '현재 점수와 남은 턴을 함께 비교해, 끝까지 진행했을 때 평균 최종 점수가 가장 큰 선택을 고릅니다.':
+        '현재 점수와 남은 턴을 함께 비교해 가장 유리한 선택을 찾았습니다.',
     '이번 굴림 선택은 exact solver가 만든 teacher 데이터를 학습한 정책 모델이 먼저 냈고, confidence 기준을 넘은 경우에만 채택됩니다.':
         '학습 모델의 후보를 검증해 신뢰할 수 있는 경우에만 추천에 반영합니다.'
 };
@@ -170,15 +170,15 @@ const LEARNING_NOTE_MAP = {
         '이 추천은 현재 선택 기준의 여러 가능성을 확률로 비교한 결과입니다.',
     '모델은 스스로 결정을 흉내 내는 실행 정책이고, 낮은 확신이나 위험한 상태에서는 exact solver로 돌아갑니다. 다음 단계의 self-learning은 self-play 데이터를 더 쌓아 win-rate/value model을 붙이는 방식이 좋습니다.':
         '이 추천은 학습 모델의 예측을 사용하며, 확신이 낮거나 위험하면 정밀 계산 결과를 사용합니다.',
-    '이 모드는 학습 모델 없이 full-game exact value table을 직접 조회합니다. 현재 목표는 승률이 아니라 기대 최종점수 최대화입니다.':
-        '남은 점수판까지 고려해 기대 최종점수가 가장 큰 선택을 찾습니다.'
+    '이 모드는 현재 점수와 남은 턴을 함께 비교해, 평균 최종 점수가 가장 큰 선택을 찾습니다.':
+        '남은 점수판까지 고려해 가장 유리한 선택을 찾습니다.'
 };
 
 function cleanEvText(text) {
     if (!text) return '';
     return text
         .replace(/EV\s*([0-9.]+)/g, '기대 $1점')
-        .replace(/full-game exact V/gi, '정밀 기대 분석')
+        .replace(/full-game exact V/gi, '남은 턴까지 계산')
         .replace(/exact solver/gi, '정밀 확률 계산');
 }
 
@@ -221,16 +221,22 @@ function renderActionComparison(comparison) {
     const score = Number(comparison.record_score);
     const gap = Number(comparison.gap);
     if (!comparison.record_target || !Number.isFinite(score) || !Number.isFinite(gap)) return '';
-    const metric = comparison.comparison === 'expected_final_score' ? '기대 최종점수' : '평가';
-    const result = gap > 0.01
-        ? `재굴림이 ${metric} +${gap.toFixed(2)}`
+    const metric = comparison.comparison === 'expected_final_score' ? '예상 최종 점수 기준' : 'AI 판단 기준';
+    const recommendation = gap > 0.01
+        ? '재굴림 추천'
         : gap < -0.01
-            ? `지금 기록이 ${metric} +${Math.abs(gap).toFixed(2)}`
-            : '두 선택이 거의 동률';
+            ? '지금 기록 추천'
+            : '두 선택이 거의 비슷함';
+    const detail = gap > 0.01
+        ? `${metric} +${gap.toFixed(1)}점 · 목표 족보를 더 노리는 선택`
+        : gap < -0.01
+            ? `${metric} +${Math.abs(gap).toFixed(1)}점 · 지금 점수를 확정하는 선택`
+            : `${metric} 차이가 거의 없습니다`;
     return `
         <div class="ai-action-comparison">
-            <span>선택 비교</span>
-            <strong>지금 ${escapeHtml(comparison.record_target)} ${score}점 기록 ↔ ${escapeHtml(result)}</strong>
+            <span>지금 기록 vs 재굴림</span>
+            <strong>${escapeHtml(comparison.record_target)} ${score}점 기록보다 ${escapeHtml(recommendation)}</strong>
+            <small>${escapeHtml(detail)}</small>
         </div>
     `;
 }

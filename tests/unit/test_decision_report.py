@@ -1,5 +1,6 @@
 import unittest
 
+from yacht_ai.policies.advice import build_recommendation_context_row
 from yacht_ai.reporting.decision import build_decision_report
 
 
@@ -56,6 +57,23 @@ class DecisionReportTests(unittest.TestCase):
 
         self.assertIn("Sixes · 18점", report["why"][0])
         self.assertEqual(report["tradeoffs"], ["Choice 20점: 안정적인 대안"])
+
+    def test_recommendation_value_is_labeled_as_a_comparison_not_a_game_score(self):
+        row = build_recommendation_context_row(
+            "focused",
+            42.52,
+            0.7,
+            {"name": "Full House", "type": "hand"},
+            False,
+            [0, 1, 2],
+            None,
+            None,
+        )
+
+        self.assertEqual(row["name"], "추천 정도")
+        self.assertEqual(row["val_str"], "7/10")
+        self.assertIn("차선책과의 차이", row["keep_str"])
+        self.assertIn("실제 점수나 성공 확률이 아니라", row["reason"])
 
 
 if __name__ == "__main__":

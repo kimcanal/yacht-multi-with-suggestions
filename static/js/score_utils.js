@@ -79,6 +79,45 @@ function countOpenCategories(card) {
     return Math.max(0, CATS.length - countFilledCategories(card));
 }
 
+function updateQuickScoreTargets(card, options = {}) {
+    const targetEl = document.getElementById('quick-score-targets');
+    if (!targetEl) return;
+
+    const active = Boolean(options.active)
+        && Array.isArray(card)
+        && Array.isArray(dice)
+        && dice.length === 5;
+    if (!active) {
+        targetEl.hidden = true;
+        targetEl.innerHTML = '';
+        return;
+    }
+
+    const targets = CATS
+        .map((name, index) => ({ name, index, score: calcScore(dice, index) }))
+        .filter((target) => card[target.index] === null && target.score > 0)
+        .sort((left, right) => right.score - left.score || left.index - right.index)
+        .slice(0, 3);
+
+    if (!targets.length) {
+        targetEl.hidden = true;
+        targetEl.innerHTML = '';
+        return;
+    }
+
+    targetEl.hidden = false;
+    targetEl.innerHTML = `
+        <span class="quick-score-label">현재 점수 TOP 3</span>
+        <div class="quick-score-list">
+            ${targets.map((target) => `
+                <span class="quick-score-chip">
+                    <b>${escapeHtml(target.name)}</b><strong>${target.score}점</strong>
+                </span>
+            `).join('')}
+        </div>
+    `;
+}
+
 function renderScoreMetric(label, value, options = {}) {
     const idAttr = options.id ? ` id="${options.id}"` : '';
     const toneClass = options.tone ? ` ${options.tone}` : '';
@@ -97,8 +136,8 @@ function renderScoreMetric(label, value, options = {}) {
         ? ''
         : `<span class="score-overview-meter"><i style="width:${meterValue * 100}%"></i></span>`;
     return `
-        <div class="score-overview-card${toneClass}${helpClass}" ${helpAttrs}>
-            <span class="score-overview-label">${escapeHtml(label)}</span>
+        <div class="score-overview-card${toneClass}${helpClass}">
+            <span class="score-overview-label${hasHelp ? ' tip-trigger' : ''}" ${helpAttrs}>${escapeHtml(label)}</span>
             <strong class="score-overview-value"${idAttr}>${value}</strong>
             ${sub}
             ${meter}
@@ -117,7 +156,9 @@ function getUpperHelp(totals, opponentTotals = null) {
 }
 
 function formatUpperBonusProgress(totals) {
-    return totals.bonus > 0 ? `+${totals.bonus} 확보` : `${Math.max(0, 63 - totals.upper)}점 남음`;
+    return totals.bonus > 0
+        ? `+${totals.bonus} 확보`
+        : `+0 (${Math.max(0, 63 - totals.upper)}점 남음)`;
 }
 
 function renderSingleScoreOverview(card, totals, options = {}) {
@@ -213,31 +254,6 @@ function getMultiTurnProgress(myCard, oppCard, options = {}) {
     );
 }
 
-function renderCard(card, isMine, title) {
-    const totals = calcTotals(card);
-    let h = '';
-    CATS.forEach((c, i) => {
-        const clickable = isMine && !gameOver && isMyTurn() && card[i] === null && rollsLeft < 3;
-        const showPreview = !gameOver && card[i] === null && rollsLeft < 3 && ((isMine && isMyTurn()) || (!isMine && !isMyTurn()));
-        const sc = calcScore(dice, i);
-        const p = showPreview ? `<span class="score-preview">${sc}점</span>` : '';
-        const classes = `score-item ${card[i] !== null ? 'filled' : ''} ${!isMine ? 'disabled' : ''}`;
-        const desc = CAT_DESC[c] || '';
-        const diceEx = '예시) ' + CAT_DICE[c] || '';
-        const tipLayoutAttr = clickable ? 'data-tip-layout="score-preview"' : '';
-        const handlers = clickable
-            ? `onclick="pickCategory(${i})" onmouseenter="showTip(this); previewScore(${i})" onmouseleave="hideTip(this); clearPreview()" ontouchstart="showTip(this); previewScore(${i})" ontouchend="hideTip(this); clearPreview()"`
-            : `onmouseenter="showTip(this)" onmouseleave="hideTip(this)" ontouchstart="showTip(this)" ontouchend="hideTip(this)"`;
-        h += `<div class="${classes}" ${handlers} ${tipLayoutAttr} data-desc="${desc}" data-dice="${diceEx}"><span class="score-name">${c}</span><span class="score-val">${card[i] !== null ? card[i] : '-'}${p}</span><div class="custom-tip" style="display:none;"></div></div>`;
-    });
-    h += `<div class="total-score"><span>TOTAL</span><span>${totals.total}</span></div>`;
-
-    const isCurrentTurn = (typeof isMultiplayer !== 'undefined' && isMultiplayer) ? (isMine ? isMyTurn() : !isMyTurn()) : isMine;
-    const titleStyle = isCurrentTurn ? 'color: #00ff00; text-shadow: 0 0 20px rgba(0, 255, 0, 0.8); font-weight: bold;' : 'color: #00ffcc;';
-
-    return `<div class="scorecard-title" style="${titleStyle}">${escapeHtml(title)}</div><div>${h}</div>`;
-}
-
 function getScoreMeta(categoryName) {
     return {
         desc: CAT_DESC[categoryName] || '',
@@ -257,15 +273,15 @@ function getTooltipHandlers() {
     ].join(' ');
 }
 
-function getScorePreviewHandlers(categoryIndex) {
+function getScorePreviewOnlyHandlers(categoryIndex) {
     return [
-        `onmouseenter="showTip(this); previewScore(${categoryIndex})"`,
-        'onmouseleave="hideTip(); clearPreview()"',
-        `onpointerdown="showTip(this); previewScore(${categoryIndex})"`,
-        `ontouchstart="showTip(this); previewScore(${categoryIndex})"`,
-        'ontouchend="hideTip(); clearPreview()"',
-        `onfocus="showTip(this); previewScore(${categoryIndex})"`,
-        'onblur="hideTip(); clearPreview()"',
+        `onmouseenter="previewScore(${categoryIndex})"`,
+        'onmouseleave="clearPreview()"',
+        `onpointerdown="previewScore(${categoryIndex})"`,
+        `ontouchstart="previewScore(${categoryIndex})"`,
+        'ontouchend="clearPreview()"',
+        `onfocus="previewScore(${categoryIndex})"`,
+        'onblur="clearPreview()"',
     ].join(' ');
 }
 
@@ -420,43 +436,6 @@ function renderGameReview(card, options = {}) {
     `;
 }
 
-function renderCompactScoreRow(card, categoryIndex, options = {}) {
-    const categoryName = CATS[categoryIndex];
-    const { desc, diceEx } = getScoreMeta(categoryName);
-    const clickable = Boolean(options.interactive) && !gameOver && isMyTurn() && card[categoryIndex] === null && rollsLeft < 3;
-    const previewScoreValue = clickable ? calcScore(dice, categoryIndex) : null;
-    const preview = card[categoryIndex] === null && previewScoreValue !== null ? previewScoreValue : null;
-    const valueMarkup = buildValueMarkup(card[categoryIndex] !== null ? card[categoryIndex] : '-', preview);
-    const stateClass = card[categoryIndex] !== null
-        ? 'filled score-locked'
-        : clickable ? 'score-ready compact-clickable' : 'score-pending';
-    const classes = `score-item compact-score-row ${stateClass}`;
-    const clickAttr = clickable ? `onclick="pickCategory(${categoryIndex})"` : '';
-    const keyAttr = clickable ? `role="button" tabindex="0" onkeydown="handleScoreKey(event, ${categoryIndex})"` : 'tabindex="0"';
-    const interactionHandlers = clickable ? getScorePreviewHandlers(categoryIndex) : getTooltipHandlers();
-    const tipLayoutAttr = clickable ? 'data-tip-layout="score-preview"' : '';
-    return `
-        <div class="${classes}" data-score-flash="${categoryIndex}" ${keyAttr} ${interactionHandlers} ${clickAttr} ${tipLayoutAttr} data-desc="${escapeHtml(desc)}" data-dice="${escapeHtml(diceEx)}">
-            <span class="score-name">${escapeHtml(categoryName)}</span>
-            <span class="score-val">${valueMarkup}</span>
-            <div class="custom-tip" style="display:none;"></div>
-        </div>
-    `;
-}
-
-function renderSummaryItem(label, value, options = {}) {
-    const idAttr = options.id ? ` id="${options.id}"` : '';
-    const extraClass = options.extraClass ? ` ${options.extraClass}` : '';
-    const desc = options.desc || '';
-    return `
-        <div class="score-item${extraClass}" ${getTooltipHandlers()} data-desc="${escapeHtml(desc)}" data-dice="">
-            <span class="score-name">${escapeHtml(label)}</span>
-            <span class="score-val"${idAttr}>${value}</span>
-            <div class="custom-tip" style="display:none;"></div>
-        </div>
-    `;
-}
-
 function renderScoreHelpMarkup(desc = '', diceText = '') {
     const hasDetail = Boolean(desc || diceText);
     const title = hasDetail ? '점수 설명' : '점수표 도움말';
@@ -476,40 +455,13 @@ function renderScoreHelpMarkup(desc = '', diceText = '') {
 function updateScoreHelp(desc = '', diceText = '') {
     const help = document.getElementById('score-desc-area');
     if (!help) return;
+    if (!desc && !diceText) {
+        help.hidden = true;
+        help.innerHTML = '';
+        return;
+    }
+    help.hidden = false;
     help.innerHTML = renderScoreHelpMarkup(desc, diceText);
-}
-
-function renderCompactSingleCard(card, title, options = {}) {
-    const totals = calcTotals(card);
-    const titleStyle = getTurnTitleStyle(options.active !== false);
-    const showSectionHeads = options.showSectionHeads !== false;
-    const upperRows = CATS.slice(0, 6).map((_, index) => renderCompactScoreRow(card, index, { interactive: options.interactive !== false })).join('');
-    const lowerRows = CATS.slice(6).map((_, index) => renderCompactScoreRow(card, index + 6, { interactive: options.interactive !== false })).join('');
-    const flatRows = `${upperRows}<div class="compact-score-divider"><span>63점 보너스 체크</span></div>${lowerRows}`;
-    const layoutClass = showSectionHeads ? 'compact-score-layout' : 'compact-score-layout no-section-heads';
-    const sectionsMarkup = showSectionHeads
-        ? `
-            <div class="compact-score-section">
-                <div class="compact-score-head">Upper</div>
-                ${upperRows}
-            </div>
-            <div class="compact-score-section">
-                <div class="compact-score-head">Lower</div>
-                ${lowerRows}
-            </div>
-        `
-        : `
-            <div class="compact-score-section compact-score-section-flat">
-                ${flatRows}
-            </div>
-        `;
-    return `
-        <div class="scorecard-title" style="${titleStyle}">${escapeHtml(title)}</div>
-        ${renderSingleScoreOverview(card, totals, { previewIds: options.previewIds })}
-        <div class="${layoutClass}">
-            ${sectionsMarkup}
-        </div>
-    `;
 }
 
 function renderCompareStatRow(label, leftValue, rightValue, options = {}) {
@@ -542,17 +494,15 @@ function renderCompareCategoryRow(categoryIndex, leftCard, rightCard, options = 
     const leftCellClasses = `compare-value-cell ${leftStateClass}`;
     const rightCellClasses = `compare-value-cell ${rightStateClass}`;
     const clickAttr = clickable ? `onclick="pickCategory(${categoryIndex})"` : '';
-    const previewHandlers = clickable ? getScorePreviewHandlers(categoryIndex) : '';
+    const previewHandlers = clickable ? getScorePreviewOnlyHandlers(categoryIndex) : '';
     const keyAttr = clickable ? `role="button" tabindex="0" onkeydown="handleScoreKey(event, ${categoryIndex})"` : '';
-    const tipLayoutAttr = clickable ? 'data-tip-layout="score-preview"' : '';
-    const scoreMetaAttrs = clickable ? `data-desc="${escapeHtml(desc)}" data-dice="${escapeHtml(diceEx)}"` : '';
     return `
         <div class="compare-row">
             <div class="compare-cat-cell tip-trigger" ${getTooltipHandlers()} data-desc="${escapeHtml(desc)}" data-dice="${escapeHtml(diceEx)}">
                 ${escapeHtml(categoryName)}
                 <div class="custom-tip" style="display:none;"></div>
             </div>
-            <div class="${leftCellClasses}" data-score-flash="${categoryIndex}" ${keyAttr} ${clickAttr} ${previewHandlers} ${tipLayoutAttr} ${scoreMetaAttrs}>${leftValueMarkup}</div>
+            <div class="${leftCellClasses}" data-score-flash="${categoryIndex}" ${keyAttr} ${clickAttr} ${previewHandlers}>${leftValueMarkup}</div>
             <div class="${rightCellClasses}">${rightValueMarkup}</div>
         </div>
     `;
@@ -566,11 +516,15 @@ function renderCompareBoard(leftCard, rightCard, options = {}) {
 
     let rows = '';
     for (let i = 0; i < CATS.length; i++) {
-        if (i === 0) {
-            rows += '<div class="compare-section-row"><span>Upper Section</span><em>63점 보너스 흐름</em></div>';
-        }
         if (i === 6) {
-            rows += '<div class="compare-section-row lower"><span>Lower Section</span><em>족보 점수와 고점</em></div>';
+            rows += renderCompareStatRow('상단 합계', `${leftTotals.upper}/63`, `${rightTotals.upper}/63`, {
+                extraClass: ' compare-summary',
+                desc: 'Ones부터 Sixes까지의 합계입니다. 63점 이상이면 Upper Bonus +35점을 받습니다.',
+            });
+            rows += renderCompareStatRow('보너스', `+${leftTotals.bonus}`, `+${rightTotals.bonus}`, {
+                extraClass: ' compare-summary',
+                desc: '상단 합계가 63점 이상이면 +35점, 아직 달성 전이면 +0점입니다.',
+            });
         }
         rows += renderCompareCategoryRow(i, leftCard, rightCard, {
             leftInteractive: options.leftInteractive,
@@ -598,13 +552,83 @@ function renderCompareBoard(leftCard, rightCard, options = {}) {
     `;
 }
 
-// 점수 설명은 고정 높이 인라인 도움말(#score-desc-area)에만 표시한다.
-// (예전에는 커서를 따라다니는 플로팅 툴팁도 같이 띄워 설명이 중복되고 행을 가렸다.)
+function renderSoloTableStatRow(label, value, options = {}) {
+    const desc = options.desc || '';
+    const extraClass = options.extraClass ? ` ${options.extraClass}` : '';
+    return `
+        <div class="solo-table-row${extraClass}">
+            <div class="compare-cat-cell tip-trigger" ${getTooltipHandlers()} data-desc="${escapeHtml(desc)}" data-dice="">
+                ${escapeHtml(label)}
+            </div>
+            <div class="compare-value-cell"><span class="compare-score-main">${value}</span></div>
+        </div>
+    `;
+}
+
+function renderSoloTableCategoryRow(card, categoryIndex, options = {}) {
+    const categoryName = CATS[categoryIndex];
+    const { desc, diceEx } = getScoreMeta(categoryName);
+    const clickable = Boolean(options.interactive) && !gameOver && isMyTurn() && card[categoryIndex] === null && rollsLeft < 3;
+    const preview = clickable ? calcScore(dice, categoryIndex) : null;
+    const valueMarkup = buildValueMarkup(card[categoryIndex] !== null ? card[categoryIndex] : '-', card[categoryIndex] === null ? preview : null);
+    const stateClass = card[categoryIndex] !== null
+        ? 'filled score-locked'
+        : clickable ? 'clickable score-ready' : 'score-pending';
+    const clickAttr = clickable ? `onclick="pickCategory(${categoryIndex})"` : '';
+    const keyAttr = clickable ? `role="button" tabindex="0" onkeydown="handleScoreKey(event, ${categoryIndex})"` : '';
+    const previewHandlers = clickable ? getScorePreviewOnlyHandlers(categoryIndex) : '';
+    return `
+        <div class="solo-table-row">
+            <div class="compare-cat-cell tip-trigger" ${getTooltipHandlers()} data-desc="${escapeHtml(desc)}" data-dice="${escapeHtml(diceEx)}">
+                ${escapeHtml(categoryName)}
+            </div>
+            <div class="compare-value-cell ${stateClass}" data-score-flash="${categoryIndex}" ${keyAttr} ${clickAttr} ${previewHandlers}>${valueMarkup}</div>
+        </div>
+    `;
+}
+
+function renderSoloTableBoard(card, options = {}) {
+    const totals = calcTotals(card);
+    let rows = '';
+    for (let i = 0; i < CATS.length; i++) {
+        if (i === 6) {
+            rows += renderSoloTableStatRow('상단 합계', `${totals.upper}/63`, {
+                extraClass: ' solo-table-summary',
+                desc: 'Ones부터 Sixes까지의 합계입니다. 63점 이상이면 Upper Bonus +35점을 받습니다.',
+            });
+            rows += renderSoloTableStatRow('보너스', `+${totals.bonus}`, {
+                extraClass: ' solo-table-summary',
+                desc: '상단 합계가 63점 이상이면 +35점, 아직 달성 전이면 +0점입니다.',
+            });
+        }
+        rows += renderSoloTableCategoryRow(card, i, options);
+    }
+    rows += renderSoloTableStatRow('TOTAL', `${totals.total}`, {
+        extraClass: ' solo-table-total',
+        desc: '상단 합계, 보너스, 하단 점수를 모두 더한 최종 합계입니다.',
+    });
+
+    return `
+        <div class="solo-table-board">
+            <div class="solo-table-head">
+                <div>카테고리</div>
+                <div>점수</div>
+            </div>
+            ${rows}
+        </div>
+    `;
+}
+
+// 설명은 화면 흐름을 밀지 않는 고정 위치 툴팁으로 표시한다.
 function showTip(el) {
     const desc = el.getAttribute('data-desc') || '';
     const diceText = el.getAttribute('data-dice') || '';
     if (!desc && !diceText) return;
-    updateScoreHelp(desc, diceText);
+    const tip = getGlobalTooltip();
+    tip.textContent = [desc, diceText].filter(Boolean).join('\n');
+    tip.style.display = 'block';
+    tip.style.width = `min(360px, calc(100vw - ${window.innerWidth < 600 ? 24 : 40}px))`;
+    positionScoreTooltip(el, tip, el.dataset.tipLayout === 'score-preview');
 }
 
 function hideTip() {
@@ -635,21 +659,21 @@ function previewScore(i) {
     temp[i] = sc;
     const newTotals = calcTotals(temp);
 
-    const totalEl = document.getElementById('summary-total') || document.querySelector('.scorecard-area .total-score span:last-child');
+    const totalEl = document.getElementById('summary-total');
     if (totalEl) {
         const diff = newTotals.total - curTotals.total;
         totalEl.classList.add('previewing');
         totalEl.innerHTML = buildOverviewPreviewValue(`${curTotals.total}`, diff, `${newTotals.total}`);
     }
 
-    const subtotalEl = document.getElementById('summary-subtotal') || document.querySelector('.score-item.subtotal .score-val');
+    const subtotalEl = document.getElementById('summary-subtotal');
     if (subtotalEl) {
         const diff = newTotals.upper - curTotals.upper;
         subtotalEl.classList.add('previewing');
         subtotalEl.innerHTML = buildOverviewPreviewValue(`${curTotals.upper}/63`, diff, `${newTotals.upper}/63`);
     }
 
-    const bonusEl = document.getElementById('summary-bonus') || document.querySelector('.score-item.bonus .score-val');
+    const bonusEl = document.getElementById('summary-bonus');
     if (bonusEl) {
         bonusEl.classList.add('previewing');
         if (newTotals.bonus > curTotals.bonus) {

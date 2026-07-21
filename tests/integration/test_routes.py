@@ -60,6 +60,10 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(health.get_json()["status"], "ok")
         self.assertEqual(health.get_json()["room_backend"], "memory")
         self.assertEqual(health.get_json()["presence_backend"], "memory")
+        self.assertEqual(health.headers["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(health.headers["X-Frame-Options"], "DENY")
+        self.assertEqual(health.headers["Referrer-Policy"], "same-origin")
+        self.assertIn("frame-ancestors 'none'", health.headers["Content-Security-Policy"])
 
         response = self.client.post(
             "/api/recommend",
@@ -108,6 +112,20 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(response_cached.status_code, 200)
         self.assertEqual(response_cached.headers["X-AI-Request-Cache"], "hit")
         self.assertIn("decision_report", response_cached.get_json())
+
+    def test_alternate_multiplayer_table_page_is_available(self):
+        response = self.client.get("/game/multi/table?room=ABC123")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"table-game-shell", response.data)
+        self.assertIn(b"multi-game-table.css", response.data)
+
+    def test_alternate_single_table_page_is_available(self):
+        response = self.client.get("/game/single/table?mode=solo&coach=on")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"single-table-game-shell", response.data)
+        self.assertIn(b"single-game-table.css", response.data)
 
     @patch("routes.ai.request_win_probability")
     def test_win_probability_endpoint_validates_and_returns_pending_projection(self, request_probability):
@@ -254,7 +272,7 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(payload["score_value_mode"], "value_optimal")
         self.assertEqual(payload["policy_source"], "exact_value_optimal")
         self.assertEqual(response.headers["X-AI-Policy-Source"], "exact_value_optimal")
-        self.assertIn("기대", payload["summary"])
+        self.assertIn("예상 최종 점수", payload["summary"])
         self.assertEqual(
             payload["expected_final_score"],
             round(payload["banked_score"] + payload["remaining_game_ev"], 2),
@@ -742,6 +760,40 @@ class RouteIntegrationTests(unittest.TestCase):
             self.skipTest("deterministic roll happened to be Yacht")
         self.assertEqual(forged_score.status_code, 400)
 
+    def test_multiplayer_keep_is_persisted_and_preserved_by_the_next_roll(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        code = created.get_json()["code"]
+        host_token = created.get_json()["player_token"]
+        joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
+        self.assertEqual(joined.status_code, 200)
+
+        first_roll = self.client.post(
+            f"/api/rooms/{code}/roll",
+            json={"username": "host1", "player_token": host_token, "kept": [0, 0, 0, 0, 0]},
+        ).get_json()
+        keep_mask = [1, 0, 0, 0, 0]
+        synced = self.client.post(
+            f"/api/rooms/{code}/sync",
+            json={
+                "username": "host1",
+                "player_token": host_token,
+                "kept": keep_mask,
+                "scores": {"host1": [None] * 12, "guest1": [None] * 12},
+                "turn": "host1",
+                "game_over": False,
+            },
+        )
+        self.assertEqual(synced.status_code, 200)
+        self.assertEqual(synced.get_json()["state"]["kept"], keep_mask)
+        self.assertEqual(synced.get_json()["state"]["player_kept"]["host1"], keep_mask)
+
+        second_roll = self.client.post(
+            f"/api/rooms/{code}/roll",
+            json={"username": "host1", "player_token": host_token, "kept": keep_mask},
+        )
+        self.assertEqual(second_roll.status_code, 200)
+        self.assertEqual(second_roll.get_json()["dice"][0], first_roll["dice"][0])
+
     def test_multiplayer_zero_score_sacrifice_resets_next_turn_state(self):
         created = self.client.post("/api/rooms", json={"username": "host1"})
         self.assertEqual(created.status_code, 200)
@@ -952,6 +1004,66 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(scored_payload["score"], expected_score)
         self.assertEqual(scored_payload["state"]["scorecard"][CATS["Ones"]], expected_score)
         self.assertEqual(scored_payload["state"]["rolls_left"], 3)
+
+    def test_first_single_roll_ignores_forged_keep_mask(self):
+        started = self.client.post(
+            "/api/single/start",
+            json={"username": "solo1", "mode": "solo", "coach_enabled": False},
+        ).get_json()
+
+        with patch("routes.single._new_dice", return_value=[6, 5, 4, 3, 2]):
+            rolled = self.client.post(
+                "/api/single/roll",
+                json={
+                    "session_id": started["session_id"],
+                    "session_token": started["session_token"],
+                    "kept": [1, 1, 1, 1, 1],
+                },
+            )
+
+        self.assertEqual(rolled.status_code, 200)
+        self.assertEqual(rolled.get_json()["state"]["dice"], [6, 5, 4, 3, 2])
+        self.assertEqual(rolled.get_json()["state"]["kept"], [0, 0, 0, 0, 0])
+
+    def test_first_multiplayer_roll_ignores_forged_keep_mask(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        code = created.get_json()["code"]
+        host_token = created.get_json()["player_token"]
+        joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
+        self.assertEqual(joined.status_code, 200)
+
+        pre_roll_sync = self.client.post(
+            f"/api/rooms/{code}/sync",
+            json={
+                "username": "host1",
+                "player_token": host_token,
+                "kept": [1, 1, 1, 1, 1],
+                "scores": {"host1": [None] * 12, "guest1": [None] * 12},
+                "turn": "host1",
+                "game_over": False,
+            },
+        )
+        self.assertEqual(pre_roll_sync.status_code, 200)
+        self.assertEqual(pre_roll_sync.get_json()["state"]["kept"], [0, 0, 0, 0, 0])
+
+        rolled = self.client.post(
+            f"/api/rooms/{code}/roll",
+            json={"username": "host1", "player_token": host_token, "kept": [1, 1, 1, 1, 1]},
+        )
+        self.assertEqual(rolled.status_code, 200)
+        self.assertEqual(rolled.get_json()["state"]["kept"], [0, 0, 0, 0, 0])
+
+    def test_multiplayer_roll_requires_a_second_player(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        code = created.get_json()["code"]
+        host_token = created.get_json()["player_token"]
+
+        rolled = self.client.post(
+            f"/api/rooms/{code}/roll",
+            json={"username": "host1", "player_token": host_token, "kept": [0, 0, 0, 0, 0]},
+        )
+        self.assertEqual(rolled.status_code, 409)
+        self.assertEqual(rolled.get_json()["error"], "상대방 입장 대기 중")
 
     def test_leaderboard_endpoints_and_reset(self):
         started_single = self.client.post(

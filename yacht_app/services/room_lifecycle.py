@@ -4,6 +4,7 @@ import time
 
 from app_state import get_services, rooms
 from config import OBSERVER_ROOM_TIMEOUT, PLAYER_ROOM_TIMEOUT
+from yacht_core.simulation import total_score as score_total
 
 
 def default_room_state():
@@ -26,15 +27,6 @@ def default_room_state():
         "loser": None,
         "end_reason": None,
     }
-
-
-def score_total(card):
-    card = card or []
-    card = (card + [None] * 12)[:12]
-    upper = sum((v or 0) for v in card[:6])
-    bonus = 35 if upper >= 63 else 0
-    lower = sum((v or 0) for v in card[6:])
-    return upper + bonus + lower
 
 
 def room_phase(room):

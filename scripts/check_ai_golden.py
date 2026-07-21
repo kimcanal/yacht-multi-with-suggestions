@@ -28,7 +28,7 @@ GOLDEN_CASES = [
             "keep_indices": [0, 1, 2, 3],
             "primary_target": "Large Straight",
             "expected_value": 21.11,
-            "breakdown_names": ["Large Straight 업그레이드", "추천 근거", "4 of a Kind"],
+            "breakdown_names": ["Large Straight 업그레이드", "추천 정도", "4 of a Kind"],
         },
     },
     {
@@ -45,7 +45,7 @@ GOLDEN_CASES = [
             "keep_indices": [0, 1, 2, 4],
             "primary_target": "Full House",
             "expected_value": 34.37,
-            "breakdown_names": ["Full House", "추천 근거", "4 of a Kind"],
+            "breakdown_names": ["Full House", "추천 정도", "4 of a Kind"],
         },
     },
     {
@@ -81,7 +81,7 @@ GOLDEN_CASES = [
             "keep_indices": [0, 1, 2],
             "primary_target": "4 of a Kind",
             "expected_value": 32.76,
-            "breakdown_names": ["4 of a Kind", "추천 근거", "Full House"],
+            "breakdown_names": ["4 of a Kind", "추천 정도", "Full House"],
         },
     },
     {
@@ -98,7 +98,7 @@ GOLDEN_CASES = [
             "keep_indices": [0, 1, 2],
             "primary_target": "Sixes",
             "expected_value": 100.91,
-            "breakdown_names": ["Sixes", "추천 근거", "4 of a Kind"],
+            "breakdown_names": ["Sixes", "추천 정도", "4 of a Kind"],
         },
     },
     {

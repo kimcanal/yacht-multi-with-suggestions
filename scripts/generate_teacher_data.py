@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
 
 import yacht_engine
 from yacht_ai.decision_confidence import classify_alternative_gap
+from yacht_core.simulation import apply_score
 
 CATEGORY_NAMES = [
     "Ones",
@@ -167,22 +168,6 @@ def pick_scoring_category(result, open_categories):
     return open_categories[0]
 
 
-def apply_score(scorecard, dice, category_idx):
-    score = yacht_engine.calc_score(dice, category_idx)
-    yacht_idx = CATS["Yacht"]
-    yacht_slot = scorecard[yacht_idx]
-    if (
-        yacht_slot is not None
-        and yacht_slot >= 50
-        and category_idx != yacht_idx
-        and score > 0
-        and yacht_engine.calc_score(dice, yacht_idx) == 50
-    ):
-        scorecard[yacht_idx] += 100
-    scorecard[category_idx] = score
-    return score
-
-
 def simulate_scorecard(rng, turns_completed):
     scorecard = [None] * 12
     for _ in range(turns_completed):
@@ -193,7 +178,7 @@ def simulate_scorecard(rng, turns_completed):
         mode = choose_strategy_mode("both", rng)
         result = yacht_engine.solve_best_move(final_dice, 0, open_categories, mode, scorecard)
         category_idx = pick_scoring_category(result, open_categories)
-        apply_score(scorecard, final_dice, category_idx)
+        apply_score(final_dice, scorecard, category_idx)
     return scorecard
 
 

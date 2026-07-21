@@ -12,6 +12,7 @@ from config import (
     WIN_PROBABILITY_CACHE_TTL_SECONDS,
     WIN_PROBABILITY_WORKERS,
 )
+from yacht_ai.solvers import solve_best_move
 from yacht_ai.value.endgame import DEFAULT_ENDGAME_VALUE_TABLE_PATH, load_endgame_value_table
 from yacht_ai.win_probability import estimate_win_probability
 from yacht_app.services.room_lifecycle import score_total
@@ -25,7 +26,21 @@ _pending = {}
 _completed = OrderedDict()
 
 
-def _exact_projected_final(scorecard):
+def _exact_projected_final(scorecard, dice=None, rolls_left=None):
+    """Return the expected final score from the scorecard and active turn."""
+    if dice is not None and rolls_left is not None and any(value is None for value in scorecard):
+        result = solve_best_move(
+            dice,
+            rolls_left,
+            [idx for idx, value in enumerate(scorecard) if value is None],
+            "focused",
+            scorecard,
+            score_value_mode="value_optimal",
+            endgame_value_table_path=DEFAULT_ENDGAME_VALUE_TABLE_PATH,
+            explain=False,
+        )
+        return round(float(result["expected_final_score"]), 4)
+
     table = load_endgame_value_table(DEFAULT_ENDGAME_VALUE_TABLE_PATH)
     remaining_value, _ = table.lookup_scorecard(scorecard)
     return round(score_total(scorecard) + float(remaining_value or 0.0), 4)
@@ -68,9 +83,13 @@ def request_win_probability(payload):
     request_key = _request_key(payload)
     seed = int(request_key[:8], 16)
     projections = {
-        "my_projected": _exact_projected_final(payload["my_scorecard"]),
-        "opp_projected": _exact_projected_final(payload["opp_scorecard"]),
-        "projection_method": "full_game_exact_value",
+        "my_projected": _exact_projected_final(
+            payload["my_scorecard"], payload.get("my_dice"), payload.get("my_rolls_left")
+        ),
+        "opp_projected": _exact_projected_final(
+            payload["opp_scorecard"], payload.get("opp_dice"), payload.get("opp_rolls_left")
+        ),
+        "projection_method": "full_game_exact_value_current_turn",
     }
     now = time.time()
 

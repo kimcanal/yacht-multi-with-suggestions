@@ -22,9 +22,21 @@ def game_single():
     return render_template("single-game.html")
 
 
+@pages_bp.get("/game/single/table")
+def game_single_table():
+    """Alternate tabletop layout for solo and VS-AI play."""
+    return render_template("single-game-table.html")
+
+
 @pages_bp.get("/game/multi")
 def game_multi():
     return render_template("multi-game.html")
+
+
+@pages_bp.get("/game/multi/table")
+def game_multi_table():
+    """Alternate tabletop layout for side-by-side UX comparison."""
+    return render_template("multi-game-table.html")
 
 
 @pages_bp.get("/health")

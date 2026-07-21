@@ -335,6 +335,10 @@ def _fixed_keep_roll_explanation(dice, keep_indices, rolls_left, strategy_mode, 
         key=lambda item: (item[1], len(item[0]), item[0]),
     )
     optimality_gap = max(0.0, best_exact_ev - chosen_ev)
+    alternative_values = [
+        value for kept_tuple, value in keep_action_values if kept_tuple != chosen_keep_tuple
+    ]
+    alternative_gap = chosen_ev - max(alternative_values) if alternative_values else None
     all_dice_kept = len(keep_indices) == 5
     stop_now_advice = build_score_stage_advice(dice, scorecard, open_categories, strategy_mode)
 
@@ -532,6 +536,7 @@ def _fixed_keep_roll_explanation(dice, keep_indices, rolls_left, strategy_mode, 
         recommendation_context_row = build_recommendation_context_row(
             strategy_mode,
             chosen_ev,
+            alternative_gap,
             summary_row,
             straight_upgrade,
             keep_indices,
@@ -568,6 +573,7 @@ def _fixed_keep_roll_explanation(dice, keep_indices, rolls_left, strategy_mode, 
             "primary_target": primary_target,
             "summary": summary,
             "optimality_gap": round(optimality_gap, 6),
+            "alternative_gap": None if alternative_gap is None else round(alternative_gap, 2),
         }
 
     def build_cover_breakdown():

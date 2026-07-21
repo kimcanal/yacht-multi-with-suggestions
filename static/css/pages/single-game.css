@@ -89,26 +89,14 @@
         }
         .mode-strip {
             display: grid; gap: 10px;
-            margin-bottom: 12px; padding: 0; border-radius: 16px;
-            background: transparent; border: 0;
-        }
-        .mode-strip.expanded {
-            padding: 12px 14px;
+            margin-bottom: 12px; padding: 12px 14px; border-radius: 16px;
             background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
         }
         .mode-config-grid {
-            display:none; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between;
+            display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between;
         }
-        .mode-strip.expanded .mode-config-grid { display:flex; }
         .mode-group { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .mode-label { font-size: 0.82rem; color: #9fb0c2; font-weight: 700; }
-        .mode-strip-actions { display:flex; justify-content:flex-end; }
-        .mode-strip-toggle {
-            display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto;
-            border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:#dbe4ee;
-            border-radius:999px; padding:8px 12px; font-size:0.78rem; font-weight:800; cursor:pointer; transition:0.2s ease;
-        }
-        .mode-strip-toggle:hover { background:rgba(255,255,255,0.12); }
         .seg-btn {
             border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: #dbe4ee;
             border-radius: 999px; padding: 8px 14px; font-size: 0.84rem; font-weight: 700; cursor: pointer; transition: 0.2s ease;
@@ -134,11 +122,9 @@
             .game-wrapper { display: block !important; max-width: 100% !important; margin: 0 !important; }
             .main-area, .scorecard-area { width: 100% !important; max-width: 100% !important; flex: none !important; }
             .title { font-size: 2rem !important; margin-bottom: 16px !important; text-align: center; }
-            .mode-strip.expanded { padding: 12px; }
+            .mode-strip { padding: 12px; }
             .mode-config-grid { gap:10px; }
             .mode-group { width: 100%; }
-            .mode-strip-actions { display:flex; }
-            .mode-strip-toggle { display:inline-flex; }
             .seg-btn { flex: 1 1 calc(50% - 6px); text-align: center; }
             .dice-area { padding: 16px 10px !important; border-radius: 18px !important; margin-bottom: 16px !important; }
             .scorecard-area { padding: 16px 10px !important; border-radius: 18px !important; }

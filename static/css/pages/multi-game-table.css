@@ -1,0 +1,194 @@
+/* Alternate desktop-first tabletop view.  The original multi-game layout is unchanged. */
+.table-layout-page {
+    background: radial-gradient(circle at 50% 35%, #164135 0%, #0b1f22 45%, #07121c 100%);
+}
+
+.table-game-shell {
+    width: min(1840px, 100%);
+    min-height: calc(100vh - 28px);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(300px, 0.82fr) minmax(480px, 1.35fr) minmax(300px, 0.82fr);
+    grid-template-areas: "score table insight";
+    gap: 16px;
+    align-items: stretch;
+}
+
+.table-scorecard { grid-area: score; }
+.table-main-area { grid-area: table; }
+.table-insight-area { grid-area: insight; }
+
+.table-scorecard,
+.table-insight-area {
+    min-height: 0;
+    overflow: auto;
+    background: rgba(8, 24, 33, 0.9);
+    border: 1px solid rgba(168, 219, 195, 0.2);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.25);
+    scrollbar-width: thin;
+}
+
+.table-scorecard.scorecard-area {
+    position: static;
+    width: auto;
+    max-height: none;
+    margin: 0;
+}
+
+.table-panel-title {
+    margin: 0 0 12px;
+    color: #bff9dd;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.table-main-area {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.table-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 52px;
+    margin-bottom: 12px;
+}
+
+.table-titlebar .title {
+    margin: 0 !important;
+    font-size: clamp(1.55rem, 2.2vw, 2.25rem) !important;
+    white-space: nowrap;
+}
+
+.table-titlebar #room-label {
+    margin-left: 8px !important;
+    font-size: 0.42em !important;
+}
+
+.table-titlebar .controls {
+    margin: 0 !important;
+    justify-content: flex-end;
+}
+
+.table-titlebar .btn { padding: 9px 14px !important; }
+
+.table-main-area .observer-banner { margin-bottom: 12px; }
+
+.table-dice-area {
+    min-height: 0;
+    flex: 1 1 auto;
+    margin: 0 !important;
+    padding: clamp(18px, 2.3vw, 34px) !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: linear-gradient(145deg, rgba(21, 78, 62, 0.96), rgba(8, 40, 43, 0.96)) !important;
+    border-color: rgba(184, 255, 219, 0.28) !important;
+}
+
+.table-dice-area .info-bar { flex: 0 0 auto; }
+.table-dice-area .dice-grid { flex: 1 1 auto; align-content: center; }
+.table-dice-area .dice-action-row { flex: 0 0 auto; }
+.table-turn-controls { margin: 12px 0 0 !important; min-height: 0; }
+
+.table-insight-area .ai-mode-guide {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.table-insight-area .ai-mode-card { padding: 10px 12px; }
+.table-insight-area .ai-mode-card p { display: none; }
+.table-insight-area .ai-mode-metric { font-size: 0.72rem; }
+.table-insight-area .ai-breakdown,
+.table-insight-area .winprob-panel { margin-top: 12px; }
+
+@media (min-width: 1201px) {
+    .table-layout-page { overflow: hidden; padding: 14px 18px; }
+    .table-game-shell {
+        height: calc(100vh - 28px);
+        height: calc(100dvh - 28px);
+        min-height: 0;
+        grid-template-rows: minmax(0, 1fr);
+    }
+    .table-main-area,
+    .table-scorecard,
+    .table-insight-area { height: 100%; }
+    .table-scorecard,
+    .table-insight-area {
+        max-height: none;
+        overflow-x: hidden;
+        overflow-y: scroll;
+        scrollbar-gutter: stable;
+    }
+    /* AI 문장이 줄바꿈되거나 상세가 열려도 가운데 주사위 테이블의 폭/높이는 유지합니다. */
+    .table-insight-area .ai-breakdown,
+    .table-scorecard .score-help { min-width: 0; }
+
+    /* 상태 바가 시각적 무게를 가져가므로, 주사위는 실제 중앙보다 조금 아래에 둔다. */
+    .table-dice-area .dice-grid {
+        transform: translateY(clamp(16px, 3vh, 36px));
+    }
+
+    /* Keep the primary action reachable when the dice panel needs to scroll. */
+    .table-dice-area .dice-action-row {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        padding: 12px 0 4px;
+        background: linear-gradient(to bottom, transparent, rgba(8, 40, 43, 0.98) 38%);
+    }
+
+    /* 비교 점수판에는 상단 합계와 보너스를 한 줄로 고정한다. */
+    .table-scorecard:has(.compare-board) .score-help,
+    .table-scorecard:has(.compare-board) .score-duel-overview {
+        display: none;
+    }
+}
+
+@media (max-width: 1280px) {
+    .table-game-shell {
+        grid-template-columns: minmax(270px, 0.84fr) minmax(430px, 1.3fr) minmax(260px, 0.8fr);
+        gap: 10px;
+    }
+    .table-scorecard, .table-insight-area { padding: 12px; }
+    .table-insight-area .ai-mode-metric { display: none; }
+}
+
+@media (max-width: 1200px) {
+    .table-layout-page { overflow: auto; }
+    .table-game-shell {
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .table-main-area { order: 1; }
+    .table-scorecard { order: 2; }
+    .table-insight-area { order: 3; }
+    .table-scorecard, .table-insight-area { overflow: visible; }
+    .table-dice-area { min-height: 460px; }
+}
+
+@media (min-width: 1201px) and (max-height: 800px) {
+    .table-dice-area { justify-content: flex-start; }
+    .table-dice-area .dice-grid { transform: translateY(clamp(0px, 1vh, 8px)); }
+}
+
+@media (max-width: 640px) {
+    .table-layout-page { padding: 8px; }
+    .table-titlebar { align-items: flex-start; }
+    .table-titlebar .title { font-size: 1.5rem !important; }
+    .table-titlebar .controls { flex-wrap: nowrap; }
+    .table-titlebar .btn { font-size: 0.82rem !important; padding: 8px 10px !important; }
+    .table-dice-area { min-height: 400px; padding: 16px 10px !important; }
+}
