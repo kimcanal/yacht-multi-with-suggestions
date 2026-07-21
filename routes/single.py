@@ -53,6 +53,10 @@ def roll_single_session():
         kept = normalize_kept(data.get("kept", session["kept"]))
         if kept is None:
             return jsonify({"error": "잘못된 고정 주사위 데이터"}), 400
+        # 첫 굴림 전의 [1, 1, 1, 1, 1]은 표시용 초기값일 뿐이다. 클라이언트가
+        # 임의 KEEP으로 이를 보존해 첫 손패를 조작하지 못하게 항상 전부 굴린다.
+        if session["rolls_left"] == 3:
+            kept = [0, 0, 0, 0, 0]
 
         rolled = _new_dice()
         next_dice = session["dice"][:]

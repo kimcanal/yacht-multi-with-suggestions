@@ -34,6 +34,7 @@ def create_app(
         template_folder=str(ROOT / "templates"),
         static_folder=str(ROOT / "static"),
     )
+    app.config.setdefault("MAX_CONTENT_LENGTH", int(os.getenv("YACHT_MAX_REQUEST_BYTES", "32768")))
     if config_overrides:
         app.config.update(config_overrides)
 
@@ -58,6 +59,18 @@ def create_app(
     @app.after_request
     def add_cache_headers(response):
         attach_request_id(response)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "same-origin")
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; base-uri 'self'; object-src 'none'; "
+            "frame-ancestors 'none'; form-action 'self'; "
+            "img-src 'self' data:; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+            "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; "
+            "script-src 'self' 'unsafe-inline'; connect-src 'self'",
+        )
         if request.path.startswith("/static/"):
             response.headers["Cache-Control"] = "public, max-age=86400, immutable"
             response.headers.pop("Pragma", None)

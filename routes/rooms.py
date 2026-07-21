@@ -439,6 +439,8 @@ def sync_room(code):
         rolls_left = normalize_rolls_left(state.get("rolls_left", 3), 0, 3)
         if dice is None or rolls_left is None:
             return jsonify({"error": "서버 주사위 상태가 올바르지 않습니다"}), 500
+        if rolls_left == 3:
+            requested_kept = [0, 0, 0, 0, 0]
 
         scores_payload = data.get("scores", state["scores"])
         normalized_scores = normalize_scores_by_players(scores_payload, room["players"])
@@ -550,6 +552,9 @@ def roll_dice(code):
             return jsonify({"error": "방 없음"}), 404
         _save_room(code, room)
 
+        if len(room.get("players", [])) < 2:
+            return jsonify({"error": "상대방 입장 대기 중"}), 409
+
         state = room.get("state", default_room_state())
         if state.get("turn") and state["turn"] != username:
             return jsonify({"error": "상대 턴"}), 403
@@ -561,6 +566,10 @@ def roll_dice(code):
         kept = normalize_kept(data.get("kept", state["kept"]))
         if kept is None:
             return jsonify({"error": "잘못된 고정 주사위 데이터"}), 400
+        # 첫 굴림 전의 기본 주사위는 실제 손패가 아니다. 어떤 요청이 와도
+        # 전부 새로 굴려서 첫 손패를 서버 난수로만 결정한다.
+        if rolls_left == 3:
+            kept = [0, 0, 0, 0, 0]
 
         fair = room.get("fair") or build_fair_state()
         rolled_values, next_fair = roll_with_fairness(code, kept, fair)
