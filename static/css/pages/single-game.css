@@ -70,7 +70,10 @@
             padding: 32px 28px;
         }
         @media (max-width: 1024px) {
-            .game-wrapper { grid-template-columns: 1fr; }
+            /* The solo selector is more specific than .game-wrapper, so reset it too.
+               Without this, 769–1024px viewports retain the desktop two-column grid. */
+            .game-wrapper,
+            body.solo-play-mode .game-wrapper { grid-template-columns: minmax(0, 1fr); }
             .scorecard-area { position: static; }
         }
         @media (max-width: 1024px) {
@@ -190,11 +193,10 @@
             .dice-area::-webkit-scrollbar-thumb { background: rgba(126,243,203,0.4); border-radius: 999px; }
             body.solo-play-mode .scorecard-area,
             .scorecard-area {
-                /* 왼쪽 주사위 패널의 시작선에 맞춘다. */
-                align-self: start;
-                height: calc(100% - 164px);
+                align-self: stretch;
+                height: 100%;
                 max-height: none !important;
-                margin-top: 164px;
+                margin-top: 0;
                 position: static;
             }
         }

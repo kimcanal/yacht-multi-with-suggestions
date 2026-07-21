@@ -54,9 +54,11 @@
         }
         // --- [관전자 UI 처리] ---
         function updateObserverUI() {
+            const diceActionRow = document.getElementById('dice-action-row');
             if (isObserver) {
                 document.getElementById('player-controls').style.display = 'none';
                 document.getElementById('observer-controls').style.display = 'flex';
+                if (diceActionRow) diceActionRow.style.display = 'none';
                 const banner = document.getElementById('observer-banner');
                 if (banner) banner.style.display = 'block';
                 const aiModeRow = document.getElementById('ai-mode-row');
@@ -67,6 +69,7 @@
             } else {
                 document.getElementById('player-controls').style.display = 'flex';
                 document.getElementById('observer-controls').style.display = 'none';
+                if (diceActionRow) diceActionRow.style.display = 'flex';
                 const banner = document.getElementById('observer-banner');
                 if (banner) banner.style.display = 'none';
                 const aiModeRow = document.getElementById('ai-mode-row');

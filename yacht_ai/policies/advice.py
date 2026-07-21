@@ -118,12 +118,8 @@ def hand_score_hint(cat_name, move):
 def build_reason(cat_name, prob, mode):
     pct = f"{prob * 100:.1f}%"
     if mode == "cover":
-        return f"커버 참고: {cat_name}까지 이어질 확률 {pct}"
-    if prob >= 0.75:
-        return f"집중 공략: {cat_name} 성공 확률 {pct}"
-    if prob >= 0.35:
-        return f"집중 공략: {cat_name} 완성 확률 {pct}"
-    return f"집중 공략: {cat_name} 도달 확률 {pct}"
+        return f"이 선택으로 이어질 확률 {pct}"
+    return f"이 족보를 만들 확률 {pct}"
 
 
 def build_summary(best_item, mode):
@@ -143,24 +139,19 @@ def build_recommendation_context_row(mode, chosen_ev, explaining_row, straight_u
 
     reason = "현재 턴 점수와 남은 점수판 가치를 함께 반영한 추천입니다."
     if straight_upgrade:
-        reason = (
-            f"Large Straight {straight_upgrade['val_str']}를 노리면서 실패해도 Small Straight를 유지합니다."
-        )
+        reason = "Large Straight를 노리되, 실패해도 Small Straight를 지키는 선택입니다."
     elif explaining_row.get("type") == "upper":
-        reason = f"{explaining_row['name']} 쪽이 Upper Bonus 페이스를 가장 좋게 끌어올립니다."
+        reason = f"{explaining_row['name']}을 채우면 상단 보너스에 더 가까워집니다."
     elif mode == "focused" and explaining_row.get("type") == "hand":
-        reason = (
-            f"focused 모드에서는 {explaining_row['name']} 완성 경로를 더 높게 두고, "
-            "이 keep이 그 확률을 가장 잘 살립니다."
-        )
+        reason = f"이 keep이 {explaining_row['name']}을 만들 확률을 가장 잘 높입니다."
     elif explaining_row.get("name"):
-        reason = f"{explaining_row['name']} 쪽이 이번 턴 기준으로 가장 납득되는 선택입니다."
+        reason = f"현재 점수판에서 {explaining_row['name']} 쪽이 가장 유리한 선택입니다."
 
     if stop_now_target and stop_gain is not None:
         if stop_gain >= 0:
-            reason += f" 지금 {stop_now_target}로 바로 적는 선택보다도 평가가 {stop_gain:.2f}점 높습니다."
+            reason += f" 지금 {stop_now_target}에 기록하는 것보다 기대 점수가 {stop_gain:.2f}점 높습니다."
         else:
-            reason += f" 다만 지금 {stop_now_target}로 적는 쪽이 평가는 {abs(stop_gain):.2f}점 높습니다."
+            reason += f" 다만 지금 {stop_now_target}에 기록하면 기대 점수가 {abs(stop_gain):.2f}점 더 높습니다."
 
     return {
         "name": "추천 근거",

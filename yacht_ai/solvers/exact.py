@@ -276,6 +276,21 @@ def _build_cover_mode_result(
         "stage": "roll",
         "cover_success_prob": round(cover_success_prob, 6),
         "cover_fail_prob": round(cover_fail_prob, 6),
+        "target_probabilities": [
+            {
+                "name": "핸드 하나 이상 성공",
+                "probability": round(cover_success_prob, 6),
+                "kind": "cover",
+            },
+            *[
+                {
+                    "name": row["name"],
+                    "probability": round(row["prob"], 6),
+                    "kind": "hand",
+                }
+                for row in cover_target_rows[:3]
+            ],
+        ],
     }
 
 
@@ -1100,6 +1115,29 @@ def _solve_best_move_cached(
 
     chosen_ev = keep_ev_map.get(best_keep_tuple, best_ev)
     best_keep_indices = kept_tuple_to_indices(dice, best_keep_tuple)
+
+    # 추천 keep을 먼저 고정한 뒤, 남은 재굴림을 각각의 족보에만 맞춰
+    # 최적으로 썼을 때의 정확한 완성 확률이다. EV와 달리 사람이 바로
+    # 이해할 수 있는 "이 keep으로 무엇을 얼마나 노릴 수 있나"를 제공한다.
+    selected_keep_target_probabilities = []
+    for cat_name in hand_cats:
+        category_idx = CATS[cat_name]
+        yacht_bonus_target = (
+            cat_name == "Yacht" and yacht_bonus_available and category_idx not in open_categories
+        )
+        if category_idx not in open_categories and not yacht_bonus_target:
+            continue
+        probability = evaluate_keep_transition(
+            best_keep_tuple,
+            rolls_left,
+            lambda next_dice, next_rolls, idx=category_idx: target_success_value(next_dice, next_rolls, idx),
+        )
+        selected_keep_target_probabilities.append({
+            "name": "Yacht Bonus" if yacht_bonus_target else cat_name,
+            "probability": round(probability, 6),
+            "kind": "hand",
+        })
+    selected_keep_target_probabilities.sort(key=lambda row: row["probability"], reverse=True)
     alternative_actions = sorted(
         ((kt, v) for kt, v in keep_action_values if kt != best_keep_tuple),
         key=lambda item: (item[1], len(item[0]), keep_values_desc(item[0])),
@@ -1370,6 +1408,7 @@ def _solve_best_move_cached(
         "summary": summary,
         "stage": "roll",
         "policy_source": "exact_value_optimal" if ev_optimal_mode else "exact",
+        "target_probabilities": selected_keep_target_probabilities,
     }
     if ev_optimal_mode:
         result.update(_optimal_projection_fields(scorecard, chosen_ev, alternative_gap))

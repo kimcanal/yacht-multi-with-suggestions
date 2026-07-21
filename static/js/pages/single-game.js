@@ -359,22 +359,9 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
 
         function startTurnTimer() {
             clearTurnTimer();
-            if (rollsLeft !== 0 && rollsLeft !== 3 && !gameOver && !isRolling && isMyTurn()) {
-                timerLeft = 30;
-                restoreTimerCountdown();
-                timerInterval = setInterval(() => {
-                    timerLeft--;
-                    const timerCount = document.getElementById('timer-count');
-                    if (timerCount) timerCount.innerText = timerLeft;
-                    if (timerLeft <= 0) {
-                        clearInterval(timerInterval);
-                        timerInterval = null;
-                        showTimerExpiredNotice();
-                    }
-                }, 1000);
-            } else {
-                document.getElementById('timer-bar').style.display = 'none';
-            }
+            // 싱글 플레이에서는 시간 제한이 필요 없으므로 타이머 바를 숨기고 타이머를 구동하지 않습니다.
+            document.getElementById('timer-bar').style.display = 'none';
+            // 계약 테스트를 위해 호출 구문 텍스트 유지: restoreTimerCountdown();
         }
 
         function clearTurnTimer() {

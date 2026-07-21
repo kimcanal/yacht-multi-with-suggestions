@@ -427,7 +427,10 @@ function renderCompactScoreRow(card, categoryIndex, options = {}) {
     const previewScoreValue = clickable ? calcScore(dice, categoryIndex) : null;
     const preview = card[categoryIndex] === null && previewScoreValue !== null ? previewScoreValue : null;
     const valueMarkup = buildValueMarkup(card[categoryIndex] !== null ? card[categoryIndex] : '-', preview);
-    const classes = `score-item compact-score-row ${card[categoryIndex] !== null ? 'filled' : ''} ${clickable ? 'compact-clickable' : ''}`;
+    const stateClass = card[categoryIndex] !== null
+        ? 'filled score-locked'
+        : clickable ? 'score-ready compact-clickable' : 'score-pending';
+    const classes = `score-item compact-score-row ${stateClass}`;
     const clickAttr = clickable ? `onclick="pickCategory(${categoryIndex})"` : '';
     const keyAttr = clickable ? `role="button" tabindex="0" onkeydown="handleScoreKey(event, ${categoryIndex})"` : 'tabindex="0"';
     const interactionHandlers = clickable ? getScorePreviewHandlers(categoryIndex) : getTooltipHandlers();
@@ -532,8 +535,12 @@ function renderCompareCategoryRow(categoryIndex, leftCard, rightCard, options = 
     const preview = clickable ? calcScore(dice, categoryIndex) : null;
     const leftValueMarkup = buildValueMarkup(leftCard[categoryIndex] !== null ? leftCard[categoryIndex] : '-', leftCard[categoryIndex] === null ? preview : null);
     const rightValueMarkup = buildValueMarkup(rightCard[categoryIndex] !== null ? rightCard[categoryIndex] : '-', null);
-    const leftCellClasses = `compare-value-cell ${leftCard[categoryIndex] !== null ? 'filled' : ''} ${clickable ? 'clickable' : ''}`;
-    const rightCellClasses = `compare-value-cell ${rightCard[categoryIndex] !== null ? 'filled' : ''}`;
+    const leftStateClass = leftCard[categoryIndex] !== null
+        ? 'filled score-locked'
+        : clickable ? 'clickable score-ready' : 'score-pending';
+    const rightStateClass = rightCard[categoryIndex] !== null ? 'filled score-locked' : 'score-pending';
+    const leftCellClasses = `compare-value-cell ${leftStateClass}`;
+    const rightCellClasses = `compare-value-cell ${rightStateClass}`;
     const clickAttr = clickable ? `onclick="pickCategory(${categoryIndex})"` : '';
     const previewHandlers = clickable ? getScorePreviewHandlers(categoryIndex) : '';
     const keyAttr = clickable ? `role="button" tabindex="0" onkeydown="handleScoreKey(event, ${categoryIndex})"` : '';
