@@ -3,6 +3,7 @@ import statistics
 
 from yacht_core.constants import CATEGORY_NAMES, CATS
 from yacht_core.scoring import calc_score
+from yacht_core.simulation import apply_score
 
 from .solvers import clear_solver_cache, solve_best_move
 from .value.model import normalize_scorecard, scorecard_totals, value_state_payload
@@ -26,23 +27,6 @@ def choose_score_category(dice, scorecard, mode):
             return category_idx, result
 
     return max(open_categories, key=lambda idx: calc_score(dice, idx)), result
-
-
-def apply_score(dice, scorecard, category_idx):
-    score = calc_score(dice, category_idx)
-    yacht_idx = CATS["Yacht"]
-    yacht_bonus = 0
-    if (
-        calc_score(dice, yacht_idx) == 50
-        and isinstance(scorecard[yacht_idx], (int, float))
-        and scorecard[yacht_idx] >= 50
-        and category_idx != yacht_idx
-        and score > 0
-    ):
-        yacht_bonus = 100
-        scorecard[yacht_idx] += yacht_bonus
-    scorecard[category_idx] = score
-    return score, yacht_bonus
 
 
 def play_exact_turn(rng, scorecard, mode):

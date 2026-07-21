@@ -48,3 +48,31 @@ def classify_alternative_gap(value):
         "description": "추천과 차선책의 기대값 차이가 커서 추천을 따를 가치가 큽니다.",
         "gap": rounded_gap,
     }
+
+
+def recommendation_strength(value):
+    """Return a player-facing 10-point cue from the nearest-action gap.
+
+    It is a recommendation-strength label, never a probability or projected
+    game score. A clear edge is 9/10 rather than 10/10 because dice outcomes
+    remain uncertain.
+    """
+    band = classify_alternative_gap(value)
+    points_by_key = {
+        "strategy_tradeoff": 5,
+        "near_tie": 5,
+        "slight_edge": 7,
+        "clear_edge": 9,
+    }
+    points = points_by_key.get(band["key"])
+    if points is None:
+        return {
+            "points": None,
+            "label": "비교 불가",
+            "description": band["description"],
+        }
+    return {
+        "points": points,
+        "label": f"추천 정도 {points}/10",
+        "description": band["description"],
+    }

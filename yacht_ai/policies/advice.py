@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from yacht_ai.decision_confidence import recommendation_strength
 from yacht_core.constants import (
     CATEGORY_CLOSING_COST,
     CATEGORY_NAMES,
@@ -133,19 +134,28 @@ def build_summary(best_item, mode):
     return f"{style_label} 추천: {best_item['name']} 확률 {best_item['val_str']}"
 
 
-def build_recommendation_context_row(mode, chosen_ev, explaining_row, straight_upgrade, keep_indices, stop_now_target, stop_gain):
+def build_recommendation_context_row(
+    mode, chosen_ev, alternative_gap, explaining_row, straight_upgrade,
+    keep_indices, stop_now_target, stop_gain,
+):
     if not keep_indices or not explaining_row:
         return None
 
-    reason = "현재 턴 점수와 남은 점수판 가치를 함께 반영한 추천입니다."
+    strength = recommendation_strength(alternative_gap)
+    strength_points = strength["points"]
+    value_label = f"{strength_points}/10" if strength_points is not None else "비교 불가"
+    reason = (
+        f"{value_label}은 실제 점수나 성공 확률이 아니라, 추천과 차선책의 차이로 매긴 추천 강도입니다. "
+        f"{strength['description']}"
+    )
     if straight_upgrade:
-        reason = "Large Straight를 노리되, 실패해도 Small Straight를 지키는 선택입니다."
+        reason += " Large Straight를 노리되, 실패해도 Small Straight를 지키는 선택입니다."
     elif explaining_row.get("type") == "upper":
-        reason = f"{explaining_row['name']}을 채우면 상단 보너스에 더 가까워집니다."
+        reason += f" {explaining_row['name']}을 채우면 상단 보너스에 더 가까워집니다."
     elif mode == "focused" and explaining_row.get("type") == "hand":
-        reason = f"이 keep이 {explaining_row['name']}을 만들 확률을 가장 잘 높입니다."
+        reason += f" 이 keep이 {explaining_row['name']}을 만들 확률을 가장 잘 높입니다."
     elif explaining_row.get("name"):
-        reason = f"현재 점수판에서 {explaining_row['name']} 쪽이 가장 유리한 선택입니다."
+        reason += f" 현재 점수판에서 {explaining_row['name']} 쪽이 가장 유리한 선택입니다."
 
     if stop_now_target and stop_gain is not None:
         if stop_gain >= 0:
@@ -154,12 +164,12 @@ def build_recommendation_context_row(mode, chosen_ev, explaining_row, straight_u
             reason += f" 다만 지금 {stop_now_target}에 기록하면 기대 점수가 {abs(stop_gain):.2f}점 더 높습니다."
 
     return {
-        "name": "추천 근거",
+        "name": "추천 정도",
         "prob": 0.0,
         "meter": min(1.0, max(DECISION_ROW_METER_FLOOR, abs(chosen_ev) / DECISION_ROW_EV_SCALE)),
-        "val_str": f"평가 {chosen_ev:.2f}",
+        "val_str": value_label,
         "type": "decision",
-        "keep_str": "현재 턴 점수 + 남은 칸 가치 함께 반영",
+        "keep_str": "차선책과의 차이로 매긴 강도 · 확률/실제 점수 아님",
         "keep_indices": keep_indices,
         "reason": reason,
     }
@@ -844,12 +854,12 @@ def build_score_stage_advice(
         if row.get("utility_mode") == "endgame_value":
             reason = (
                 f"{reason} 즉시 획득 {row.get('immediate_gain', row['score']):.1f}점 + "
-                f"후속 exact V {row.get('exact_next_state_value', 0.0):.1f}점 기준입니다."
+                f"기록 뒤 남은 턴에서 기대되는 {row.get('exact_next_state_value', 0.0):.1f}점을 함께 비교했습니다."
             )
         elif row.get("utility_mode") == "learned_value":
             reason = (
                 f"{reason} 즉시 획득 {row.get('immediate_gain', row['score']):.1f}점 + "
-                f"학습 V {row.get('learned_next_state_value', 0.0):.1f}점 기준입니다."
+                f"기록 뒤 남은 턴에서 예상되는 {row.get('learned_next_state_value', 0.0):.1f}점을 함께 비교했습니다."
             )
         display_rows.append(
             {
@@ -880,31 +890,28 @@ def build_score_stage_advice(
             display_rows.insert(
                 1,
                 {
-                    "name": "Endgame V",
+                    "name": "기록 후 남은 턴 기대값",
                     "prob": 0.0,
                     "meter": min(1.0, max(DECISION_ROW_METER_FLOOR, best_row["utility"] / SCORE_ROW_UTILITY_SCALE)),
-                    "val_str": f"V {best_row.get('exact_next_state_value', 0.0):.1f}",
+                    "val_str": f"평균 {best_row.get('exact_next_state_value', 0.0):.1f}점",
                     "type": "decision",
-                    "keep_str": "즉시 점수 + exact V(next_state)",
+                    "keep_str": "이 칸을 닫은 뒤 남은 족보 기준",
                     "keep_indices": [],
-                    "reason": f"후반 value table에서 `{best_row.get('exact_next_state_key')}` 상태를 조회했습니다.",
+                    "reason": "이 족보를 지금 닫으면 나중에 다시 채울 수 없습니다. 남은 족보까지 고려한 평균값입니다.",
                 }
             )
         elif best_row.get("utility_mode") == "learned_value":
             display_rows.insert(
                 1,
                 {
-                    "name": "Learned V",
+                    "name": "기록 후 남은 턴 예상값",
                     "prob": 0.0,
                     "meter": min(1.0, max(DECISION_ROW_METER_FLOOR, best_row["utility"] / SCORE_ROW_UTILITY_SCALE)),
-                    "val_str": f"V {best_row.get('learned_next_state_value', 0.0):.1f}",
+                    "val_str": f"예상 {best_row.get('learned_next_state_value', 0.0):.1f}점",
                     "type": "decision",
-                    "keep_str": "즉시 점수 + guarded learned V(next_state)",
+                    "keep_str": "이 칸을 닫은 뒤 남은 족보 기준",
                     "keep_indices": [],
-                    "reason": (
-                        f"{best_row.get('learned_model_id')} 모델을 사용했습니다. "
-                        f"validation MAE {best_row.get('learned_validation_mae')}"
-                    ),
+                    "reason": "이 족보를 지금 닫으면 나중에 다시 채울 수 없습니다. 남은 족보까지 고려한 예측값입니다.",
                 }
             )
         elif best_row.get("long_term_note"):

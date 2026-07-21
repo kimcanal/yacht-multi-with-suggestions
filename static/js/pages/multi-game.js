@@ -4,6 +4,15 @@
         let roomCode = params.get('room') || localStorage.getItem('yacht_room') || '';
         const roomTokenKey = (code) => `yacht_player_token_${code}`;
 
+        function switchGameLayout(layout) {
+            const targetPath = layout === 'table' ? '/game/multi/table' : '/game/multi';
+            const targetParams = new URLSearchParams(window.location.search);
+            if (layout === 'table') targetParams.delete('layout');
+            else targetParams.set('layout', 'classic');
+            const query = targetParams.toString();
+            window.location.href = `${targetPath}${query ? `?${query}` : ''}`;
+        }
+
         // 방 정보가 없으면 즉시 퇴장
         if (!roomCode) {
             alert('잘못된 접근입니다. 로비에서 방을 생성하거나 참가해주세요.');
@@ -243,7 +252,7 @@
                     button.textContent = index === 0 ? '🔗 관전 링크 복사' : '🔗 링크 복사';
                 });
             };
-            const observerUrl = `${window.location.origin}/game/multi?room=${encodeURIComponent(roomCode)}&mode=observer`;
+            const observerUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(roomCode)}&mode=observer`;
             if (!navigator.clipboard || !navigator.clipboard.writeText) {
                 alert(`관전 링크를 복사해 공유해 주세요:\n${observerUrl}`);
                 return;
@@ -842,15 +851,6 @@
         }
 
         function updateDice() {
-            const transforms = {
-                1: 'rotateX(0deg) rotateY(0deg)',
-                6: 'rotateX(180deg) rotateY(0deg)',
-                2: 'rotateX(-90deg) rotateY(0deg)',
-                5: 'rotateX(90deg) rotateY(0deg)',
-                3: 'rotateY(-90deg) rotateX(0deg)',
-                4: 'rotateY(90deg) rotateX(0deg)'
-            };
-
             for (let i = 0; i < 5; i++) {
                 const d = document.getElementById(`die-${i}`);
                 const c = document.getElementById(`die-container-${i}`);
@@ -872,7 +872,7 @@
                 }
 
                 const val = GameState.getDice()[i] || 1;
-                d.style.transform = transforms[val];
+                d.dataset.value = String(val);
 
                 const keepBtn = document.getElementById(`keep-${i}`);
                 const keepText = document.getElementById(`keep-text-${i}`);
@@ -908,6 +908,9 @@
             document.getElementById('rolls-left').innerText = GameState.getRollsLeft();
             const waitingForOpponent = !opponentName || roomPlayers.length < 2;
             document.getElementById('roll-btn').disabled = GameState.getRollsLeft() <= 0 || GameState.isGameOver() || isRolling || !isMyTurn() || waitingForOpponent;
+            updateQuickScoreTargets(GameState.getMyCard(), {
+                active: !isObserver && !isRolling && !gameOver && rollsLeft < 3 && isMyTurn(),
+            });
         }
 
         function toggleLock(i) {
@@ -1136,42 +1139,7 @@ function applyRemoteState(state) {
             }
             clearTurnTimer();
 
-            // Web Audio API 효과음
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const now = audioContext.currentTime;
-                const duration = 0.4;
-                const bufferSize = audioContext.sampleRate * duration;
-                const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
-                const output = noiseBuffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-
-                const noiseSource = audioContext.createBufferSource();
-                noiseSource.buffer = noiseBuffer;
-                const noiseGain = audioContext.createGain();
-                noiseSource.connect(noiseGain);
-                noiseGain.connect(audioContext.destination);
-                noiseGain.gain.setValueAtTime(0.2, now);
-                noiseGain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-
-                const beatDuration = 0.08;
-                for (let beat = 0; beat < 5; beat++) {
-                    const osc = audioContext.createOscillator();
-                    const gain = audioContext.createGain();
-                    osc.type = 'square';
-                    const freqRange = 1200 - (beat * 160);
-                    osc.frequency.value = Math.max(freqRange, 400);
-                    osc.connect(gain);
-                    gain.connect(audioContext.destination);
-                    const startTime = now + (beat * 0.07);
-                    gain.gain.setValueAtTime(0.12, startTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, startTime + beatDuration);
-                    osc.start(startTime);
-                    osc.stop(startTime + beatDuration);
-                }
-                noiseSource.start(now);
-                noiseSource.stop(now + duration);
-            } catch (e) { console.warn('Audio context failed:', e); }
+            playDiceRollSound();
 
             isRolling = true;
             aiRec = null;
@@ -1335,19 +1303,7 @@ window.addEventListener('beforeunload', (e) => {
             const toast = document.getElementById('score-toast');
             toast.innerHTML = `<div class="toast-cat">${category}</div><div class="toast-score">+${score}</div>`;
             toast.classList.add('show');
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const now = audioContext.currentTime;
-                const osc = audioContext.createOscillator();
-                const gain = audioContext.createGain();
-                osc.connect(gain);
-                gain.connect(audioContext.destination);
-                osc.frequency.value = 1000;
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            } catch (e) { console.warn('Toast audio failed:', e); }
+            playScoreSelectSound();
             setTimeout(() => toast.classList.remove('show'), 1500);
         }
 

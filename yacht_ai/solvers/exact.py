@@ -899,22 +899,18 @@ def _solve_best_move_cached(
             banked_total = projection["banked_score"]
             expected_final = projection["expected_final_score"]
             target = result.get("primary_target") or result.get("message") or "점수 기록"
-            result["summary"] = (
-                f"점수 기록 추천: {target}, 기대 최종점수 {expected_final:.2f}점 "
-                f"(현재 기록 {banked_total}점 + 이 선택 이후 기대 {remaining_ev:.2f}점)"
-            )
+            result["summary"] = f"점수 기록 추천: {target} · 예상 최종 점수 평균 {expected_final:.1f}점"
             result["breakdown"] = [{
-                "name": "기대 최종점수",
+                "name": "예상 최종 점수",
                 "prob": 0.0,
                 "meter": min(1.0, max(0.15, expected_final / 240.0)),
-                "val_str": f"EV {expected_final:.2f}",
+                "val_str": f"평균 {expected_final:.1f}점",
                 "type": "decision",
-                "keep_str": f"{target} 기록 선택",
+                "keep_str": f"{target} 기록 후 남은 턴까지",
                 "keep_indices": [],
                 "reason": (
-                    f"현재 점수판에 기록된 {banked_total}점과 이 기록 선택 이후 게임 종료까지 "
-                    f"기대되는 {remaining_ev:.2f}점을 합산했습니다. 이후 기대점수에는 이번 턴의 "
-                    "기록 점수와 남은 모든 턴의 full-game exact V가 포함됩니다."
+                    f"이 기록을 선택하면 게임 종료까지 평균 {expected_final:.1f}점이 예상됩니다. "
+                    "현재 점수와 남은 턴을 함께 반영한 값입니다."
                 ),
             }] + list(result.get("breakdown") or [])
             result["strategy_mode"] = "optimal"
@@ -1307,17 +1303,16 @@ def _solve_best_move_cached(
             elif explaining_row and explaining_row.get("name") and not cover_fallback:
                 rec_msg += f" ({explaining_row['name']} 노리기)"
 
-    style_label = "기대점수 최적" if ev_optimal_mode else ("집중 공략" if mode != "cover" else "커버 플레이")
+    style_label = "최종 점수 기준" if ev_optimal_mode else ("집중 공략" if mode != "cover" else "커버 플레이")
     if ev_optimal_mode:
         if alternative_gap is None:
             gap_text = ""
         elif alternative_gap <= EPS:
             gap_text = ", 차선책과 거의 동률"
         else:
-            gap_text = f", 차선 대비 +{alternative_gap:.2f}점"
+            gap_text = f", 다음 후보보다 평균 {alternative_gap:.1f}점 높음"
         summary = (
-            f"{style_label} 추천: {optimal_action_label}, 기대 최종점수 {expected_final:.2f}점 "
-            f"(현재 기록 {banked_total}점 + 이 선택 이후 기대 {chosen_ev:.2f}점){gap_text}"
+            f"{style_label} 추천: {optimal_action_label} · 예상 최종 점수 평균 {expected_final:.1f}점{gap_text}"
         )
     elif cover_fallback and best_keep_indices:
         summary = f"{style_label}: 커버 대상이 없어 일반 추천으로 전환, [{', '.join(kept_vals)}] keep, 평가값 {chosen_ev:.2f}"
@@ -1360,29 +1355,27 @@ def _solve_best_move_cached(
         if best_alternative:
             alt_label = _format_keep_tuple(dice, best_alternative[0])
             if alternative_gap <= EPS:
-                alt_reason = f"차선책({alt_label})도 거의 같은 기대값입니다."
+                alt_reason = f"다음 후보({alt_label})와 거의 비슷합니다."
             else:
-                alt_reason = f"차선책({alt_label})보다 기대 최종점수가 {alternative_gap:.2f}점 높습니다."
+                alt_reason = f"다음 후보({alt_label})보다 평균 {alternative_gap:.1f}점 높습니다."
         else:
             alt_reason = "비교할 다른 keep 후보가 없는 확정 상태입니다."
         breakdown = [{
-            "name": "기대 최종점수",
+            "name": "예상 최종 점수",
             "prob": 0.0,
             "meter": min(1.0, max(0.15, expected_final / 240.0)),
-            "val_str": f"EV {expected_final:.2f}",
+            "val_str": f"평균 {expected_final:.1f}점",
             "type": "decision",
-            "keep_str": f"{optimal_action_label} 선택",
+            "keep_str": f"{optimal_action_label} 후 남은 턴까지",
             "keep_indices": best_keep_indices,
             "reason": (
-                f"현재 점수판에 기록된 {banked_total}점과 {optimal_action_label} 이후 게임 종료까지 "
-                f"기대되는 {chosen_ev:.2f}점을 합산했습니다. 이후 기대점수에는 이번 턴의 재굴림과 "
-                "기록 점수, 남은 모든 턴의 full-game exact V가 포함됩니다. "
+                f"이 KEEP을 하면 게임 종료까지 평균 {expected_final:.1f}점이 예상됩니다. "
                 f"{alt_reason}"
             ),
         }] + breakdown
 
     recommendation_context_row = None if ev_optimal_mode else build_recommendation_context_row(
-        mode, chosen_ev, explaining_row, straight_upgrade,
+        mode, chosen_ev, alternative_gap, explaining_row, straight_upgrade,
         best_keep_indices,
         stop_now_advice.get("primary_target") or stop_now_advice.get("message"),
         stop_gain,
@@ -1404,17 +1397,16 @@ def _solve_best_move_cached(
         breakdown = score_breakdown[:3] + decision_rows[:2] + score_breakdown[3:]
         if ev_optimal_mode:
             breakdown = [{
-                "name": "기대 최종점수",
+                "name": "예상 최종 점수",
                 "prob": 0.0,
                 "meter": min(1.0, max(0.15, expected_final / 240.0)),
-                "val_str": f"EV {expected_final:.2f}",
+                "val_str": f"평균 {expected_final:.1f}점",
                 "type": "decision",
-                "keep_str": f"{optimal_action_label} 선택",
+                "keep_str": f"{optimal_action_label} 후 남은 턴까지",
                 "keep_indices": best_keep_indices,
                 "reason": (
-                    f"현재 기록 {banked_total}점과 지금 기록한 이후의 기대점수 {chosen_ev:.2f}점을 "
-                    "합산한 기준으로, "
-                    "지금 기록하는 선택이 full-game exact V에서 가장 높은 기대 최종점수입니다."
+                    f"지금 기록하면 게임 종료까지 평균 {expected_final:.1f}점이 예상됩니다. "
+                    "현재 가능한 선택 중 가장 높은 값입니다."
                 ),
             }] + breakdown
         if stop_now_advice.get("primary_target"):

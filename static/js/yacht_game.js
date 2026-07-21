@@ -4,8 +4,7 @@
  */
 
 function playTurnToastSound() {
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    withGameAudio((ctx) => {
         const now = ctx.currentTime;
         const env = ctx.createGain();
         env.gain.setValueAtTime(0.14, now);
@@ -29,14 +28,11 @@ function playTurnToastSound() {
         osc2.start(now + 0.05);
         osc1.stop(now + 0.6);
         osc2.stop(now + 0.6);
-    } catch (e) {
-        console.warn('toast sound failed', e);
-    }
+    });
 }
 
 function playKeepSound() {
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    withGameAudio((ctx) => {
         const now = ctx.currentTime;
         const gain = ctx.createGain();
         gain.gain.setValueAtTime(0.08, now);
@@ -50,7 +46,81 @@ function playKeepSound() {
         gain.connect(ctx.destination);
         osc.start(now);
         osc.stop(now + 0.2);
-    } catch (e) {}
+    });
+}
+
+let gameAudioContext = null;
+
+function getGameAudioContext() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    gameAudioContext = gameAudioContext || new AudioContextClass();
+    return gameAudioContext;
+}
+
+function withGameAudio(play) {
+    const ctx = getGameAudioContext();
+    if (!ctx) return;
+    const safelyPlay = () => {
+        try {
+            play(ctx);
+        } catch (error) {
+            console.warn('game audio unavailable', error);
+        }
+    };
+    if (ctx.state === 'suspended') {
+        ctx.resume().then(safelyPlay).catch((error) => console.warn('game audio unavailable', error));
+    } else {
+        safelyPlay();
+    }
+}
+
+function playScoreSelectSound() {
+    withGameAudio((ctx) => {
+        const now = ctx.currentTime;
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(860, now);
+        oscillator.frequency.exponentialRampToValueAtTime(1180, now + 0.12);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        oscillator.connect(gain).connect(ctx.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.18);
+    });
+}
+
+function playDiceRollSound() {
+    withGameAudio((ctx) => {
+        const now = ctx.currentTime;
+        const duration = 0.4;
+        const noiseBuffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < output.length; i++) output[i] = Math.random() * 2 - 1;
+
+        const noise = ctx.createBufferSource();
+        const noiseGain = ctx.createGain();
+        noise.buffer = noiseBuffer;
+        noiseGain.gain.setValueAtTime(0.2, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        noise.connect(noiseGain).connect(ctx.destination);
+        noise.start(now);
+        noise.stop(now + duration);
+
+        for (let beat = 0; beat < 5; beat++) {
+            const oscillator = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const startAt = now + beat * 0.07;
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(Math.max(1180 - beat * 160, 400), startAt);
+            gain.gain.setValueAtTime(0.12, startAt);
+            gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.08);
+            oscillator.connect(gain).connect(ctx.destination);
+            oscillator.start(startAt);
+            oscillator.stop(startAt + 0.08);
+        }
+    });
 }
 
 function renderDice() {
@@ -62,7 +132,7 @@ function renderDice() {
     g.innerHTML = CATS.slice(0,5).map((_, i) => `
         <div class="dice-item" id="dice-item-${i}">
             <div class="die-container" id="die-container-${i}">
-                <div class="die" id="die-${i}">
+                <div class="die" id="die-${i}" data-value="1">
                     ${[1,2,3,4,5,6].map(f => `
                         <div class="die-face face-${f}">
                             ${[1,2,3,4,5,6,7,8,9].map(d => 

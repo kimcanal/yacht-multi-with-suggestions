@@ -2,8 +2,9 @@
 {% block title %}<title>🎲 Yacht - Single Player</title>{% endblock %}
 {% block head %}
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico', v='20260719-1') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260721-2') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/single-game.css', v='20260721-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260721-13') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/single-game.css', v='20260721-2') }}">
+    <script src="{{ url_for('static', filename='js/game_layout.js', v='20260721-1') }}"></script>
 {% endblock %}
 {% block body_attrs %}{% endblock %}
 {% block body %}
@@ -12,9 +13,6 @@
         <div class="main-area">
             <div class="title" style="font-size:3.5em; font-weight:800; text-align:center; margin-bottom:18px; text-shadow:0 0 40px rgba(0,255,200,0.4); color:#00ffcc; letter-spacing:-1px;">🎲 YACHT <span id="mode-badge" style="font-size:0.34em; color:#d9fff5; vertical-align:middle; margin-left:8px;"></span></div>
             <div class="mode-strip" id="mode-strip">
-                <div class="mode-strip-actions">
-                    <button type="button" class="mode-strip-toggle" id="mode-strip-toggle" onclick="toggleModeStrip()">설정</button>
-                </div>
                 <div class="mode-config-grid">
                     <div class="mode-group">
                         <span class="mode-label">게임 타입</span>
@@ -29,6 +27,7 @@
                 </div>
             </div>
             <div class="controls primary-controls game-primary-controls">
+                <button class="btn btn-warm btn-large" onclick="switchSingleLayout('table')">🧩 테이블 보기</button>
                 <button class="btn btn-reset btn-large" onclick="resetGame()" id="new-game-btn">🔄 RESET</button>
                 <button class="btn btn-danger btn-large" onclick="leaveRoom()">🚪 나가기</button>
             </div>
@@ -51,6 +50,7 @@
                     </div>
                 </div>
                 <div class="dice-grid" id="dice-grid"></div>
+                <div id="quick-score-targets" class="quick-score-targets" hidden></div>
                 <div class="dice-action-row">
                     <button class="btn btn-roll btn-large" onclick="rollDice()" id="roll-btn">🎲 ROLL</button>
                 </div>
@@ -90,9 +90,9 @@
             </div>
     <script src="{{ url_for('static', filename='js/dom_utils.js', v='20260417-6') }}"></script>
     <script src="{{ url_for('static', filename='js/game_state.js', v='20260406-5') }}"></script>
-    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260721-1') }}"></script>
-    <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260721-2') }}"></script>
-    <script src="{{ url_for('static', filename='js/winprob.js', v='20260711-4') }}"></script>
-    <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260713-1') }}"></script>
-    <script src="{{ url_for('static', filename='js/pages/single-game.js', v='20260721-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/score_utils.js', v='20260721-10') }}"></script>
+    <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260721-4') }}"></script>
+    <script src="{{ url_for('static', filename='js/winprob.js', v='20260721-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260721-6') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/single-game.js', v='20260721-11') }}"></script>
 {% endblock %}

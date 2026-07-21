@@ -19,6 +19,7 @@ import yacht_engine
 from yacht_ai.constants import CATEGORY_NAMES, CATS
 from yacht_ai.ml_policy import RollPolicyModel
 from yacht_ai.scoring import calc_score
+from yacht_core.simulation import apply_score, total_score
 
 MODEL_CACHE: dict[str, RollPolicyModel] = {}
 
@@ -38,13 +39,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def total_score(card: list[int | None]) -> int:
-    upper = sum((value or 0) for value in card[:6])
-    bonus = 35 if upper >= 63 else 0
-    lower = sum((value or 0) for value in card[6:])
-    return upper + bonus + lower
-
-
 def reroll_from_keep(rng: random.Random, dice: list[int], keep_indices: list[int]) -> list[int]:
     keep = set(keep_indices)
     return [value if idx in keep else rng.randint(1, 6) for idx, value in enumerate(dice)]
@@ -59,17 +53,7 @@ def score_stage_pick(dice: list[int], scorecard: list[int | None], mode: str) ->
     if category_idx is None or scorecard[category_idx] is not None:
         category_idx = max(open_categories, key=lambda idx: calc_score(dice, idx))
 
-    score = calc_score(dice, category_idx)
-    if (
-        calc_score(dice, CATS["Yacht"]) == 50
-        and isinstance(scorecard[CATS["Yacht"]], (int, float))
-        and scorecard[CATS["Yacht"]] >= 50
-        and category_idx != CATS["Yacht"]
-        and score > 0
-    ):
-        scorecard[CATS["Yacht"]] += 100
-
-    scorecard[category_idx] = score
+    apply_score(dice, scorecard, category_idx)
 
 
 def play_turn(

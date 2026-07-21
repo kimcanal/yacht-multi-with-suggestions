@@ -367,11 +367,63 @@ button {
     min-width: min(100%, 260px);
 }
 
+.quick-score-targets {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 36px;
+    margin: -6px 0 10px;
+}
+
+.quick-score-targets[hidden] {
+    display: none;
+}
+
+.quick-score-label {
+    flex: 0 0 auto;
+    color: var(--text-faint);
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.quick-score-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+}
+
+.quick-score-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border: 1px solid rgba(126, 243, 203, 0.2);
+    border-radius: var(--radius-pill);
+    background: rgba(7, 26, 33, 0.42);
+    color: var(--text-note);
+    font-size: 0.74rem;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.quick-score-chip strong { color: var(--gold-muted); }
+
+@media (max-width: 520px) {
+    .quick-score-targets { gap: 6px; }
+    .quick-score-label { flex-basis: 100%; text-align: center; }
+    .quick-score-chip { padding: 5px 7px; font-size: 0.7rem; }
+}
+
+@media (max-width: 1024px) {
+    .quick-score-targets { display: none !important; }
+}
+
 .die-container {
     position: relative;
     width: min(5em, 100%);
     aspect-ratio: 1 / 1;
-    perspective: 1000px;
     transition: transform 0.3s ease, filter 0.3s ease;
     will-change: transform;
 }
@@ -385,22 +437,22 @@ button {
     position: absolute;
     width: 100%;
     height: 100%;
-    transform-style: preserve-3d;
-    transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: transform 0.18s ease;
 }
 
 .die-face {
     position: absolute;
-    display: grid;
+    inset: 0;
+    display: none;
     width: 100%;
     height: 100%;
+    box-sizing: border-box;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
     padding: 0.4em;
     border: 2px solid rgba(200, 200, 200, 0.5);
     border-radius: 0.8em;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(240, 240, 240, 0.9));
-    backface-visibility: hidden;
     box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.05);
 }
 
@@ -409,20 +461,20 @@ button {
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-.face-1 { transform: rotateY(0deg) translateZ(2.5em); }
-.face-6 { transform: rotateY(180deg) translateZ(2.5em); }
-.face-2 { transform: rotateX(90deg) translateZ(2.5em); }
-.face-5 { transform: rotateX(-90deg) translateZ(2.5em); }
-.face-3 { transform: rotateY(90deg) translateZ(2.5em); }
-.face-4 { transform: rotateY(-90deg) translateZ(2.5em); }
+.die[data-value="1"] .face-1,
+.die[data-value="2"] .face-2,
+.die[data-value="3"] .face-3,
+.die[data-value="4"] .face-4,
+.die[data-value="5"] .face-5,
+.die[data-value="6"] .face-6 { display: grid; }
 
 .die.rolling {
-    animation: var(--die-roll-animation, roll3d 1.5s linear infinite);
+    animation: roll2d 0.32s ease-in-out infinite;
 }
 
-@keyframes roll3d {
-    0% { transform: rotateX(0) rotateY(0) rotateZ(0); }
-    100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(360deg); }
+@keyframes roll2d {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(0.92) rotate(-1.5deg); }
 }
 
 .dot {
@@ -638,6 +690,14 @@ button {
     color: var(--text-subtle);
     font-size: 0.94rem !important;
     font-weight: 800;
+}
+
+.score-name.tip-trigger {
+    cursor: help;
+}
+
+.score-overview-label.tip-trigger {
+    cursor: help;
 }
 
 .score-val {
@@ -1141,6 +1201,40 @@ button {
     color: var(--gold-strong);
 }
 
+.solo-table-board {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+}
+
+.solo-table-head,
+.solo-table-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(68px, 0.48fr);
+    gap: 6px;
+}
+
+.solo-table-head > div {
+    padding: 7px 9px;
+    color: var(--text-faint);
+    font-size: 0.72rem;
+    font-weight: 900;
+}
+
+.solo-table-head > div:last-child { text-align: right; }
+
+.solo-table-row.solo-table-summary .compare-cat-cell,
+.solo-table-row.solo-table-summary .compare-value-cell {
+    background: rgba(30, 41, 59, 0.8);
+}
+
+.solo-table-row.solo-table-total .compare-cat-cell,
+.solo-table-row.solo-table-total .compare-value-cell {
+    border-color: rgba(245, 158, 11, 0.22);
+    background: rgba(245, 158, 11, 0.14);
+    color: var(--gold-strong);
+}
+
 .compare-section-row {
     display: flex;
     align-items: center;
@@ -1322,6 +1416,10 @@ button {
     display: flex;
     flex-direction: column;
     justify-content: center;
+}
+
+.score-help[hidden] {
+    display: none !important;
 }
 
 .score-help-kicker {
@@ -1572,6 +1670,11 @@ button {
 .ai-action-comparison strong {
     color: var(--text-soft);
     font-weight: 700;
+}
+
+.ai-action-comparison small {
+    color: var(--text-muted-blue);
+    font-size: 0.72rem;
 }
 
 .ai-perspective {
@@ -2082,7 +2185,7 @@ button {
 
 /* Unrolled dice are placeholders, not real game values. */
 .die-container.dice-unrolled .die {
-    opacity: 0.16;
+    opacity: 0;
     animation: none !important;
 }
 
@@ -2090,25 +2193,21 @@ button {
     content: "?";
     position: absolute;
     inset: 0;
-    z-index: 8;
+    z-index: 1;
     display: grid;
     place-items: center;
-    color: var(--text-faint);
+    border: 2px solid rgba(255, 255, 255, 0.78);
+    border-radius: 0.8em;
+    background: linear-gradient(135deg, #ffffff, #dbe6ea);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22), inset 0 0 12px rgba(0, 0, 0, 0.08);
+    color: #17313a;
     font-size: 2.3em;
     font-weight: 900;
-    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+    text-shadow: none;
     pointer-events: none;
 }
 
-@keyframes roll3dMobile {
-    0% { transform: scale(0.72) rotateX(0) rotateY(0) rotateZ(0); }
-    100% { transform: scale(0.72) rotateX(720deg) rotateY(360deg) rotateZ(360deg); }
-}
-
-@media (max-width: 480px) {
-    .die.rolling { --die-roll-animation: roll3dMobile 1.2s linear infinite; }
-}
-
 @media (prefers-reduced-motion: reduce) {
-    .die.rolling { animation: none !important; }
+.die.rolling,
+.die-container.is-rolling { animation: none !important; }
 }

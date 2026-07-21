@@ -12,12 +12,9 @@ from yacht_app.services.single_sessions import (
     _prune_sessions,
     _public_state,
 )
-from yacht_engine import CATS, calc_score
+from yacht_core.simulation import apply_score
 
 single_bp = Blueprint("single", __name__)
-
-_YACHT_IDX = CATS["Yacht"]
-
 
 @single_bp.route("/api/single/start", methods=["POST"])
 def start_single_session():
@@ -89,18 +86,7 @@ def score_single_session():
         if session["scorecard"][category_idx] is not None:
             return jsonify({"error": "이미 기록된 점수칸입니다"}), 409
 
-        score = calc_score(session["dice"], category_idx)
-        bonus = 0
-        if (
-            calc_score(session["dice"], _YACHT_IDX) == 50
-            and isinstance(session["scorecard"][_YACHT_IDX], int)
-            and session["scorecard"][_YACHT_IDX] >= 50
-            and category_idx != _YACHT_IDX
-            and score > 0
-        ):
-            session["scorecard"][_YACHT_IDX] += 100
-            bonus = 100
-        session["scorecard"][category_idx] = score
+        score, bonus = apply_score(session["dice"], session["scorecard"], category_idx)
 
         finished = all(value is not None for value in session["scorecard"])
         session["dice"] = [1, 1, 1, 1, 1]

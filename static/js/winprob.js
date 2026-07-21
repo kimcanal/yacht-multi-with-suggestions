@@ -75,12 +75,12 @@ const WinProbabilityPanel = (() => {
 
         if (!result || result.status === 'pending') {
             const projection = hasProjection
-                ? `<div class="winprob-meta">점수판 EV · ${leftLabel} ${myProjected.toFixed(1)} / ${rightLabel} ${oppProjected.toFixed(1)}</div>`
+                ? `<div class="winprob-meta">이대로 진행하면 예상되는 최종 점수 · ${leftLabel} ${myProjected.toFixed(1)} / ${rightLabel} ${oppProjected.toFixed(1)}</div>`
                 : '';
             root.innerHTML = `
                 <div class="winprob-head">
                     <div class="winprob-title">최적 플레이 기준 승률</div>
-                    <div class="winprob-sub">정확한 점수판 기대값을 반영해 시뮬레이션 중</div>
+                    <div class="winprob-sub">현재 주사위와 남은 굴림까지 반영해 시뮬레이션 중</div>
                 </div>
                 ${projection}
                 <div class="winprob-loading" role="status">승률 계산 중...</div>`;
@@ -119,7 +119,7 @@ const WinProbabilityPanel = (() => {
                 <div class="winprob-left" style="width:${myPct}%">${leftLabel} ${myPct}%</div>
                 <div class="winprob-right" style="width:${oppPct}%">${rightLabel} ${oppPct}%</div>
             </div>
-            <div class="winprob-meta">점수판 EV · ${leftLabel} ${myProjected.toFixed(1)} / ${rightLabel} ${oppProjected.toFixed(1)}</div>
+            <div class="winprob-meta">이대로 진행하면 예상되는 최종 점수 · ${leftLabel} ${myProjected.toFixed(1)} / ${rightLabel} ${oppProjected.toFixed(1)}</div>
             ${graphMarkup(history)}
         `;
     }

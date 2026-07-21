@@ -2,7 +2,6 @@ document.getElementById('save-modal').onclick = function(e) { if(e.target === th
 
 const SINGLE_MODE_KEY = 'yacht_single_mode';
         const COACH_ENABLED_KEY = 'yacht_coach_enabled';
-        const MODE_STRIP_EXPANDED_KEY = 'yacht_mode_strip_expanded_v2';
         const AI_OPPONENT_NAME = 'Yacht Bot';
         const AI_OPPONENT_MODE = 'focused';
         const AI_TURN_DELAY_MS = 650;
@@ -80,22 +79,16 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             return '집중 공략';
         }
 
-        function toggleModeStrip() {
-            const strip = document.getElementById('mode-strip');
-            const expanded = strip?.classList.contains('expanded');
-            localStorage.setItem(MODE_STRIP_EXPANDED_KEY, expanded ? 'false' : 'true');
-            updateModeStripUI();
-        }
-
-        function updateModeStripUI() {
-            const strip = document.getElementById('mode-strip');
-            const toggleBtn = document.getElementById('mode-strip-toggle');
-            if (!strip || !toggleBtn) return;
-
-            const expanded = localStorage.getItem(MODE_STRIP_EXPANDED_KEY) === 'true';
-            strip.classList.toggle('expanded', expanded);
-            toggleBtn.textContent = expanded ? '설정 접기' : '설정';
-            toggleBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        function switchSingleLayout(layout) {
+            if (hasMeaningfulProgress() && !window.confirm(
+                '화면을 바꾸면 현재 싱글 게임은 새로 시작됩니다. 계속할까요?'
+            )) return;
+            const targetPath = layout === 'table' ? '/game/single/table' : '/game/single';
+            const targetParams = new URLSearchParams(window.location.search);
+            if (layout === 'table') targetParams.delete('layout');
+            else targetParams.set('layout', 'classic');
+            const query = targetParams.toString();
+            window.location.href = `${targetPath}${query ? `?${query}` : ''}`;
         }
 
         function sleep(ms) {
@@ -245,21 +238,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                 : '';
             toast.innerHTML = `<div class="toast-cat">${escapeHtml(category)}</div><div class="toast-score">+${score}</div>${noteLine}`;
             toast.classList.add('show');
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const now = audioContext.currentTime;
-                const osc = audioContext.createOscillator();
-                const gain = audioContext.createGain();
-                osc.connect(gain);
-                gain.connect(audioContext.destination);
-                osc.frequency.value = 1000;
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            } catch (e) {
-                console.warn('Toast audio failed:', e);
-            }
+            playScoreSelectSound();
             setTimeout(() => toast.classList.remove('show'), 1500);
         }
 
@@ -510,15 +489,6 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
         }
 
         function updateDice() {
-            const transforms = {
-                1: 'rotateX(0deg) rotateY(0deg)',
-                6: 'rotateX(180deg) rotateY(0deg)',
-                2: 'rotateX(-90deg) rotateY(0deg)',
-                5: 'rotateX(90deg) rotateY(0deg)',
-                3: 'rotateY(-90deg) rotateX(0deg)',
-                4: 'rotateY(90deg) rotateX(0deg)'
-            };
-
             for (let i = 0; i < 5; i++) {
                 const dieEl = document.getElementById(`die-${i}`);
                 const containerEl = document.getElementById(`die-container-${i}`);
@@ -543,7 +513,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                     });
                 }
 
-                dieEl.style.transform = transforms[dice[i] || 1];
+                dieEl.dataset.value = String(dice[i] || 1);
 
                 const keepBtn = document.getElementById(`keep-${i}`);
                 const keepText = document.getElementById(`keep-text-${i}`);
@@ -573,6 +543,9 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
 
             document.getElementById('rolls-left').innerText = rollsLeft;
             document.getElementById('roll-btn').disabled = rollsLeft <= 0 || gameOver || isRolling || !isMyTurn();
+            updateQuickScoreTargets(myCard, {
+                active: !isRolling && !gameOver && rollsLeft < 3 && isMyTurn(),
+            });
 
             const timerBar = document.getElementById('timer-bar');
             if (timerBar && (rollsLeft === 0 || rollsLeft === 3 || gameOver || !isMyTurn())) {
@@ -786,12 +759,15 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             const scorecardEl = document.getElementById('scorecard');
             if (!scorecardEl) return;
             document.body.classList.toggle('solo-play-mode', !isVersusAI());
-            scorecardEl.className = isVersusAI() ? 'scorecard-mode-compare' : 'scorecard-mode-solo';
+            const isTableLayout = document.body.classList.contains('single-table-layout-page');
+            scorecardEl.className = isVersusAI()
+                ? 'scorecard-mode-compare'
+                : (isTableLayout ? 'scorecard-mode-solo table-solo-scorecard' : 'scorecard-mode-solo');
 
             if (isVersusAI()) {
                 scorecardEl.innerHTML = renderCompareBoard(myCard, oppCard, {
-                    leftTitle: `나 (${username})`,
-                    rightTitle: AI_OPPONENT_NAME,
+                    leftTitle: isTableLayout ? '나' : `나 (${username})`,
+                    rightTitle: isTableLayout ? 'AI' : AI_OPPONENT_NAME,
                     leftShortLabel: '나',
                     rightShortLabel: 'AI',
                     leftActive: isMyTurn(),
@@ -800,12 +776,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                     previewIds: true,
                 });
             } else {
-                scorecardEl.innerHTML = renderCompactSingleCard(myCard, '점수표', {
-                    active: true,
-                    interactive: true,
-                    previewIds: true,
-                    showSectionHeads: true,
-                });
+                scorecardEl.innerHTML = renderSoloTableBoard(myCard, { interactive: true });
             }
 
             applyAiScoreHints(aiRec, { enabled: coachEnabled && !gameOver });
@@ -825,43 +796,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             if (rollsLeft <= 0 || gameOver || isRolling || !isMyTurn()) return;
             clearTurnTimer();
 
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const now = audioContext.currentTime;
-                const duration = 0.4;
-                const bufferSize = audioContext.sampleRate * duration;
-                const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
-                const output = noiseBuffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-
-                const noiseSource = audioContext.createBufferSource();
-                noiseSource.buffer = noiseBuffer;
-                const noiseGain = audioContext.createGain();
-                noiseSource.connect(noiseGain);
-                noiseGain.connect(audioContext.destination);
-                noiseGain.gain.setValueAtTime(0.2, now);
-                noiseGain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-
-                const beatDuration = 0.08;
-                for (let beat = 0; beat < 5; beat++) {
-                    const osc = audioContext.createOscillator();
-                    const gain = audioContext.createGain();
-                    osc.type = 'square';
-                    osc.frequency.value = Math.max(1200 - (beat * 160), 400);
-                    osc.connect(gain);
-                    gain.connect(audioContext.destination);
-                    const startTime = now + (beat * 0.07);
-                    gain.gain.setValueAtTime(0.12, startTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, startTime + beatDuration);
-                    osc.start(startTime);
-                    osc.stop(startTime + beatDuration);
-                }
-
-                noiseSource.start(now);
-                noiseSource.stop(now + duration);
-            } catch (e) {
-                console.warn('Audio context failed:', e);
-            }
+            playDiceRollSound();
 
             isRolling = true;
             aiRec = null;
@@ -1083,7 +1018,6 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                 alert('네트워크 연결이 끊겼습니다. AI 추천과 VS AI 모드는 일시적으로 멈출 수 있습니다.');
             });
             refreshTurnUI();
-            updateModeStripUI();
             startTurnTimer();
         }
 

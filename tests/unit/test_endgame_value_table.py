@@ -97,7 +97,10 @@ class EndgameValueTableTests(unittest.TestCase):
         self.assertEqual(heuristic["primary_target"], "Choice")
         self.assertEqual(value_mode["primary_target"], "Ones")
         self.assertEqual(value_mode["expected_value"], 160.0)
-        self.assertTrue(any(row["name"] == "Endgame V" for row in value_mode["breakdown"]))
+        endgame_row = next(row for row in value_mode["breakdown"] if row["name"] == "기록 후 남은 턴 기대값")
+        self.assertEqual(endgame_row["val_str"], "평균 160.0점")
+        self.assertEqual(endgame_row["keep_str"], "이 칸을 닫은 뒤 남은 족보 기준")
+        self.assertEqual(endgame_row["reason"], "이 족보를 지금 닫으면 나중에 다시 채울 수 없습니다. 남은 족보까지 고려한 평균값입니다.")
 
     def test_solver_value_mode_can_load_table_by_path(self):
         dice = [6, 6, 6, 6, 6]
@@ -246,9 +249,9 @@ class EndgameValueTableTests(unittest.TestCase):
             round(result["banked_score"] + result["remaining_game_ev"], 2),
         )
         reason = result["breakdown"][0]["reason"]
-        self.assertIn("현재 점수판에 기록된 4점", reason)
-        self.assertIn("이번 턴의 재굴림과 기록 점수", reason)
-        self.assertNotIn("즉시 기록 점수", reason)
+        self.assertIn("게임 종료까지 평균", reason)
+        self.assertIn("다음 후보", reason)
+        self.assertNotIn("full-game exact V", reason)
 
     def test_solver_value_optimal_fails_when_exact_table_is_unavailable(self):
         with self.assertRaises(ExactValueTableUnavailableError):
@@ -401,7 +404,7 @@ class EndgameValueTableTests(unittest.TestCase):
             learned_value_min_turns=0,
         )
 
-        self.assertTrue(any(row["name"] == "Learned V" for row in guarded["breakdown"]))
+        self.assertTrue(any(row["name"] == "기록 후 남은 턴 예상값" for row in guarded["breakdown"]))
         self.assertFalse(any(row["name"] == "Learned V" for row in blocked["breakdown"]))
 
 

@@ -3,7 +3,9 @@ import unittest
 
 from utils.room_utils import score_total
 from utils.win_probability_service import clear_win_probability_cache, request_win_probability
+from yacht_ai.solvers import solve_best_move
 from yacht_ai.win_probability import estimate_win_probability
+from yacht_app.services.win_probability import _exact_projected_final
 
 
 class WinProbabilityTests(unittest.TestCase):
@@ -50,6 +52,25 @@ class WinProbabilityTests(unittest.TestCase):
         self.assertEqual(result["my_projected"], score_total(completed))
         self.assertEqual(result["opp_projected"], score_total(completed))
         self.assertEqual(result["effective_win_rate"], 0.5)
+
+    def test_projection_includes_the_active_turn(self):
+        scorecard = [None] * 12
+        dice = [6, 6, 6, 6, 6]
+        expected = solve_best_move(
+            dice,
+            0,
+            list(range(12)),
+            "focused",
+            scorecard,
+            score_value_mode="value_optimal",
+            explain=False,
+        )["expected_final_score"]
+
+        active_turn_projection = _exact_projected_final(scorecard, dice, 0)
+        fresh_turn_projection = _exact_projected_final(scorecard)
+
+        self.assertAlmostEqual(active_turn_projection, expected, places=4)
+        self.assertGreater(active_turn_projection, fresh_turn_projection)
 
 
 if __name__ == "__main__":

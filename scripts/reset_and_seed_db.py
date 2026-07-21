@@ -17,9 +17,9 @@ if str(ROOT) not in sys.path:
 
 import yacht_engine
 from yacht_ai.advice import score_stage_category_advice
+from yacht_core.simulation import apply_score
 
 CATEGORY_NAMES = list(yacht_engine.CATS.keys())
-YACHT_IDX = yacht_engine.CATS["Yacht"]
 DEFAULT_NAMES = [
     "Astra", "Blaze", "Comet", "Delta", "Echo", "Falcon", "Glint", "Harbor",
     "Iris", "Jolt", "Kite", "Lumen", "Miso", "Nova", "Orion", "Pixel",
@@ -94,22 +94,6 @@ def choose_mode(profile: PlayerProfile, rng: random.Random) -> str:
     return "cover" if profile.preferred_mode == "focused" else "focused"
 
 
-def apply_score(scorecard: list[int | None], dice: list[int], category_idx: int) -> tuple[int, int]:
-    score = yacht_engine.calc_score(dice, category_idx)
-    yacht_bonus = 0
-    if (
-        category_idx != YACHT_IDX
-        and yacht_engine.calc_score(dice, YACHT_IDX) == 50
-        and (scorecard[YACHT_IDX] or 0) >= 50
-        and score > 0
-    ):
-        yacht_bonus = 100
-        scorecard[YACHT_IDX] = (scorecard[YACHT_IDX] or 0) + yacht_bonus
-
-    scorecard[category_idx] = score
-    return score, yacht_bonus
-
-
 def choose_category_rows(
     dice: list[int],
     scorecard: list[int | None],
@@ -155,7 +139,7 @@ def simulate_scorecard(profile: PlayerProfile, rng: random.Random) -> list[int |
     scorecard: list[int | None] = [None] * len(CATEGORY_NAMES)
     for _ in range(len(CATEGORY_NAMES)):
         dice, category_idx = choose_turn_candidate(scorecard, profile, rng)
-        apply_score(scorecard, dice, category_idx)
+        apply_score(dice, scorecard, category_idx)
     return scorecard
 
 

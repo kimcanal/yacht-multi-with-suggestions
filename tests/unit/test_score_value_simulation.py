@@ -1,10 +1,28 @@
 import random
 import unittest
 
-from yacht_core.simulation import indexed_die, initial_dice, reroll_from_keep
+from yacht_core.simulation import (
+    apply_score,
+    indexed_die,
+    initial_dice,
+    reroll_from_keep,
+    total_score,
+)
 
 
 class ScoreValueSimulationRandomSourceTests(unittest.TestCase):
+    def test_shared_score_application_awards_repeated_yacht_bonus(self):
+        scorecard = [None] * 12
+        scorecard[11] = 50
+
+        score, yacht_bonus = apply_score([6, 6, 6, 6, 6], scorecard, 6)
+
+        self.assertEqual(score, 30)
+        self.assertEqual(yacht_bonus, 100)
+        self.assertEqual(scorecard[6], 30)
+        self.assertEqual(scorecard[11], 150)
+        self.assertEqual(total_score(scorecard), 180)
+
     def test_indexed_die_is_stable_and_bounded(self):
         first = indexed_die(20260708, 3, 2, 4)
         second = indexed_die(20260708, 3, 2, 4)

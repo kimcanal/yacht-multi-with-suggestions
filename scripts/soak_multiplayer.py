@@ -22,10 +22,10 @@ if str(ROOT) not in sys.path:
 
 import yacht_engine
 from yacht_ai.advice import score_stage_category_advice
+from yacht_core.simulation import apply_score as apply_shared_score
 
 CATEGORY_NAMES = list(yacht_engine.CATS.keys())
 CATEGORY_SET = set(CATEGORY_NAMES)
-YACHT_IDX = yacht_engine.CATS["Yacht"]
 
 
 @dataclass
@@ -166,23 +166,10 @@ def choose_category(
     return int(best_row["category_idx"])
 
 
-def apply_score(scorecard: list[int | None], dice: list[int], category_idx: int) -> tuple[int, int]:
+def record_score(scorecard: list[int | None], dice: list[int], category_idx: int) -> tuple[int, int]:
     if scorecard[category_idx] is not None:
         raise SoakFailure(f"category already filled: {CATEGORY_NAMES[category_idx]}")
-
-    score = yacht_engine.calc_score(dice, category_idx)
-    yacht_bonus = 0
-    if (
-        category_idx != YACHT_IDX
-        and yacht_engine.calc_score(dice, YACHT_IDX) == 50
-        and (scorecard[YACHT_IDX] or 0) >= 50
-        and score > 0
-    ):
-        yacht_bonus = 100
-        scorecard[YACHT_IDX] = (scorecard[YACHT_IDX] or 0) + yacht_bonus
-
-    scorecard[category_idx] = score
-    return score, yacht_bonus
+    return apply_shared_score(dice, scorecard, category_idx)
 
 
 def assert_room_snapshot(
@@ -487,7 +474,7 @@ def run_single_game(
         )
         match.ai_rec = score_rec
         category_idx = choose_category(score_rec, match.dice, player.scorecard, player.mode)
-        apply_score(player.scorecard, match.dice, category_idx)
+        record_score(player.scorecard, match.dice, category_idx)
         stats.categories_written += 1
 
         next_turn = other.username

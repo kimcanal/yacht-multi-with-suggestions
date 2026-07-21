@@ -4,7 +4,7 @@
 
 [바로 플레이하기](https://app.yatch-game.cloud/) · [게임 소개](https://app.yatch-game.cloud/intro) · [API 문서](./API.md)
 
-<img src="./docs/screenshots/yacht-turn-demo.gif" width="960" alt="주사위를 굴린 뒤 AI가 추천한 주사위를 KEEP하고, 점수판에서 현재 기록 점수를 확인하는 Yacht 실제 플레이" />
+<img src="./docs/screenshots/table-default.png" width="1200" alt="데스크톱 기본 테이블 보기: 점수판, 주사위, 현재 점수 TOP 3, AI 코치를 한 화면에서 보여주는 Yacht 플레이" />
 
 ## 한 턴은 이렇게 합니다
 

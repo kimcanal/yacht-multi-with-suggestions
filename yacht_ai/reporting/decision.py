@@ -149,10 +149,7 @@ def _method_note(policy_source, stage):
             "confidence 기준을 넘은 경우에만 채택됩니다."
         )
     if policy_source == "exact_value_optimal":
-        return (
-            "현재 기록 점수와 이번 선택 이후의 기대점수를 합산해 기대 최종점수가 가장 큰 선택을 고릅니다. "
-            "이후 기대점수에는 이번 턴의 기록과 남은 모든 턴의 full-game exact V가 포함됩니다."
-        )
+        return "현재 점수와 남은 턴을 함께 비교해, 끝까지 진행했을 때 평균 최종 점수가 가장 큰 선택을 고릅니다."
     if stage == "score":
         return "점수 기록 단계는 현재 점수와 남은 칸의 장기 가치를 utility로 비교한 계산 결과입니다."
     return "현재 Yacht 상태공간은 작아서 모든 합리적 keep 후보를 동적계획법으로 직접 비교할 수 있습니다."
@@ -166,8 +163,7 @@ def _learning_note(policy_source):
         )
     if policy_source == "exact_value_optimal":
         return (
-            "이 모드는 학습 모델 없이 full-game exact value table을 직접 조회합니다. "
-            "현재 목표는 승률이 아니라 기대 최종점수 최대화입니다."
+            "이 모드는 현재 점수와 남은 턴을 함께 비교해, 평균 최종 점수가 가장 큰 선택을 찾습니다."
         )
     return (
         "이 결정에는 ML/DL 모델이 꼭 필요하지 않습니다. 지금 게임처럼 상태공간이 작으면 exact solver가 teacher 역할을 하며, "

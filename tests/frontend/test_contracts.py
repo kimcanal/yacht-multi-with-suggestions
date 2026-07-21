@@ -10,7 +10,9 @@ class FrontendContractTests(unittest.TestCase):
         cls.base_css = (ROOT / "static/css/base.css").read_text(encoding="utf-8")
         cls.intro_template = (ROOT / "templates/intro.html").read_text(encoding="utf-8")
         cls.single_template = (ROOT / "templates/single-game.html").read_text(encoding="utf-8")
+        cls.single_table_template = (ROOT / "templates/single-game-table.html").read_text(encoding="utf-8")
         cls.multi_template = (ROOT / "templates/multi-game.html").read_text(encoding="utf-8")
+        cls.multi_table_template = (ROOT / "templates/multi-game-table.html").read_text(encoding="utf-8")
         cls.single = "\n".join((
             cls.single_template,
             (ROOT / "static/css/pages/single-game.css").read_text(encoding="utf-8"),
@@ -25,15 +27,30 @@ class FrontendContractTests(unittest.TestCase):
         cls.ai_panel = (ROOT / "static/js/ai_panel.js").read_text(encoding="utf-8")
         cls.winprob = (ROOT / "static/js/winprob.js").read_text(encoding="utf-8")
         cls.yacht_game = (ROOT / "static/js/yacht_game.js").read_text(encoding="utf-8")
+        cls.game_layout = (ROOT / "static/js/game_layout.js").read_text(encoding="utf-8")
+        cls.table_layout_css = (ROOT / "static/css/pages/multi-game-table.css").read_text(encoding="utf-8")
+        cls.single_table_layout_css = (ROOT / "static/css/pages/single-game-table.css").read_text(encoding="utf-8")
 
     def test_page_templates_use_base_and_external_assets(self):
-        for template in (self.intro_template, self.single_template, self.multi_template):
+        for template in (
+            self.intro_template,
+            self.single_template,
+            self.single_table_template,
+            self.multi_template,
+            self.multi_table_template,
+        ):
             self.assertIn('{% extends "base.html" %}', template)
             self.assertNotIn('<style>', template)
             self.assertNotRegex(template, r'<script(?![^>]*src=)[^>]*>')
 
     def test_local_static_assets_use_versioned_urls(self):
-        for template in (self.intro_template, self.single_template, self.multi_template):
+        for template in (
+            self.intro_template,
+            self.single_template,
+            self.single_table_template,
+            self.multi_template,
+            self.multi_table_template,
+        ):
             for line in template.splitlines():
                 if "url_for('static'" in line:
                     self.assertIn(', v=', line)
@@ -50,14 +67,42 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('추천은 자동으로 플레이하지 않습니다.', self.intro_template)
         self.assertIn('👍·🔥·😂·😱·🎲·👏', self.intro_template)
 
-    def test_mobile_dice_animation_and_unrolled_placeholder_are_shared(self):
-        self.assertIn("@keyframes roll3dMobile", self.base_css)
-        self.assertIn("scale(0.72)", self.base_css)
+    def test_2d_dice_and_unrolled_placeholder_are_shared(self):
+        self.assertIn("@keyframes roll2d", self.base_css)
+        self.assertIn('.die[data-value="6"] .face-6', self.base_css)
+        self.assertNotIn("@keyframes roll3d", self.base_css)
         self.assertIn(".die-container.dice-unrolled::after", self.base_css)
         self.assertNotIn("@keyframes roll3d", self.single)
         self.assertNotIn("@keyframes roll3d", self.multi)
         self.assertIn("rollsLeft === 3 && !isRolling", self.single)
         self.assertIn("rollsLeft === 3 && !isRolling", self.multi)
+        self.assertIn(".die-container.dice-unrolled::after", self.base_css)
+        self.assertIn("background: linear-gradient(135deg, #ffffff, #dbe6ea);", self.base_css)
+
+    def test_roll_sound_uses_one_resumable_shared_audio_context(self):
+        self.assertIn("let gameAudioContext = null;", self.yacht_game)
+        self.assertIn("function playDiceRollSound()", self.yacht_game)
+        self.assertIn("ctx.resume().then(safelyPlay)", self.yacht_game)
+        self.assertIn("playDiceRollSound();", self.single)
+        self.assertIn("playDiceRollSound();", self.multi)
+        self.assertIn("function playScoreSelectSound()", self.yacht_game)
+        self.assertIn("playScoreSelectSound();", self.single)
+        self.assertIn("playScoreSelectSound();", self.multi)
+        self.assertIn("function playTurnToastSound() {\n    withGameAudio", self.yacht_game)
+        self.assertIn("noiseGain.gain.setValueAtTime(0.2, now);", self.yacht_game)
+        self.assertIn("osc.frequency.setValueAtTime(880, now);", self.yacht_game)
+
+    def test_current_score_top_three_sits_between_dice_and_roll(self):
+        for template in (self.single_template, self.single_table_template, self.multi_template, self.multi_table_template):
+            dice_grid = template.index('id="dice-grid"')
+            quick_targets = template.index('id="quick-score-targets"')
+            roll_button = template.index('id="roll-btn"')
+            self.assertLess(dice_grid, quick_targets)
+            self.assertLess(quick_targets, roll_button)
+        self.assertIn("function updateQuickScoreTargets", self.score_utils)
+        self.assertIn("현재 점수 TOP 3", self.score_utils)
+        self.assertIn("@media (max-width: 1024px)", self.base_css)
+        self.assertIn(".quick-score-targets { display: none !important; }", self.base_css)
 
     def test_multiplayer_uses_header_auth_and_sse_fallback(self):
         self.assertIn("'X-Player-Token': playerToken", self.multi)
@@ -71,6 +116,70 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("emoji.src = reaction.asset", self.multi)
         self.assertNotIn("/api/rooms/${roomCode}/chat", self.multi)
         self.assertIn("startSyncPolling({immediate: true})", self.multi)
+        self.assertIn("switchGameLayout('table')", self.multi_template)
+
+    def test_alternate_table_layout_keeps_the_same_game_contract(self):
+        self.assertIn('class="table-game-shell"', self.multi_table_template)
+        self.assertIn('id="dice-grid"', self.multi_table_template)
+        self.assertIn('id="scorecard"', self.multi_table_template)
+        self.assertIn('id="ai-breakdown"', self.multi_table_template)
+        self.assertIn("css/pages/multi-game-table.css", self.multi_table_template)
+        self.assertIn("js/pages/multi-game.js", self.multi_table_template)
+        self.assertIn("switchGameLayout('default')", self.multi_table_template)
+
+    def test_desktop_defaults_to_table_while_mobile_keeps_the_original_layout(self):
+        self.assertIn("js/game_layout.js", self.multi_template)
+        self.assertIn("js/game_layout.js", self.single_template)
+        self.assertIn("(min-width: 1025px)", self.game_layout)
+        self.assertIn("params.get('layout') === 'classic'", self.game_layout)
+        self.assertIn("window.location.replace", self.game_layout)
+
+    def test_table_panels_reserve_scrollbar_space_for_text_updates(self):
+        self.assertIn("height: calc(100dvh - 28px)", self.table_layout_css)
+        self.assertIn("grid-template-rows: minmax(0, 1fr)", self.table_layout_css)
+        self.assertIn("overflow-y: scroll", self.table_layout_css)
+        self.assertIn("scrollbar-gutter: stable", self.table_layout_css)
+        self.assertIn("transform: translateY(clamp(16px, 3vh, 36px));", self.table_layout_css)
+
+    def test_single_table_layout_keeps_ranked_session_and_game_controls(self):
+        self.assertIn('class="table-game-shell single-table-game-shell"', self.single_table_template)
+        for element_id in ("dice-grid", "scorecard", "save-modal", "mode-strip", "ai-breakdown"):
+            self.assertIn(f'id="{element_id}"', self.single_table_template)
+        self.assertIn("css/pages/single-game-table.css", self.single_table_template)
+        self.assertIn("js/pages/single-game.js", self.single_table_template)
+        self.assertIn("switchSingleLayout('table')", self.single_template)
+        self.assertIn("switchSingleLayout('default')", self.single_table_template)
+
+    def test_vs_ai_table_scorecard_prioritizes_all_score_rows(self):
+        self.assertIn(".scorecard-mode-compare .compare-board", self.single_table_layout_css)
+        self.assertIn(":has(#scorecard.scorecard-mode-compare) .score-help", self.single_table_layout_css)
+        self.assertIn(".scorecard-mode-compare .score-duel-overview", self.single_table_layout_css)
+        self.assertIn(".score-duel-overview {\n        display: none;", self.single_table_layout_css)
+        self.assertIn("grid-template-columns: minmax(100px, 1.12fr)", self.single_table_layout_css)
+        self.assertIn("grid-template-rows: auto repeat(6, minmax(0, 1fr)) auto auto", self.single_table_layout_css)
+        self.assertIn("isTableLayout ? '나' : `나 (${username})`", self.single)
+        self.assertIn("+0 (", self.score_utils)
+        self.assertIn("renderCompareStatRow('상단 합계'", self.score_utils)
+        self.assertIn("renderCompareStatRow('보너스'", self.score_utils)
+        self.assertIn("function renderSoloTableBoard", self.score_utils)
+        self.assertIn("상단 합계", self.score_utils)
+        self.assertIn("renderSoloTableBoard(myCard, { interactive: true })", self.single)
+        self.assertIn("#scorecard.table-solo-scorecard .solo-table-board", self.single_table_layout_css)
+        self.assertNotIn("renderCompactSingleCard(myCard", self.single)
+        self.assertNotIn("Upper Section</span>", self.score_utils)
+        self.assertNotIn("Lower Section</span>", self.score_utils)
+        self.assertNotIn("Endgame V", self.single)
+        self.assertNotIn("exact V(next_state)", self.single)
+        self.assertIn("예상 최종 점수", self.ai_panel)
+        self.assertNotIn("? '기대 최종점수'", self.ai_panel)
+        self.assertIn("지금 기록 vs 재굴림", self.ai_panel)
+        self.assertIn("AI 판단 기준", self.ai_panel)
+        self.assertIn("positionScoreTooltip(el, tip", self.score_utils)
+        self.assertIn("function getScorePreviewOnlyHandlers", self.score_utils)
+        self.assertIn('class="score-name tip-trigger"', self.score_utils)
+        self.assertNotIn("const scoreMetaAttrs = clickable", self.score_utils)
+        self.assertIn("help.hidden = true;", self.score_utils)
+        self.assertIn(".score-help[hidden]", self.base_css)
 
     def test_multiplayer_reactions_vendor_openmoji_assets_and_license(self):
         asset_dir = ROOT / "static/assets/openmoji"
@@ -87,6 +196,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("const FAST_SAMPLES = 30", self.winprob)
         self.assertIn("const REFINED_SAMPLES = 100", self.winprob)
         self.assertIn("REFINED_SAMPLES}회 정밀 계산 중", self.winprob)
+        self.assertIn("이대로 진행하면 예상되는 최종 점수", self.winprob)
+        self.assertIn("현재 주사위와 남은 굴림까지 반영", self.winprob)
+        self.assertNotIn("점수판 EV", self.winprob)
         self.assertIn("한 족보의 완성과 상단 보너스 흐름을 우선 고려", self.multi)
         self.assertIn("여러 하단 족보의 성공 가능성을 함께 보존", self.multi)
         self.assertIn("남은 점수판 가치까지 반영한 기대점수 기준", self.multi)
@@ -127,7 +239,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertNotIn("targetRow.type === 'sacrifice' ||", self.yacht_game)
 
     def test_single_mode_strip_does_not_render_stale_coach_summary_copy(self):
-        self.assertIn('id="mode-strip-toggle"', self.single)
+        self.assertIn('class="mode-config-grid"', self.single)
+        self.assertNotIn('id="mode-strip-toggle"', self.single)
         self.assertNotIn('id="mode-summary"', self.single)
         self.assertNotIn('id="coach-note"', self.single)
         self.assertNotIn('솔로 기록 모드입니다', self.single)
@@ -141,11 +254,11 @@ class FrontendContractTests(unittest.TestCase):
         self.assertNotIn('class="ai-mode-card"', self.single)
         self.assertNotIn('최적 정책보다 게임당 기대점수 10.4점 낮음', self.single)
 
-    def test_single_settings_strip_is_collapsed_by_default_on_all_viewports(self):
-        self.assertIn('.mode-config-grid {\n            display:none;', self.single)
-        self.assertIn('.mode-strip.expanded .mode-config-grid { display:flex; }', self.single)
-        self.assertIn("const MODE_STRIP_EXPANDED_KEY = 'yacht_mode_strip_expanded_v2';", self.single)
-        self.assertIn("toggleBtn.textContent = expanded ? '설정 접기' : '설정';", self.single)
+    def test_single_settings_strip_is_always_visible(self):
+        self.assertIn('.mode-config-grid {\n            display:flex;', self.single)
+        self.assertNotIn('.mode-strip.expanded .mode-config-grid', self.single)
+        self.assertNotIn('MODE_STRIP_EXPANDED_KEY', self.single)
+        self.assertNotIn('toggleModeStrip', self.single)
         self.assertNotIn('function isCompactModeViewport()', self.single)
         self.assertNotIn("window.addEventListener('resize', updateModeStripUI)", self.single)
 

@@ -18,7 +18,7 @@ import yacht_engine
 from yacht_ai.constants import CATS
 from yacht_ai.ml_policy import RollPolicyModel
 from yacht_ai.scoring import calc_score
-from yacht_core.simulation import initial_dice
+from yacht_core.simulation import apply_score, initial_dice, total_score
 from yacht_core.simulation import reroll_from_keep as reroll_with_source
 
 
@@ -46,12 +46,6 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--output", help="optional JSON report path")
     return parser.parse_args()
-
-
-def total_score(scorecard: list[int | None]) -> int:
-    upper = sum((value or 0) for value in scorecard[:6])
-    lower = sum((value or 0) for value in scorecard[6:])
-    return int(upper + lower + (35 if upper >= 63 else 0))
 
 
 def score_metrics(scorecard: list[int | None]) -> dict:
@@ -82,20 +76,6 @@ def choose_score_category(dice: list[int], scorecard: list[int | None], mode: st
             return category_idx
 
     return max(open_categories, key=lambda idx: calc_score(dice, idx))
-
-
-def apply_score(dice: list[int], scorecard: list[int | None], category_idx: int) -> None:
-    score = calc_score(dice, category_idx)
-    yacht_idx = CATS["Yacht"]
-    if (
-        calc_score(dice, yacht_idx) == 50
-        and isinstance(scorecard[yacht_idx], (int, float))
-        and scorecard[yacht_idx] >= 50
-        and category_idx != yacht_idx
-        and score > 0
-    ):
-        scorecard[yacht_idx] += 100
-    scorecard[category_idx] = score
 
 
 def choose_keep(

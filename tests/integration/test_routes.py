@@ -109,6 +109,20 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(response_cached.headers["X-AI-Request-Cache"], "hit")
         self.assertIn("decision_report", response_cached.get_json())
 
+    def test_alternate_multiplayer_table_page_is_available(self):
+        response = self.client.get("/game/multi/table?room=ABC123")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"table-game-shell", response.data)
+        self.assertIn(b"multi-game-table.css", response.data)
+
+    def test_alternate_single_table_page_is_available(self):
+        response = self.client.get("/game/single/table?mode=solo&coach=on")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"single-table-game-shell", response.data)
+        self.assertIn(b"single-game-table.css", response.data)
+
     @patch("routes.ai.request_win_probability")
     def test_win_probability_endpoint_validates_and_returns_pending_projection(self, request_probability):
         request_probability.return_value = {
@@ -254,7 +268,7 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(payload["score_value_mode"], "value_optimal")
         self.assertEqual(payload["policy_source"], "exact_value_optimal")
         self.assertEqual(response.headers["X-AI-Policy-Source"], "exact_value_optimal")
-        self.assertIn("기대", payload["summary"])
+        self.assertIn("예상 최종 점수", payload["summary"])
         self.assertEqual(
             payload["expected_final_score"],
             round(payload["banked_score"] + payload["remaining_game_ev"], 2),

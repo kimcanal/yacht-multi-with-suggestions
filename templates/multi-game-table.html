@@ -1,15 +1,35 @@
 {% extends "base.html" %}
-{% block title %}<title>🎲 Yacht - Multiplayer</title>{% endblock %}
+{% block title %}<title>🎲 Yacht - Table Layout</title>{% endblock %}
 {% block head %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260721-13') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/multi-game.css', v='20260719-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/multi-game-table.css', v='20260721-9') }}">
     <script src="{{ url_for('static', filename='js/game_layout.js', v='20260721-1') }}"></script>
 {% endblock %}
-{% block body_attrs %}class="multiplayer-page"{% endblock %}
+{% block body_attrs %}class="multiplayer-page table-layout-page"{% endblock %}
 {% block body %}
-    <div class="game-wrapper">
-        <div class="main-area">
-            <div class="title">🎲 YACHT <span id="room-label" style="font-size:0.4em; color:#fff; opacity:0.8; margin-left:12px;"></span></div>
+    <div class="table-game-shell">
+        <aside class="scorecard-area table-scorecard">
+            <div class="table-panel-title">점수판</div>
+            <div id="score-desc-area" class="ai-breakdown score-help"></div>
+            <div id="scorecard"></div>
+            <div id="game-review" class="game-review" aria-live="polite"></div>
+        </aside>
+
+        <main class="main-area table-main-area">
+            <div class="table-titlebar">
+                <div class="title">🎲 YACHT <span id="room-label"></span></div>
+                <div class="controls primary-controls" id="player-controls">
+                    <button class="btn btn-warm" onclick="switchGameLayout('default')">↔ 기본 보기</button>
+                    <button class="btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
+                </div>
+                <div class="controls primary-controls" id="observer-controls" style="display:none;">
+                    <button class="btn btn-warm" onclick="switchGameLayout('default')">↔ 기본 보기</button>
+                    <button class="btn btn-warm" data-copy-observer-link onclick="copyObserverLink()">🔗 링크 복사</button>
+                    <button class="btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
+                </div>
+            </div>
+
             <div id="observer-banner" class="observer-banner" style="display:none;">
                 <div class="observer-banner-head">
                     <div>
@@ -20,16 +40,8 @@
                 </div>
                 <div id="observer-summary-grid" class="observer-meta-grid"></div>
             </div>
-            <div class="controls primary-controls" id="player-controls">
-                <button class="btn btn-warm" onclick="switchGameLayout('table')">🧩 테이블 보기</button>
-                <button class="btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
-            </div>
-            <div class="controls primary-controls" id="observer-controls" style="display:none;">
-                <button class="btn btn-warm" onclick="switchGameLayout('table')">🧩 테이블 보기</button>
-                <button class="btn btn-warm" data-copy-observer-link onclick="copyObserverLink()">🔗 링크 복사</button>
-                <button class="btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
-            </div>
-            <div class="dice-area">
+
+            <section class="dice-area table-dice-area">
                 <div class="info-bar">
                     <div class="game-status-grid">
                         <div class="game-status-card">
@@ -52,42 +64,39 @@
                 <div class="dice-action-row" id="dice-action-row">
                     <button class="btn btn-roll" onclick="rollDice()" id="roll-btn">🎲 ROLL</button>
                 </div>
-                <div class="ai-mode-guide" aria-label="AI 추천 방식 선택">
-                    <div class="ai-mode-card" data-ai-mode-desc="focused">
-                        <strong><span class="ai-mode-chip">집중</span> 한 족보 집중</strong>
-                        <p>유망한 한 족보를 끝까지 공략.</p>
-                        <span class="ai-mode-metric">한 족보의 완성과 상단 보너스 흐름을 우선 고려</span>
-                    </div>
-                    <div class="ai-mode-card" data-ai-mode-desc="cover">
-                        <strong><span class="ai-mode-chip">커버</span> 하나 이상</strong>
-                        <p>여러 하단 족보 중 하나라도 성공 노림.</p>
-                        <span class="ai-mode-metric">여러 하단 족보의 성공 가능성을 함께 보존</span>
-                    </div>
-                    <div class="ai-mode-card" data-ai-mode-desc="optimal">
-                        <strong><span class="ai-mode-chip">최적</span> 기대 최적</strong>
-                        <p>남은 점수판 가치까지 계산해 기대점수 최대화.</p>
-                        <span class="ai-mode-metric">남은 점수판 가치까지 반영한 기대점수 기준</span>
-                    </div>
-                </div>
-                <div id="ai-breakdown" class="ai-breakdown"></div>
-                <div id="win-prob-panel" class="winprob-panel"></div>
-            </div>
+            </section>
 
-            <div class="controls" style="margin-top:10px;" id="multiplayer-controls">
+            <div class="controls table-turn-controls" id="multiplayer-controls">
                 <button class="btn btn-teal" style="display:none;" id="pass-turn-btn" onclick="passTurn()">🔁 선공권 넘기기</button>
                 <button class="btn btn-success" style="display:none;" id="rematch-btn" onclick="requestRematch()">🔁 재대결 신청</button>
             </div>
-        </div>
+        </main>
 
-        <div class="scorecard-area">
-            <div id="score-desc-area" class="ai-breakdown score-help"></div>
-            <div id="scorecard"></div>
-            <div id="game-review" class="game-review" aria-live="polite"></div>
-        </div>
+        <aside class="table-insight-area">
+            <div class="table-panel-title">AI 코치</div>
+            <div class="ai-mode-guide" aria-label="AI 추천 방식 선택">
+                <div class="ai-mode-card" data-ai-mode-desc="focused">
+                    <strong><span class="ai-mode-chip">집중</span> 한 족보 집중</strong>
+                    <p>유망한 한 족보를 끝까지 공략.</p>
+                    <span class="ai-mode-metric">한 족보의 완성과 상단 보너스 흐름을 우선 고려</span>
+                </div>
+                <div class="ai-mode-card" data-ai-mode-desc="cover">
+                    <strong><span class="ai-mode-chip">커버</span> 하나 이상</strong>
+                    <p>여러 하단 족보 중 하나라도 성공 노림.</p>
+                    <span class="ai-mode-metric">여러 하단 족보의 성공 가능성을 함께 보존</span>
+                </div>
+                <div class="ai-mode-card" data-ai-mode-desc="optimal">
+                    <strong><span class="ai-mode-chip">최적</span> 기대 최적</strong>
+                    <p>남은 점수판 가치까지 계산해 기대점수 최대화.</p>
+                    <span class="ai-mode-metric">남은 점수판 가치까지 반영한 기대점수 기준</span>
+                </div>
+            </div>
+            <div id="ai-breakdown" class="ai-breakdown"></div>
+            <div id="win-prob-panel" class="winprob-panel"></div>
+        </aside>
     </div>
 
     <div id="score-toast" class="toast-overlay"></div>
-
     <div id="reaction-burst-layer" class="reaction-burst-layer" aria-live="polite" aria-atomic="true"></div>
     <div id="reaction-dock" class="reaction-dock" style="display:none;" aria-label="감정표현 보내기">
         <div class="reaction-dock-head">

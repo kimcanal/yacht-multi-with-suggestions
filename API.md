@@ -113,7 +113,7 @@ curl -s "$BASE_URL/api/recommend" \
 
 ### `POST /api/win-probability`
 
-양쪽 점수판의 full-game exact 기대 최종점수를 즉시 계산하고, `value_optimal` 정책 기반 Monte Carlo 승률을 백그라운드에서 계산합니다. 첫 응답은 `202 pending`일 수 있으며 `retry_after_ms` 뒤 동일한 body로 다시 요청하면 캐시된 `200 ready` 결과를 받습니다.
+양쪽의 **현재 상태 기준 예상 최종 점수**를 즉시 계산하고, `value_optimal` 정책 기반 Monte Carlo 승률을 백그라운드에서 계산합니다. 진행 중인 턴이면 이미 나온 주사위와 남은 굴림까지 반영합니다. 첫 응답은 `202 pending`일 수 있으며 `retry_after_ms` 뒤 동일한 body로 다시 요청하면 캐시된 `200 ready` 결과를 받습니다.
 
 ```json
 {
