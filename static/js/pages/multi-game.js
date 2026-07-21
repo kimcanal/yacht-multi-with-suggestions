@@ -70,8 +70,6 @@
                 if (diceActionRow) diceActionRow.style.display = 'none';
                 const banner = document.getElementById('observer-banner');
                 if (banner) banner.style.display = 'block';
-                const aiModeRow = document.getElementById('ai-mode-row');
-                if (aiModeRow) aiModeRow.style.display = 'none';
                 const aiModeGuide = document.querySelector('.ai-mode-guide');
                 if (aiModeGuide) aiModeGuide.style.display = 'none';
                 renderObserverSummary();
@@ -81,8 +79,6 @@
                 if (diceActionRow) diceActionRow.style.display = 'flex';
                 const banner = document.getElementById('observer-banner');
                 if (banner) banner.style.display = 'none';
-                const aiModeRow = document.getElementById('ai-mode-row');
-                if (aiModeRow) aiModeRow.style.display = 'flex';
                 const aiModeGuide = document.querySelector('.ai-mode-guide');
                 if (aiModeGuide) aiModeGuide.style.display = 'grid';
             }

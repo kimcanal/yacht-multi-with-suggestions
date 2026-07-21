@@ -176,7 +176,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("AI 판단 기준", self.ai_panel)
         self.assertIn("positionScoreTooltip(el, tip", self.score_utils)
         self.assertIn("function getScorePreviewOnlyHandlers", self.score_utils)
-        self.assertIn('class="score-name tip-trigger"', self.score_utils)
+        self.assertIn('class="compare-cat-cell tip-trigger"', self.score_utils)
         self.assertNotIn("const scoreMetaAttrs = clickable", self.score_utils)
         self.assertIn("help.hidden = true;", self.score_utils)
         self.assertIn(".score-help[hidden]", self.base_css)
@@ -294,9 +294,9 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_scorecard_marks_ready_pending_and_locked_rows(self):
         self.assertIn("'filled score-locked'", self.score_utils)
-        self.assertIn("'score-ready compact-clickable'", self.score_utils)
+        self.assertIn("'clickable score-ready'", self.score_utils)
         self.assertIn("'score-pending'", self.score_utils)
-        self.assertIn('.score-item.score-ready', self.base_css)
+        self.assertIn('.compare-value-cell.score-ready', self.base_css)
         self.assertIn('.compare-value-cell.score-locked', self.base_css)
 
     def test_single_desktop_scorecard_uses_full_height_without_a_fixed_offset(self):
