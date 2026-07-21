@@ -220,6 +220,10 @@ def _build_cover_mode_result(
     covered_names = [r["name"] for r in cover_target_rows[:3]]
     covered_str = " / ".join(covered_names) if covered_names else "열린 하단 족보"
     chosen_ev = keep_ev_map.get(best_keep_tuple, float("-inf"))
+    alternative_values = [
+        value for kept_tuple, value in keep_ev_map.items() if kept_tuple != best_keep_tuple
+    ]
+    alternative_gap = chosen_ev - max(alternative_values) if alternative_values else None
 
     breakdown = [
         {
@@ -276,6 +280,7 @@ def _build_cover_mode_result(
         "stage": "roll",
         "cover_success_prob": round(cover_success_prob, 6),
         "cover_fail_prob": round(cover_fail_prob, 6),
+        "alternative_gap": None if alternative_gap is None else round(alternative_gap, 2),
         "target_probabilities": [
             {
                 "name": "핸드 하나 이상 성공",

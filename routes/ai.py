@@ -19,6 +19,8 @@ from utils.validation import (
 from yacht_ai.reporting.decision import build_decision_report
 from yacht_app.infra.observability import log_json
 from yacht_app.services.win_probability import request_win_probability
+from yacht_core.constants import CATS
+from yacht_core.scoring import calc_score
 
 ai_bp = Blueprint("ai", __name__)
 
@@ -99,6 +101,67 @@ def _solver_options_for_strategy(strategy_mode):
     return strategy_mode, None, None
 
 
+def _mark_score_now_recommendation(
+    result, dice, scorecard, open_categories, solver_strategy_mode, score_value_mode,
+):
+    """Turn an all-keep result into the unambiguous action it represents.
+
+    Keeping every die is not an instruction to spend another roll.  It means
+    that recording the best open category now beats every reroll candidate.
+    Keeping this normalization at the route boundary also covers a guarded
+    learned-policy response.
+    """
+    if result.get("stage") != "roll":
+        return result
+    recommendations = result.get("dice_recommendations")
+    if not (
+        isinstance(recommendations, list)
+        and len(recommendations) == 5
+        and all(isinstance(item, dict) and item.get("action") == "keep" for item in recommendations)
+    ):
+        return result
+
+    target = result.get("primary_target")
+    # Cover and optimal roll policies use a generic roll target (for example,
+    # "hand one or more" or "EV optimal").  Resolve the concrete scorecard
+    # category before asking the player to record it.
+    if CATS.get(target) is None:
+        score_result = yacht_engine.solve_best_move(
+            dice,
+            0,
+            open_categories,
+            solver_strategy_mode,
+            scorecard,
+            score_value_mode=score_value_mode,
+        )
+        target = score_result.get("primary_target")
+    category_idx = CATS.get(target)
+    if category_idx is None:
+        return result
+
+    score = calc_score(dice, category_idx)
+    result = dict(result)
+    result["stage"] = "score"
+    result["recommended_action"] = "score_now"
+    result["record_now"] = {
+        "category": target,
+        "score": score,
+        "reroll_gap": result.get("alternative_gap"),
+        "comparison": "expected_final_score" if result.get("policy_source") == "exact_value_optimal" else "utility",
+    }
+    result["message"] = f"지금 {target} {score}점 기록 추천"
+
+    reroll_gap = result.get("alternative_gap")
+    if isinstance(reroll_gap, (int, float)):
+        if reroll_gap > 0.01:
+            label = "기대 최종점수" if result["record_now"]["comparison"] == "expected_final_score" else "평가"
+            comparison = f"다시 굴리기보다 {label} +{reroll_gap:.2f}"
+        else:
+            comparison = "다시 굴리는 선택과 거의 동률"
+        result["summary"] = f"지금 {target} {score}점 기록 추천 · {comparison}"
+    return result
+
+
 @ai_bp.route("/api/recommend", methods=["POST"])
 def recommend():
     try:
@@ -171,6 +234,10 @@ def recommend():
             result["score_value_mode"] = score_value_mode
             if forced_policy_source:
                 result["policy_source"] = forced_policy_source
+
+        result = _mark_score_now_recommendation(
+            result, dice, scorecard, open_categories, solver_strategy_mode, score_value_mode,
+        )
 
         result["decision_report"] = build_decision_report(
             result, dice, normalized_rolls_left, strategy_mode, scorecard, open_categories
