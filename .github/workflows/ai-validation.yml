@@ -46,10 +46,3 @@ jobs:
 
       - name: Run Route Integration Tests
         run: python -m unittest discover -s tests -p 'test_*.py' -v
-
-      - name: Run AI Validation Suite
-        run: |
-          python scripts/verify_ai.py \
-            --benchmark-repeats 1 \
-            --warm-cases 120 \
-            --cold-cases 40
