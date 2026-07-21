@@ -2,6 +2,7 @@ name: Project Validation
 
 on:
   push:
+    branches: [master]
   pull_request:
   workflow_dispatch:
 
