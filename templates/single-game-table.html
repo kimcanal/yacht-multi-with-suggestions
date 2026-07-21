@@ -2,11 +2,11 @@
 {% block title %}<title>🎲 Yacht - Single Table Layout</title>{% endblock %}
 {% block head %}
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico', v='20260719-1') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260721-15') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260721-16') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/single-game.css', v='20260721-2') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/multi-game-table.css', v='20260721-9') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/single-game-table.css', v='20260721-7') }}">
-    <script src="{{ url_for('static', filename='js/game_layout.js', v='20260721-2') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/multi-game-table.css', v='20260721-10') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/single-game-table.css', v='20260721-8') }}">
+    <script src="{{ url_for('static', filename='js/game_layout.js', v='20260721-3') }}"></script>
 {% endblock %}
 {% block body_attrs %}class="table-layout-page single-table-layout-page"{% endblock %}
 {% block body %}
@@ -24,6 +24,7 @@
                 <div class="title">🎲 YACHT <span id="mode-badge"></span></div>
                 <div class="controls primary-controls game-primary-controls">
                     <button class="btn btn-reset" onclick="resetGame()" id="new-game-btn">🔄 RESET</button>
+                    <button type="button" class="btn btn-teal layout-toggle" onclick="setGameLayout('classic')" aria-label="기본 보기로 전환">↔ 기본</button>
                     <button class="btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
                 </div>
             </div>

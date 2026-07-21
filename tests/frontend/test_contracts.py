@@ -144,9 +144,19 @@ class FrontendContractTests(unittest.TestCase):
     def test_desktop_defaults_to_table_while_mobile_keeps_the_original_layout(self):
         self.assertIn("js/game_layout.js", self.multi_template)
         self.assertIn("js/game_layout.js", self.single_template)
-        self.assertIn("(min-width: 1025px)", self.game_layout)
-        self.assertNotIn("layout=classic", self.game_layout)
+        self.assertIn("TABLE_MIN_WIDTH = 1201", self.game_layout)
+        self.assertIn("yacht-game-layout", self.game_layout)
+        self.assertIn("window.setGameLayout", self.game_layout)
+        self.assertIn("desktopQuery.addEventListener('change'", self.game_layout)
         self.assertIn("window.location.replace", self.game_layout)
+
+    def test_layout_toggle_preserves_the_player_preference_on_wide_screens(self):
+        for template in (self.single_template, self.multi_template):
+            self.assertIn("setGameLayout('table')", template)
+        for template in (self.single_table_template, self.multi_table_template):
+            self.assertIn("setGameLayout('classic')", template)
+        self.assertIn(".layout-toggle", self.base_css)
+        self.assertIn("@media (max-width: 1200px)", self.base_css)
 
     def test_table_panels_reserve_scrollbar_space_for_text_updates(self):
         self.assertIn("height: calc(100dvh - 28px)", self.table_layout_css)
@@ -154,6 +164,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("overflow-y: scroll", self.table_layout_css)
         self.assertIn("scrollbar-gutter: stable", self.table_layout_css)
         self.assertIn("transform: translateY(clamp(16px, 3vh, 36px));", self.table_layout_css)
+        self.assertIn("position: sticky", self.table_layout_css)
+        self.assertIn("@media (min-width: 1201px) and (max-height: 800px)", self.table_layout_css)
 
     def test_single_table_layout_keeps_ranked_session_and_game_controls(self):
         self.assertIn('class="table-game-shell single-table-game-shell"', self.single_table_template)

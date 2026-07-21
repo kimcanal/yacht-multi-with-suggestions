@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}<title>🎲 Yacht - Multiplayer</title>{% endblock %}
 {% block head %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260721-15') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260721-16') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/multi-game.css', v='20260719-1') }}">
-    <script src="{{ url_for('static', filename='js/game_layout.js', v='20260721-2') }}"></script>
+    <script src="{{ url_for('static', filename='js/game_layout.js', v='20260721-3') }}"></script>
 {% endblock %}
 {% block body_attrs %}class="multiplayer-page"{% endblock %}
 {% block body %}
@@ -21,9 +21,11 @@
                 <div id="observer-summary-grid" class="observer-meta-grid"></div>
             </div>
             <div class="controls primary-controls" id="player-controls">
+                <button type="button" class="btn btn-teal layout-toggle" onclick="setGameLayout('table')" aria-label="테이블 보기로 전환">▦ 테이블</button>
                 <button class="btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
             </div>
             <div class="controls primary-controls" id="observer-controls" style="display:none;">
+                <button type="button" class="btn btn-teal layout-toggle" onclick="setGameLayout('table')" aria-label="테이블 보기로 전환">▦ 테이블</button>
                 <button class="btn btn-warm" data-copy-observer-link onclick="copyObserverLink()">🔗 링크 복사</button>
                 <button class="btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
             </div>

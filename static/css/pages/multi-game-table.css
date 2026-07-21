@@ -112,7 +112,7 @@
 .table-insight-area .ai-breakdown,
 .table-insight-area .winprob-panel { margin-top: 12px; }
 
-@media (min-width: 1025px) {
+@media (min-width: 1201px) {
     .table-layout-page { overflow: hidden; padding: 14px 18px; }
     .table-game-shell {
         height: calc(100vh - 28px);
@@ -139,6 +139,15 @@
         transform: translateY(clamp(16px, 3vh, 36px));
     }
 
+    /* Keep the primary action reachable when the dice panel needs to scroll. */
+    .table-dice-area .dice-action-row {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        padding: 12px 0 4px;
+        background: linear-gradient(to bottom, transparent, rgba(8, 40, 43, 0.98) 38%);
+    }
+
     /* 비교 점수판에는 상단 합계와 보너스를 한 줄로 고정한다. */
     .table-scorecard:has(.compare-board) .score-help,
     .table-scorecard:has(.compare-board) .score-duel-overview {
@@ -155,7 +164,7 @@
     .table-insight-area .ai-mode-metric { display: none; }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
     .table-layout-page { overflow: auto; }
     .table-game-shell {
         min-height: 0;
@@ -168,6 +177,11 @@
     .table-insight-area { order: 3; }
     .table-scorecard, .table-insight-area { overflow: visible; }
     .table-dice-area { min-height: 460px; }
+}
+
+@media (min-width: 1201px) and (max-height: 800px) {
+    .table-dice-area { justify-content: flex-start; }
+    .table-dice-area .dice-grid { transform: translateY(clamp(0px, 1vh, 8px)); }
 }
 
 @media (max-width: 640px) {

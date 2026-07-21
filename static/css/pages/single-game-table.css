@@ -26,7 +26,7 @@
 
 /* VS AI uses one card for both players. Keep every scoring row in view and
    spend the limited vertical space on that table instead of duplicate help. */
-@media (min-width: 1025px) {
+@media (min-width: 1201px) {
     .single-table-layout-page .table-scorecard:has(#scorecard.table-solo-scorecard) {
         display: flex;
         flex-direction: column;
@@ -135,7 +135,7 @@
     }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
     .single-table-game-shell .table-main-area { order: 1; }
     .single-table-game-shell .table-scorecard { order: 2; }
     .single-table-game-shell .single-table-insight-area { order: 3; }

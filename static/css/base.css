@@ -221,6 +221,14 @@ button {
     color: var(--text-strong);
 }
 
+.layout-toggle {
+    white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+    .layout-toggle { display: none !important; }
+}
+
 .btn.btn-reset {
     background: rgba(240, 147, 251, 0.1);
     border: 1.5px solid rgba(240, 147, 251, 0.5);
