@@ -1553,6 +1553,27 @@ button {
     line-height: 1.45;
 }
 
+.ai-action-comparison {
+    display: grid;
+    gap: 3px;
+    padding-left: 9px;
+    border-left: 2px solid rgba(255, 211, 107, 0.7);
+    color: var(--text-muted-blue);
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.ai-action-comparison > span {
+    color: var(--gold-warm);
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
+.ai-action-comparison strong {
+    color: var(--text-soft);
+    font-weight: 700;
+}
+
 .ai-perspective {
     margin-top: 2px;
     color: var(--mint);
