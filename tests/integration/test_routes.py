@@ -174,6 +174,25 @@ class RouteIntegrationTests(unittest.TestCase):
         roll_payload = roll_response.get_json()
         self.assertEqual(roll_payload["keep_indices"], [0, 1, 2, 3])
 
+    def test_all_keep_roll_recommendation_is_presented_as_record_now(self):
+        response = self.client.post(
+            "/api/recommend",
+            json={
+                "dice": [6, 6, 6, 6, 6],
+                "rolls_left": 1,
+                "scorecard": [None] * 12,
+                "strategy_mode": "optimal",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload["stage"], "score")
+        self.assertEqual(payload["recommended_action"], "score_now")
+        self.assertEqual(payload["record_now"]["category"], "Yacht")
+        self.assertEqual(payload["record_now"]["score"], 50)
+        self.assertIn("지금 Yacht 50점 기록 추천", payload["message"])
+
     def test_loaded_roll_policy_is_used_for_cover_but_not_focused_value_mode(self):
         model_path = Path("artifacts/runtime/models/model-20260717-roll-policy-v3.json")
         self.assertTrue(model_path.exists())

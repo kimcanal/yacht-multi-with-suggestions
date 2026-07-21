@@ -112,6 +112,10 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('report.probability_context', self.ai_panel)
         self.assertIn('ai-probability-basis', self.ai_panel)
 
+    def test_all_keep_recommendation_is_treated_as_a_score_hint_not_five_keep_badges(self):
+        self.assertIn("if (!options.enabled || !aiRec || aiRec.stage === 'score') return;", self.yacht_game)
+        self.assertIn("if (aiRec.stage === 'score') return true;", self.yacht_game)
+
     def test_ai_score_hint_uses_actual_zero_score_for_sacrifice_badge(self):
         self.assertIn("calcScore(dice, categoryIndex)", self.yacht_game)
         self.assertIn("if (targetScore !== null) return targetScore <= 0;", self.yacht_game)
