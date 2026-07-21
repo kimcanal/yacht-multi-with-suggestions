@@ -469,12 +469,27 @@ button {
 .die[data-value="6"] .face-6 { display: grid; }
 
 .die.rolling {
-    animation: roll2d 0.32s ease-in-out infinite;
+    animation: roll2d 0.66s cubic-bezier(.36,.04,.18,1) infinite;
+    animation-delay: var(--roll-delay, 0s);
+    transform-origin: 50% 58%;
 }
 
 @keyframes roll2d {
-    0%, 100% { transform: scale(1) rotate(0deg); }
-    50% { transform: scale(0.92) rotate(-1.5deg); }
+    0% { transform: translateY(-5%) scale(0.96) rotate(-9deg); }
+    24% { transform: translateY(4%) scale(1.04, 0.94) rotate(12deg); }
+    50% { transform: translateY(-2%) scale(0.97, 1.03) rotate(-7deg); }
+    74% { transform: translateY(3%) scale(1.02, 0.97) rotate(5deg); }
+    100% { transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+.die.landed {
+    animation: diceLand 0.34s cubic-bezier(.2,.9,.3,1.15);
+}
+
+@keyframes diceLand {
+    0% { transform: translateY(3%) scale(1.04, 0.94) rotate(3deg); }
+    55% { transform: translateY(-2%) scale(0.98, 1.02) rotate(-1deg); }
+    100% { transform: translateY(0) scale(1) rotate(0deg); }
 }
 
 .dot {
@@ -1982,5 +1997,6 @@ button {
 
 @media (prefers-reduced-motion: reduce) {
 .die.rolling,
+.die.landed,
 .die-container.is-rolling { animation: none !important; }
 }

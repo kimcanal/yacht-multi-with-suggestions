@@ -92,6 +92,16 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("noiseGain.gain.setValueAtTime(0.2, now);", self.yacht_game)
         self.assertIn("osc.frequency.setValueAtTime(880, now);", self.yacht_game)
 
+    def test_dice_roll_cycles_faces_before_landing_on_the_server_result(self):
+        self.assertIn("function startDiceRollAnimation", self.yacht_game)
+        self.assertIn("function stopDiceRollAnimation", self.yacht_game)
+        self.assertIn("nextRollingFace", self.yacht_game)
+        self.assertIn("startDiceRollAnimation(keptForRoll);", self.single)
+        self.assertIn("startDiceRollAnimation(keptForRoll);", self.multi)
+        self.assertIn("stopDiceRollAnimation();", self.single)
+        self.assertIn("stopDiceRollAnimation();", self.multi)
+        self.assertIn("@keyframes diceLand", self.base_css)
+
     def test_current_score_top_three_sits_between_dice_and_roll(self):
         for template in (self.single_template, self.single_table_template, self.multi_template, self.multi_table_template):
             dice_grid = template.index('id="dice-grid"')

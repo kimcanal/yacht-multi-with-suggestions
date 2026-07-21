@@ -94,7 +94,7 @@ function playScoreSelectSound() {
 function playDiceRollSound() {
     withGameAudio((ctx) => {
         const now = ctx.currentTime;
-        const duration = 0.4;
+        const duration = 0.72;
         const noiseBuffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate);
         const output = noiseBuffer.getChannelData(0);
         for (let i = 0; i < output.length; i++) output[i] = Math.random() * 2 - 1;
@@ -108,19 +108,59 @@ function playDiceRollSound() {
         noise.start(now);
         noise.stop(now + duration);
 
-        for (let beat = 0; beat < 5; beat++) {
+        for (let beat = 0; beat < 8; beat++) {
             const oscillator = ctx.createOscillator();
             const gain = ctx.createGain();
-            const startAt = now + beat * 0.07;
+            const startAt = now + beat * 0.08;
             oscillator.type = 'square';
-            oscillator.frequency.setValueAtTime(Math.max(1180 - beat * 160, 400), startAt);
-            gain.gain.setValueAtTime(0.12, startAt);
-            gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.08);
+            oscillator.frequency.setValueAtTime(Math.max(1240 - beat * 118, 420), startAt);
+            gain.gain.setValueAtTime(Math.max(0.13 - beat * 0.012, 0.045), startAt);
+            gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.075);
             oscillator.connect(gain).connect(ctx.destination);
             oscillator.start(startAt);
-            oscillator.stop(startAt + 0.08);
+            oscillator.stop(startAt + 0.075);
         }
     });
+}
+
+const rollingDiceTimers = new Map();
+
+function nextRollingFace(currentFace) {
+    const current = Number(currentFace) || 1;
+    let next = current;
+    while (next === current) next = Math.floor(Math.random() * 6) + 1;
+    return next;
+}
+
+function startDiceRollAnimation(keepMask = []) {
+    stopDiceRollAnimation({ land: false });
+    for (let index = 0; index < 5; index++) {
+        if (keepMask[index]) continue;
+        const die = document.getElementById(`die-${index}`);
+        if (!die) continue;
+
+        die.classList.remove('landed');
+        die.classList.add('rolling');
+        die.style.setProperty('--roll-delay', `-${index * 0.09}s`);
+        const advanceFace = () => {
+            die.dataset.value = String(nextRollingFace(die.dataset.value));
+        };
+        advanceFace();
+        rollingDiceTimers.set(index, window.setInterval(advanceFace, 64 + index * 9));
+    }
+}
+
+function stopDiceRollAnimation({ land = true } = {}) {
+    rollingDiceTimers.forEach((timer, index) => {
+        window.clearInterval(timer);
+        const die = document.getElementById(`die-${index}`);
+        if (!die) return;
+        die.classList.remove('rolling');
+        if (!land) return;
+        die.classList.add('landed');
+        window.setTimeout(() => die.classList.remove('landed'), 340);
+    });
+    rollingDiceTimers.clear();
 }
 
 function renderDice() {

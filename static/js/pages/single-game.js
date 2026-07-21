@@ -801,14 +801,13 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             updateDice();
             updateScorecard();
 
-            for (let i = 0; i < 5; i++) {
-                if (!keptForRoll[i]) document.getElementById(`die-${i}`).classList.add('rolling');
-            }
+            startDiceRollAnimation(keptForRoll);
 
             setTimeout(async () => {
                 try {
                     if (rollsLeft <= 0) {
                         alert('남은 굴림이 없습니다');
+                        stopDiceRollAnimation();
                         isRolling = false;
                         return;
                     }
@@ -816,6 +815,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                     if (shouldUseRankedSingleSession()) {
                         if (!singleSessionReady) {
                             alert('랭킹 세션 연결에 실패했습니다. 새로고침 후 다시 시작해 주세요.');
+                            stopDiceRollAnimation();
                             isRolling = false;
                             return;
                         }
@@ -837,6 +837,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                         rollUnlockedDice(keptForRoll);
                         rollsLeft = Math.max(0, rollsLeft - 1);
                     }
+                    stopDiceRollAnimation();
                     isRolling = false;
                     commitState();
                     updateDice();
@@ -861,10 +862,11 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                     startTurnTimer();
                 } catch (e) {
                     console.error('Roll failed:', e);
+                    stopDiceRollAnimation();
                     isRolling = false;
                     refreshTurnUI();
                 }
-            }, 600);
+            }, 720);
         }
 
         async function pickCategory(i) {

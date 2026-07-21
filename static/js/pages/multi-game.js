@@ -1137,9 +1137,7 @@ function applyRemoteState(state) {
             updateDice();
             updateScorecard();
 
-            for (let i = 0; i < 5; i++) {
-                if (!keptForRoll[i]) document.getElementById(`die-${i}`).classList.add('rolling');
-            }
+            startDiceRollAnimation(keptForRoll);
 
             setTimeout(async () => {
                 try {
@@ -1156,11 +1154,13 @@ function applyRemoteState(state) {
                     const data = await r.json();
                     if (r.status === 404) {
                         handleConnectionLost('방 연결이 종료되었습니다. 로비로 이동합니다.');
+                        stopDiceRollAnimation();
                         isRolling = false;
                         return;
                     }
                     if (r.status === 403 && data.error === '참가자 인증 실패') {
                         handleConnectionLost('참가 인증이 만료되었습니다. 로비에서 다시 입장해 주세요.');
+                        stopDiceRollAnimation();
                         isRolling = false;
                         return;
                     }
@@ -1178,10 +1178,12 @@ function applyRemoteState(state) {
                         turnLeftSeconds = 30;
                     } else {
                         alert('주사위 굴림 실패');
+                        stopDiceRollAnimation();
                         isRolling = false;
                         return;
                     }
 
+                    stopDiceRollAnimation();
                     isRolling = false;
                     updateDice();
                     updateScorecard();
@@ -1205,9 +1207,10 @@ function applyRemoteState(state) {
                     pushState();
                 } catch (e) {
                     console.error('Roll failed:', e);
+                    stopDiceRollAnimation();
                     isRolling = false;
                 }
-            }, 600);
+            }, 720);
         }
 
         async function askAI() {
