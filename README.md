@@ -128,6 +128,7 @@ node --check static/js/score_utils.js
 ## 더 읽기
 
 - [게임 API](./API.md)
+- [처음부터 읽는 게임 규칙·추천 전략 가이드](./docs/yacht-game-guide-and-recommendation-strategy.md)
 - [변경 이력](./CHANGELOG.md)
 - [승률 엔진 노트](./docs/win-probability-v1-notes.md)
 - [성능 로드맵](./docs/performance-roadmap.md)
