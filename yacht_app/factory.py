@@ -8,8 +8,9 @@ import threading
 from pathlib import Path
 
 from flask import Flask, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
-from config import AI_WARMUP_ENABLED
+from config import AI_WARMUP_ENABLED, TRUSTED_PROXY_HOPS
 from routes.ai import ai_bp
 from routes.leaderboard import leaderboard_bp
 from routes.lobby import lobby_bp
@@ -23,17 +24,38 @@ from yacht_app.web.pages import pages_bp
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _validate_runtime_configuration():
+    """Fail fast when a multi-worker deployment would split mutable state."""
+    workers = int(os.getenv("GUNICORN_WORKERS", "1"))
+    room_backend = os.getenv("YACHT_ROOM_BACKEND", "memory").strip().lower()
+    result_backend = os.getenv("YACHT_RESULT_BACKEND", "json").strip().lower()
+    if workers <= 1:
+        return
+    if room_backend != "redis":
+        raise RuntimeError("GUNICORN_WORKERS > 1 requires YACHT_ROOM_BACKEND=redis")
+    if result_backend != "sqlite":
+        raise RuntimeError("GUNICORN_WORKERS > 1 requires YACHT_RESULT_BACKEND=sqlite")
+
+
 def create_app(
     config_overrides: dict | None = None,
     *,
     services: AppServices | None = None,
     initialize_runtime: bool = True,
 ) -> Flask:
+    _validate_runtime_configuration()
     app = Flask(
         __name__,
         template_folder=str(ROOT / "templates"),
         static_folder=str(ROOT / "static"),
     )
+    if TRUSTED_PROXY_HOPS:
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app,
+            x_for=TRUSTED_PROXY_HOPS,
+            x_proto=TRUSTED_PROXY_HOPS,
+            x_host=TRUSTED_PROXY_HOPS,
+        )
     app.config.setdefault("MAX_CONTENT_LENGTH", int(os.getenv("YACHT_MAX_REQUEST_BYTES", "32768")))
     if config_overrides:
         app.config.update(config_overrides)

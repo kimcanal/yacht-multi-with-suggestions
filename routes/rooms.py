@@ -4,7 +4,7 @@ from contextlib import nullcontext
 
 from flask import Blueprint, Response, jsonify, request, stream_with_context
 
-from app_state import rooms
+from app_state import get_services, rooms
 from config import TURN_TIME_LIMIT
 from utils.validation import (
     is_valid_player,
@@ -24,14 +24,16 @@ from yacht_app.services.room_game import (
     validate_sync_transition,
 )
 from yacht_app.services.room_lifecycle import (
+    advance_expired_turn,
     build_fair_state,
     default_room_state,
     finalize_room_forfeit,
     generate_room_code,
     prune_room_activity,
+    record_room_score,
     remove_observer,
     remove_player,
-    roll_with_fairness,
+    roll_room_dice,
     room_phase,
     score_total,
     start_room_rematch,
@@ -52,8 +54,6 @@ _REACTIONS = {
     "dice": {"emoji": "🎲", "label": "가자", "asset": "/static/assets/openmoji/1F3B2.svg"},
     "gg": {"emoji": "👏", "label": "GG", "asset": "/static/assets/openmoji/1F44F.svg"},
 }
-
-
 def _recent_reactions(room):
     return list(room.get("reactions", []))[-_REACTION_HISTORY_LIMIT:]
 
@@ -89,27 +89,51 @@ def _room_lock(code):
     return rooms.lock(code) if hasattr(rooms, "lock") else nullcontext()
 
 
-@rooms_bp.route("/api/rooms", methods=["GET"])
-def list_rooms():
-    now = time.time()
+def _advance_expired_turn_if_needed(code, room, now):
+    event = advance_expired_turn(room, code, TURN_TIME_LIMIT, now)
+    if event:
+        if room.get("state", {}).get("game_over"):
+            finish_room_if_complete(room, room["state"])
+        _save_room(code, room)
+    return event
+
+
+def _prepare_room(code, room, now):
+    """Prune, advance an expired turn, and persist one locked room mutation."""
+    room = prune_room_activity(room, now)
+    if not room:
+        _delete_room(code)
+        return None
+    _advance_expired_turn_if_needed(code, room, now)
+    _save_room(code, room)
+    return room
+
+
+def _room_summary(code, room):
+    return {
+        "code": code,
+        "host": room["host"],
+        "players": room["players"],
+        "status": "full" if len(room["players"]) >= 2 else "waiting",
+        "room_phase": room_phase(room),
+        "observer_count": len(room.get("observers", [])),
+    }
+
+
+def active_room_summaries(now=None):
+    now = now or time.time()
+    summaries = []
     for code, info in list(rooms.items()):
         with _room_lock(code):
-            current = rooms.get(code, info)
-            pruned = prune_room_activity(code, current, now)
-            if pruned:
-                _save_room(code, pruned)
-    return jsonify([
-        {
-            "code": code,
-            "host": info["host"],
-            "players": info["players"],
-            "status": "full" if len(info["players"]) >= 2 else "waiting",
-            "room_phase": room_phase(info),
-            "observer_count": len(info.get("observers", [])),
-        }
-        for code, info in rooms.items()
-        if info.get("players")
-    ])
+            room = _prepare_room(code, rooms.get(code, info), now)
+            if room:
+                summaries.append(_room_summary(code, room))
+    return summaries
+
+
+@rooms_bp.route("/api/rooms", methods=["GET"])
+def list_rooms():
+    return jsonify(active_room_summaries())
 
 
 @rooms_bp.route("/api/rooms", methods=["POST"])
@@ -163,10 +187,9 @@ def join_room(code):
             return jsonify({"error": "방 없음"}), 404
 
         now = time.time()
-        room = prune_room_activity(code, rooms[code], now)
+        room = _prepare_room(code, rooms[code], now)
         if not room:
             return jsonify({"error": "방 없음"}), 404
-        _save_room(code, room)
         if username in room["players"]:
             return jsonify({"error": "이미 사용 중인 닉네임입니다"}), 409
         if len(room["players"]) >= 2:
@@ -216,10 +239,9 @@ def observe_room(code):
             return jsonify({"error": "방 없음"}), 404
 
         now = time.time()
-        room = prune_room_activity(code, rooms[code], now)
+        room = _prepare_room(code, rooms[code], now)
         if not room:
             return jsonify({"error": "방 없음"}), 404
-        _save_room(code, room)
         if username in room["players"]:
             return jsonify({"error": "이미 플레이어입니다"}), 409
 
@@ -253,10 +275,9 @@ def get_room(code):
         elif u and u in room.get("observers", []):
             touch_observer(room, u, now)
 
-        room = prune_room_activity(code, room, now)
+        room = _prepare_room(code, room, now)
         if not room:
             return jsonify({"error": "방 없음"}), 404
-        _save_room(code, room)
 
         state = room.get("state", default_room_state())
         turn_left = None
@@ -303,6 +324,11 @@ def room_events(code):
             return jsonify({"error": "방 없음"}), 404
 
     once = request.args.get("once") == "1"
+    slot_acquired = once or get_services().sse_slots.acquire(blocking=False)
+    if not slot_acquired:
+        response = jsonify({"error": "실시간 연결이 혼잡합니다. 잠시 후 다시 시도해 주세요."})
+        response.headers["Retry-After"] = "2"
+        return response, 503
     last_version = safe_int(request.args.get("sv"), -1)
     last_reaction_id = (request.args.get("reaction_id") or "").strip() or None
     reaction_cursor_initialized = last_reaction_id is not None
@@ -312,51 +338,55 @@ def room_events(code):
     @stream_with_context
     def generate():
         nonlocal last_version, last_reaction_id, reaction_cursor_initialized
-        deadline = time.time() + 25
-        last_heartbeat = 0
-        while True:
-            with _room_lock(code):
-                room = rooms.get(code)
-                if room:
-                    state = room.get("state", default_room_state())
-                    current_version = safe_int(state.get("version"), 0)
-                    room_notice = room_event_payload(code, room)
-                    reactions = _recent_reactions(room)
-                else:
-                    current_version = None
-                    room_notice = None
-                    reactions = []
+        try:
+            deadline = time.time() + 25
+            last_heartbeat = 0
+            while True:
+                with _room_lock(code):
+                    room = _prepare_room(code, rooms.get(code), time.time())
+                    if room:
+                        state = room.get("state", default_room_state())
+                        current_version = safe_int(state.get("version"), 0)
+                        room_notice = room_event_payload(code, room)
+                        reactions = _recent_reactions(room)
+                    else:
+                        current_version = None
+                        room_notice = None
+                        reactions = []
 
-            if room_notice is None:
-                yield sse_event("room_closed", {"code": code})
-                return
-
-            if not reaction_cursor_initialized:
-                last_reaction_id = reactions[-1].get("id") if reactions else None
-                reaction_cursor_initialized = True
-            else:
-                new_reactions = _reactions_after(reactions, last_reaction_id)
-                for reaction in new_reactions:
-                    yield sse_event("reaction", reaction)
-                if new_reactions:
-                    last_reaction_id = new_reactions[-1].get("id")
-
-            if once or current_version != last_version:
-                last_version = current_version
-                yield sse_event(
-                    "room_state",
-                    room_notice,
-                    event_id=current_version,
-                )
-                if once:
+                if room_notice is None:
+                    yield sse_event("room_closed", {"code": code})
                     return
-            elif time.time() - last_heartbeat >= 10:
-                last_heartbeat = time.time()
-                yield sse_event("heartbeat", {"code": code, "ts": int(last_heartbeat)})
 
-            if time.time() >= deadline:
-                return
-            time.sleep(interval_s)
+                if not reaction_cursor_initialized:
+                    last_reaction_id = reactions[-1].get("id") if reactions else None
+                    reaction_cursor_initialized = True
+                else:
+                    new_reactions = _reactions_after(reactions, last_reaction_id)
+                    for reaction in new_reactions:
+                        yield sse_event("reaction", reaction)
+                    if new_reactions:
+                        last_reaction_id = new_reactions[-1].get("id")
+
+                if once or current_version != last_version:
+                    last_version = current_version
+                    yield sse_event(
+                        "room_state",
+                        room_notice,
+                        event_id=current_version,
+                    )
+                    if once:
+                        return
+                elif time.time() - last_heartbeat >= 10:
+                    last_heartbeat = time.time()
+                    yield sse_event("heartbeat", {"code": code, "ts": int(last_heartbeat)})
+
+                if time.time() >= deadline:
+                    return
+                time.sleep(interval_s)
+        finally:
+            if not once:
+                get_services().sse_slots.release()
 
     return Response(
         generate(),
@@ -389,10 +419,9 @@ def heartbeat_room(code):
         else:
             return jsonify({"error": "참가자 없음"}), 404
 
-        room = prune_room_activity(code, room, now)
+        room = _prepare_room(code, room, now)
         if not room:
             return jsonify({"error": "방 없음"}), 404
-        _save_room(code, room)
 
         return jsonify({
             "status": "ok",
@@ -416,10 +445,9 @@ def sync_room(code):
 
         now = time.time()
         touch_player(room, username, now)
-        room = prune_room_activity(code, room, now)
+        room = _prepare_room(code, room, now)
         if not room or username not in room.get("players", []):
             return jsonify({"error": "방 없음"}), 404
-        _save_room(code, room)
 
         state = room.get("state", default_room_state())
         if state.get("turn") and state["turn"] != username and not data.get("game_over"):
@@ -547,10 +575,9 @@ def roll_dice(code):
 
         now = time.time()
         touch_player(room, username, now)
-        room = prune_room_activity(code, room, now)
+        room = _prepare_room(code, room, now)
         if not room or username not in room.get("players", []):
             return jsonify({"error": "방 없음"}), 404
-        _save_room(code, room)
 
         if len(room.get("players", [])) < 2:
             return jsonify({"error": "상대방 입장 대기 중"}), 409
@@ -559,6 +586,16 @@ def roll_dice(code):
         if state.get("turn") and state["turn"] != username:
             return jsonify({"error": "상대 턴"}), 403
 
+        expected_version = safe_int(data.get("expected_version"))
+        if "expected_version" in data and expected_version is None:
+            return jsonify({"error": "expected_version은 정수여야 합니다"}), 400
+        current_version = safe_int(state.get("version"), 0)
+        if expected_version is not None and expected_version != current_version:
+            return jsonify({
+                "error": "방 상태가 최신이 아닙니다. 다시 동기화해 주세요.",
+                "state": state,
+            }), 409
+
         rolls_left = state.get("rolls_left", 3)
         if rolls_left <= 0:
             return jsonify({"error": "남은 굴림 없음"}), 400
@@ -566,42 +603,70 @@ def roll_dice(code):
         kept = normalize_kept(data.get("kept", state["kept"]))
         if kept is None:
             return jsonify({"error": "잘못된 고정 주사위 데이터"}), 400
-        # 첫 굴림 전의 기본 주사위는 실제 손패가 아니다. 어떤 요청이 와도
-        # 전부 새로 굴려서 첫 손패를 서버 난수로만 결정한다.
-        if rolls_left == 3:
-            kept = [0, 0, 0, 0, 0]
-
-        fair = room.get("fair") or build_fair_state()
-        rolled_values, next_fair = roll_with_fairness(code, kept, fair)
-
-        new_dice = state["dice"][:]
-        for i in range(5):
-            if not kept[i]:
-                new_dice[i] = rolled_values[i]
-
-        state.setdefault("player_dice", {})[username] = new_dice
-        state.setdefault("player_kept", {})[username] = kept
-        state.setdefault("player_rolls_left", {})[username] = rolls_left - 1
-        state["dice"] = new_dice
-        state["kept"] = kept
-        state["rolls_left"] = rolls_left - 1
+        roll_result = roll_room_dice(room, code, kept)
+        state.pop("timeout_event", None)
         state["version"] = state.get("version", 0) + 1
         state["turn_start_time"] = now
 
         room["state"] = state
-        room["fair"] = next_fair
         room["last_update"] = now
         _save_room(code, room)
         return jsonify({
-            "dice": new_dice,
-            "rolls_left": state["rolls_left"],
+            "dice": roll_result["dice"],
+            "rolls_left": roll_result["rolls_left"],
             "state": state,
-            "fairness": {
-                "revealed": next_fair.get("last_reveal"),
-                "next_hash": next_fair.get("hash"),
-                "next_nonce": next_fair.get("nonce", 0),
-            },
+            "fairness": roll_result["fairness"],
         })
+
+
+@rooms_bp.route("/api/rooms/<code>/score", methods=["POST"])
+def score_room(code):
+    """Record a category through one server-authoritative game command."""
+    data = request.json or {}
+    username = normalize_username(data.get("username"))
+    player_token = data.get("player_token")
+    category_idx = safe_int(data.get("category_idx"))
+    if category_idx is None:
+        return jsonify({"error": "category_idx는 정수여야 합니다"}), 400
+
+    with _room_lock(code):
+        room = rooms.get(code)
+        if not room:
+            return jsonify({"error": "방 없음"}), 404
+        if username not in room.get("players", []) or not is_valid_player(room, username, player_token):
+            return jsonify({"error": "참가자 인증 실패"}), 403
+
+        now = time.time()
+        touch_player(room, username, now)
+        room = _prepare_room(code, room, now)
+        if not room or username not in room.get("players", []):
+            return jsonify({"error": "방 없음"}), 404
+
+        if len(room.get("players", [])) < 2:
+            return jsonify({"error": "상대방 입장 대기 중"}), 409
+        state = room.get("state", default_room_state())
+        expected_version = safe_int(data.get("expected_version"))
+        if "expected_version" in data and expected_version is None:
+            return jsonify({"error": "expected_version은 정수여야 합니다"}), 400
+        current_version = safe_int(state.get("version"), 0)
+        if expected_version is not None and expected_version != current_version:
+            return jsonify({
+                "error": "방 상태가 최신이 아닙니다. 다시 동기화해 주세요.",
+                "state": state,
+            }), 409
+
+        try:
+            result = record_room_score(room, username, category_idx, now=now)
+        except ValueError as error:
+            return jsonify({"error": str(error)}), 400
+
+        state = result["state"]
+        if state.get("game_over"):
+            finish_room_if_complete(room, state)
+        else:
+            room["rematch_requests"] = {}
+        _save_room(code, room)
+        return jsonify(result)
 
 
 @rooms_bp.route("/api/rooms/<code>/reaction", methods=["POST"])
@@ -626,6 +691,11 @@ def react_to_room(code):
         if not is_valid_player(room, username, player_token):
             return jsonify({"error": "참가자 인증 실패"}), 403
 
+        touch_player(room, username, now)
+        room = _prepare_room(code, room, now)
+        if not room or username not in room.get("players", []):
+            return jsonify({"error": "방 없음"}), 404
+
         last_sent = room.setdefault("reaction_last_sent", {}).get(username, 0)
         retry_after = _REACTION_COOLDOWN_SECONDS - (now - last_sent)
         if retry_after > 0:
@@ -646,7 +716,6 @@ def react_to_room(code):
         if len(history) > _REACTION_HISTORY_LIMIT:
             del history[:-_REACTION_HISTORY_LIMIT]
         room["reaction_last_sent"][username] = now
-        touch_player(room, username, now)
         _save_room(code, room)
         return jsonify({"status": "ok", "reaction": reaction})
 
@@ -655,6 +724,9 @@ def react_to_room(code):
 def room_fairness(code):
     with _room_lock(code):
         room = rooms.get(code)
+        if not room:
+            return jsonify({"error": "방 없음"}), 404
+        room = _prepare_room(code, room, time.time())
         if not room:
             return jsonify({"error": "방 없음"}), 404
         fair = room.get("fair") or build_fair_state()
@@ -681,10 +753,9 @@ def rematch_room(code):
 
         now = time.time()
         touch_player(room, username, now)
-        room = prune_room_activity(code, room, now)
+        room = _prepare_room(code, room, now)
         if not room or username not in room.get("players", []):
             return jsonify({"error": "방 없음"}), 404
-        _save_room(code, room)
 
         state = room.get("state", default_room_state())
         if not state.get("game_over"):

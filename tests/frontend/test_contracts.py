@@ -30,6 +30,9 @@ class FrontendContractTests(unittest.TestCase):
         cls.game_layout = (ROOT / "static/js/game_layout.js").read_text(encoding="utf-8")
         cls.table_layout_css = (ROOT / "static/css/pages/multi-game-table.css").read_text(encoding="utf-8")
         cls.single_table_layout_css = (ROOT / "static/css/pages/single-game-table.css").read_text(encoding="utf-8")
+        cls.lobby = (ROOT / "static/js/pages/lobby.js").read_text(encoding="utf-8")
+        cls.lobby_api = (ROOT / "static/js/pages/lobby_api.js").read_text(encoding="utf-8")
+        cls.lobby_render = (ROOT / "static/js/pages/lobby_render.js").read_text(encoding="utf-8")
 
     def test_page_templates_use_base_and_external_assets(self):
         for template in (
@@ -126,6 +129,27 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("emoji.src = reaction.asset", self.multi)
         self.assertNotIn("/api/rooms/${roomCode}/chat", self.multi)
         self.assertIn("startSyncPolling({immediate: true})", self.multi)
+
+    def test_multiplayer_timeout_refreshes_server_authoritative_state(self):
+        self.assertIn("Timeout advancement is server-authoritative", self.multi)
+        timer_block = self.multi[self.multi.index("function startTurnTimer()"):self.multi.index("function clearTurnTimer()")]
+        self.assertIn("timeOut();", timer_block)
+        self.assertIn("fetchRoomState();", timer_block)
+        self.assertNotIn("rollDice();", timer_block)
+
+    def test_lobby_uses_one_snapshot_for_recurring_refreshes(self):
+        self.assertIn("/api/lobby-snapshot?${query.toString()}", self.lobby_api)
+        self.assertIn("LobbyApi.snapshot(query)", self.lobby)
+        self.assertIn("loadLeaderboard(snapshot.leaderboard, {skipProfile: true})", self.lobby)
+        self.assertIn("setInterval(refreshLobbyNow, 5000)", self.lobby)
+        self.assertIn("global.LobbyApi", self.lobby_api)
+        self.assertIn("global.LobbyRender", self.lobby_render)
+
+    def test_multiplayer_scores_through_the_server_command(self):
+        self.assertIn("/api/rooms/${roomCode}/score", self.multi)
+        self.assertIn("category_idx: i", self.multi)
+        self.assertIn("expected_version: roomVersion", self.multi)
+        self.assertIn("scoreRequestInFlight", self.multi)
 
     def test_roll_uses_a_snapshot_of_the_keep_mask(self):
         self.assertIn("const keptForRoll = [...kept];", self.single)
