@@ -2,7 +2,7 @@
 
 5개의 주사위를 최대 세 번 굴리고, 12개 족보를 한 번씩 채우는 웹 요트 다이스 게임입니다. 혼자 점수를 노리거나 AI와 겨룰 수 있고, 친구와 실시간 1:1 대전·관전도 할 수 있습니다.
 
-[바로 플레이하기](https://app.yatch-game.cloud/) · [게임 소개](https://app.yatch-game.cloud/intro) · [API 문서](./API.md)
+[바로 플레이하기](https://yatch-game.cloud/) · [게임 소개](https://yatch-game.cloud/intro) · [API 문서](./API.md)
 
 <img src="./docs/screenshots/table-default.png" width="1200" alt="데스크톱 테이블 보기 예시: 점수판, 주사위, 현재 점수 TOP 3, AI 코치를 한 화면에서 보여주는 Yacht 플레이" />
 
@@ -111,6 +111,42 @@ python3 server.py
 ```
 
 주요 API와 요청 예시는 [API.md](./API.md)를 참고하세요. 멀티플레이는 서버 권위 주사위, 점수 재검증, commit-reveal fairness 검증을 사용합니다.
+
+### Redis 적용 보고서
+
+Redis는 AI 모델이 아니라 **멀티플레이 상태 저장소**다. 방 정보, 로비 접속 정보, 싱글 게임 세션을 프로세스 메모리 대신 Redis에 저장한다.
+
+#### 왜 적용했나
+
+기존 in-memory 방식은 한 Gunicorn 프로세스 안에서는 가장 빠르지만, 서버를 재시작하면 방·세션 상태가 사라지고 worker를 여러 개 실행하면 각 worker의 상태가 서로 분리된다. Redis backend는 이 상태를 공용 저장소에 두고 TTL과 방 단위 lock을 적용하므로 다음이 가능해진다.
+
+- 서버 재시작 뒤에도 TTL이 남아 있는 방과 세션을 복구한다.
+- 여러 worker 또는 여러 앱 인스턴스가 같은 방·로비·세션 상태를 읽는다.
+- 방 생성은 atomic create로 처리하고, 방 변경은 Redis lock으로 직렬화한다.
+
+현재 로컬 Redis는 `127.0.0.1:6379`에만 bind하며, AOF와 RDB snapshot을 함께 사용한다. 외부에서 Redis 포트에 직접 접근할 수 없고 앱 서버만 연결한다.
+
+#### 적용 전후에 바뀐 점
+
+| 항목 | 이전: in-memory | 이후: Redis |
+| --- | --- | --- |
+| 방·로비·싱글 세션 위치 | Gunicorn worker의 Python 메모리 | Redis key-value 저장소 |
+| 서버 재시작 | 상태 소멸 | TTL 내 상태 유지, Redis persistence로 복구 가능 |
+| worker 확장 | worker마다 상태가 분리됨 | worker들이 같은 상태를 공유 |
+| 동시 방 변경 | 프로세스 내부 lock | Redis 방 단위 lock + atomic create |
+| 요청 지연 | 가장 낮음 | Redis 왕복 비용이 추가됨 |
+
+#### 벤치마크 (2026-07-26)
+
+같은 머신에서 메모리 backend와 Redis backend를 각각 별도 Gunicorn 인스턴스(1 worker, 4 threads)로 실행해 비교했다. Redis는 운영 DB와 분리한 로컬 DB 1을 사용했고, 각 항목은 25회 워밍업 뒤 300회 **순차 요청**으로 측정했다. 수치는 HTTP 요청 전체 시간이며 낮을수록 좋다.
+
+| 요청 | 메모리 평균 / p95 | Redis 평균 / p95 | Redis 처리량 | 변화 |
+| --- | ---: | ---: | ---: | --- |
+| `GET /health` | 1.10 / 1.23ms | 1.26 / 1.44ms | 910 → 792 req/s | 평균 지연 +15% |
+| `POST /api/lobby-heartbeat` | 1.23 / 1.42ms | 1.57 / 1.77ms | 812 → 637 req/s | 평균 지연 +27% |
+| `GET /api/rooms/:code` (방 polling) | 1.20 / 1.30ms | 1.71 / 2.20ms | 834 → 586 req/s | 평균 지연 +42% |
+
+로컬 Redis 기준 추가 비용은 요청당 약 **0.2~0.5ms**였다. 즉 단일 worker만 쓰는 순간 성능만 보면 메모리가 유리하지만, 멀티플레이 운영에서 필요한 상태 공유와 재시작 복구를 위해 Redis를 선택했다. 이 수치는 로컬 loopback 환경의 순차 요청 결과이므로, 원격 Redis·TLS·동시 접속 수가 추가되면 실제 지연은 달라질 수 있다.
 
 ### 검증 명령
 

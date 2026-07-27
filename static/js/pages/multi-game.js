@@ -82,6 +82,7 @@
         let opponentName = '';
         let turnOwner = null;
         let isRolling = false;
+        let scoreRequestInFlight = false;
         let gameOverToastShown = false;
         let connectionLostHandled = false;
         let syncFailures = 0;
@@ -383,12 +384,10 @@
                     if (turnLeftSeconds <= 0 && isMyTurn() && !gameOver && !isRolling) {
                         clearTurnTimer();
                         timeOut();
-                        if (rollsLeft > 0) {
-                            rollDice();
-                        } else {
-                            const best = chooseBestOpenCategory(myCard, dice);
-                            if (best !== null) pickCategory(best);
-                        }
+                        // Timeout advancement is server-authoritative.  This
+                        // avoids a paused/modified browser deciding the dice
+                        // or score transition for a multiplayer room.
+                        fetchRoomState();
                     }
                 }, 1000);
             } else {
@@ -936,12 +935,8 @@
         }
 
         function buildStatePayload() {
-            const scores = {};
-            scores[username] = myCard;
-            if (opponentName) scores[opponentName] = oppCard;
-
             return {
-                username, scores,
+                username,
                 kept: [...kept],
                 turn: turnOwner || username,
                 game_over: gameOver,
@@ -1147,7 +1142,12 @@ function applyRemoteState(state) {
                         {
                             method: 'POST',
                             headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({username, kept: keptForRoll, player_token: playerToken}),
+                            body: JSON.stringify({
+                                username,
+                                kept: keptForRoll,
+                                player_token: playerToken,
+                                expected_version: roomVersion,
+                            }),
                         },
                         currentRoomRequestTimeoutMs(),
                     );
@@ -1164,11 +1164,18 @@ function applyRemoteState(state) {
                         isRolling = false;
                         return;
                     }
+                    if (r.status === 409) {
+                        fetchRoomState();
+                        throw new Error(data.error || '방 상태가 변경되었습니다. 다시 동기화합니다.');
+                    }
                     if (!r.ok) {
                         throw new Error(data.error || `HTTP ${r.status}`);
                     }
                     if (data.dice && typeof data.rolls_left === 'number') {
                         markRoomContact();
+                        if (data.state && typeof data.state.version === 'number') {
+                            roomVersion = data.state.version;
+                        }
                         dice = data.dice;
                         rollsLeft = data.rolls_left;
                         GameState.setDice(dice);
@@ -1314,72 +1321,57 @@ window.addEventListener('beforeunload', (e) => {
             return bestIdx;
         }
 
-        function pickCategory(i) {
-            if (!isMyTurn() || myCard[i] !== null || rollsLeft === 3 || gameOver) return;
-            clearTurnTimer();
-            let score = calcScore(dice, i);
-
-            let yachtBonus = 0;
-            if (calcScore(dice, 11) === 50 && myCard[11] >= 50 && i !== 11 && score > 0) {
-                yachtBonus = 100;
-                myCard[11] += yachtBonus;
-            }
-
-            myCard[i] = score;
-            if (yachtBonus > 0) {
-                showToast(`🏆 Yacht Bonus: ${CATS[i]} +${score}점, Yacht +100점`, score);
-            } else {
-                showToast(CATS[i], score);
-            }
-
-            dice = [1,1,1,1,1];
-            kept = [0,0,0,0,0];
-            rollsLeft = 3;
-            turnLeftSeconds = 30;
-            aiRec = null;
-
-            if (opponentName) turnOwner = opponentName;
-
-            const myDone = myCard.every(v => v !== null);
-            const oppDone = opponentName ? oppCard.every(v => v !== null) : true;
-            if (myDone && oppDone) {
-                gameOver = true;
-                const myTotal = calcTotals(myCard).total;
-                const oppTotal = calcTotals(oppCard).total;
-                endReason = 'score';
-                if (myTotal > oppTotal) {
-                    endWinner = username;
-                    endLoser = opponentName || null;
-                } else if (myTotal < oppTotal) {
-                    endWinner = opponentName || null;
-                    endLoser = username;
-                } else {
-                    endWinner = null;
-                    endLoser = null;
+        async function pickCategory(i) {
+            if (!isMyTurn() || myCard[i] !== null || rollsLeft === 3 || gameOver || scoreRequestInFlight) return;
+            scoreRequestInFlight = true;
+            try {
+                const r = await fetchWithTimeout(
+                    `/api/rooms/${roomCode}/score`,
+                    {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            username,
+                            category_idx: i,
+                            player_token: playerToken,
+                            expected_version: roomVersion,
+                        }),
+                    },
+                    currentRoomRequestTimeoutMs(),
+                );
+                const data = await r.json();
+                if (r.status === 404) {
+                    handleConnectionLost('방 연결이 종료되었습니다. 로비로 이동합니다.');
+                    return;
                 }
-                const statusEl = document.getElementById('game-status');
-                if (statusEl) statusEl.innerText = getGameOverPresentation(myTotal, oppTotal).status;
+                if (r.status === 403 && data.error === '참가자 인증 실패') {
+                    handleConnectionLost('참가 인증이 만료되었습니다. 로비에서 다시 입장해 주세요.');
+                    return;
+                }
+                if (r.status === 409) {
+                    if (data.state) applyRemoteState(data.state);
+                    else fetchRoomState();
+                    showStatusToast('상태 갱신', '다른 동작이 먼저 반영되어 최신 상태를 불러왔습니다.', 2200);
+                    return;
+                }
+                if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
 
-                showGameOverToast(myTotal, oppTotal);
-
+                markRoomContact();
+                clearTurnTimer();
+                turnLeftSeconds = data.state?.turn_left_seconds ?? 30;
+                applyRemoteState(data.state);
+                const label = data.yacht_bonus > 0
+                    ? `🏆 Yacht Bonus: ${CATS[i]} +${data.score}점, Yacht +${data.yacht_bonus}점`
+                    : CATS[i];
+                showToast(label, data.score);
+                flashScoreSelection(i);
+            } catch (error) {
+                console.warn('score failed', error);
+                showStatusToast('점수 기록 실패', error.message || '잠시 후 다시 시도해 주세요.', 2600);
+                fetchRoomState();
+            } finally {
+                scoreRequestInFlight = false;
             }
-
-            GameState.setState({
-                dice: [...dice],
-                kept: [...kept],
-                rollsLeft,
-                myCard: [...myCard],
-                oppCard: [...oppCard],
-                gameOver,
-                aiRec,
-            });
-
-            updateDice();
-            updateScorecard();
-            flashScoreSelection(i);
-            refreshInsightPanels();
-            refreshTurnUI();
-            pushState({ critical: true });
         }
 
         async function leaveRoom() {

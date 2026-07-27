@@ -1,13 +1,16 @@
 import logging
 import time
-from collections import OrderedDict
 from copy import deepcopy
 
 from flask import Blueprint, jsonify, request
 
 import yacht_engine
-from app_state import ai_metrics
-from config import AI_POLICY_MIN_CONFIDENCE, AI_SLOW_LOG_MS, WIN_PROBABILITY_DEFAULT_SAMPLES
+from app_state import ai_metrics, get_services
+from config import (
+    AI_POLICY_MIN_CONFIDENCE,
+    AI_SLOW_LOG_MS,
+    WIN_PROBABILITY_DEFAULT_SAMPLES,
+)
 from utils.ai_utils import record_ai_slow_sample
 from utils.validation import (
     normalize_dice,
@@ -26,7 +29,15 @@ ai_bp = Blueprint("ai", __name__)
 
 
 _RECOMMEND_CACHE_MAX = 512
-_RECOMMEND_RESULT_CACHE = OrderedDict()
+
+
+def _rate_limit_response(limiter):
+    allowed, retry_after = limiter.allow(request.remote_addr or "unknown")
+    if allowed:
+        return None
+    response = jsonify({"error": "요청이 많습니다. 잠시 후 다시 시도해 주세요."})
+    response.headers["Retry-After"] = str(retry_after)
+    return response, 429
 
 
 def _optional_turn_state(data, prefix):
@@ -43,6 +54,9 @@ def _optional_turn_state(data, prefix):
 
 @ai_bp.route("/api/win-probability", methods=["POST"])
 def win_probability():
+    limited = _rate_limit_response(get_services().ai_requests.win_probability_limiter)
+    if limited:
+        return limited
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify({"error": "JSON 객체 본문이 필요합니다"}), 400
@@ -68,6 +82,10 @@ def win_probability():
         "opp_rolls_left": opp_rolls_left,
         "samples": samples,
     })
+    if result["status"] == "busy":
+        response = jsonify(result)
+        response.headers["Retry-After"] = str(result.get("retry_after_seconds", 1))
+        return response, 429
     return jsonify(result), 202 if result["status"] == "pending" else 200
 
 
@@ -76,18 +94,22 @@ def _recommend_cache_key(dice, rolls_left, strategy_mode, scorecard):
 
 
 def _get_cached_recommendation(cache_key):
-    cached = _RECOMMEND_RESULT_CACHE.get(cache_key)
-    if cached is None:
-        return None
-    _RECOMMEND_RESULT_CACHE.move_to_end(cache_key)
-    return deepcopy(cached)
+    runtime = get_services().ai_requests
+    with runtime.lock:
+        cached = runtime.recommendation_cache.get(cache_key)
+        if cached is None:
+            return None
+        runtime.recommendation_cache.move_to_end(cache_key)
+        return deepcopy(cached)
 
 
 def _set_cached_recommendation(cache_key, result):
-    _RECOMMEND_RESULT_CACHE[cache_key] = deepcopy(result)
-    _RECOMMEND_RESULT_CACHE.move_to_end(cache_key)
-    if len(_RECOMMEND_RESULT_CACHE) > _RECOMMEND_CACHE_MAX:
-        _RECOMMEND_RESULT_CACHE.popitem(last=False)
+    runtime = get_services().ai_requests
+    with runtime.lock:
+        runtime.recommendation_cache[cache_key] = deepcopy(result)
+        runtime.recommendation_cache.move_to_end(cache_key)
+        if len(runtime.recommendation_cache) > _RECOMMEND_CACHE_MAX:
+            runtime.recommendation_cache.popitem(last=False)
 
 
 def _solver_options_for_strategy(strategy_mode):
@@ -165,6 +187,9 @@ def _mark_score_now_recommendation(
 @ai_bp.route("/api/recommend", methods=["POST"])
 def recommend():
     try:
+        limited = _rate_limit_response(get_services().ai_requests.recommend_limiter)
+        if limited:
+            return limited
         started = time.perf_counter()
         data = request.get_json(silent=True)
         if not isinstance(data, dict):

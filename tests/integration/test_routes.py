@@ -1,5 +1,6 @@
 import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -13,8 +14,16 @@ import database
 import routes.ai as ai_routes
 import routes.leaderboard as leaderboard_routes
 import server
-from app_state import ai_metrics, lobby_clients, rooms, single_sessions, single_sessions_lock
+from app_state import (
+    ai_metrics,
+    get_services,
+    lobby_clients,
+    rooms,
+    single_sessions,
+    single_sessions_lock,
+)
 from yacht_ai.ml_policy import RollPolicyModel
+from yacht_app.infra.rate_limit import SlidingWindowRateLimiter
 from yacht_engine import CATS, calc_score
 
 
@@ -35,7 +44,7 @@ class RouteIntegrationTests(unittest.TestCase):
         ai_metrics.request_count = 0
         ai_metrics.error_count = 0
         ai_metrics.max_latency_ms = 0.0
-        ai_routes._RECOMMEND_RESULT_CACHE.clear()
+        get_services().ai_requests.recommendation_cache.clear()
 
         self.tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tempdir.cleanup)
@@ -112,6 +121,47 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(response_cached.status_code, 200)
         self.assertEqual(response_cached.headers["X-AI-Request-Cache"], "hit")
         self.assertIn("decision_report", response_cached.get_json())
+
+    def test_lobby_snapshot_combines_recurring_dashboard_data(self):
+        heartbeat = self.client.post(
+            "/api/lobby-heartbeat",
+            json={"client_id": "snapshot-client", "username": "host1"},
+        )
+        self.assertEqual(heartbeat.status_code, 200)
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        self.assertEqual(created.status_code, 200)
+
+        snapshot = self.client.get("/api/lobby-snapshot?rank_mode=multi&profile=host1")
+        self.assertEqual(snapshot.status_code, 200)
+        payload = snapshot.get_json()
+        self.assertEqual(set(payload), {"online_users", "rooms", "leaderboard", "recent_games", "system", "profile"})
+        self.assertEqual(payload["online_users"][0]["username"], "host1")
+        self.assertEqual(payload["rooms"][0]["host"], "host1")
+        self.assertIn("cpu_percent", payload["system"])
+
+    def test_lobby_snapshot_uses_the_same_expired_room_cleanup_as_room_list(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        code = created.get_json()["code"]
+        room = rooms[code]
+        room["player_last_seen"]["host1"] = time.time() - 60
+        rooms[code] = room
+
+        snapshot = self.client.get("/api/lobby-snapshot")
+        self.assertEqual(snapshot.status_code, 200)
+        self.assertEqual(snapshot.get_json()["rooms"], [])
+        self.assertNotIn(code, rooms)
+
+    def test_expensive_ai_endpoints_return_retry_metadata_when_rate_limited(self):
+        runtime = get_services().ai_requests
+        original_limiter = runtime.recommend_limiter
+        runtime.recommend_limiter = SlidingWindowRateLimiter(limit=1, window_seconds=60)
+        self.addCleanup(setattr, runtime, "recommend_limiter", original_limiter)
+
+        invalid = self.client.post("/api/recommend", json={})
+        self.assertEqual(invalid.status_code, 400)
+        limited = self.client.post("/api/recommend", json={})
+        self.assertEqual(limited.status_code, 429)
+        self.assertGreaterEqual(int(limited.headers["Retry-After"]), 1)
 
     def test_alternate_multiplayer_table_page_is_available(self):
         response = self.client.get("/game/multi/table?room=ABC123")
@@ -239,7 +289,7 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(focused_payload["policy_source"], "exact")
         self.assertEqual(focused_payload["score_value_mode"], "value_score_only")
 
-        ai_routes._RECOMMEND_RESULT_CACHE.clear()
+        get_services().ai_requests.recommendation_cache.clear()
         cover = self.client.post(
             "/api/recommend",
             json={
@@ -562,6 +612,116 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(leaderboard.status_code, 200)
         self.assertEqual(leaderboard_payload[0]["username"], "host1")
         self.assertEqual(leaderboard_payload[0]["wins"], 1)
+
+    def test_expired_turn_is_advanced_by_the_server(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        code = created.get_json()["code"]
+        host_token = created.get_json()["player_token"]
+        joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
+        self.assertEqual(joined.status_code, 200)
+
+        room = rooms[code]
+        room["state"]["turn_start_time"] = time.time() - 31
+        rooms[code] = room
+
+        advanced = self.client.get(
+            f"/api/rooms/{code}?u=host1",
+            headers={"X-Player-Token": host_token},
+        )
+        self.assertEqual(advanced.status_code, 200)
+        state = advanced.get_json()["state"]
+        self.assertEqual(state["updated_by"], "system_timeout")
+        self.assertEqual(state["timeout_event"]["action"], "roll")
+        self.assertEqual(state["rolls_left"], 2)
+        self.assertEqual(len(state["dice"]), 5)
+
+        resumed = self.client.post(
+            f"/api/rooms/{code}/roll",
+            json={"username": "host1", "player_token": host_token, "kept": [0] * 5},
+        )
+        self.assertEqual(resumed.status_code, 200)
+        self.assertNotIn("timeout_event", resumed.get_json()["state"])
+
+    def test_expired_score_turn_is_recorded_and_passed_server_side(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        code = created.get_json()["code"]
+        host_token = created.get_json()["player_token"]
+        joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
+        self.assertEqual(joined.status_code, 200)
+
+        room = rooms[code]
+        state = room["state"]
+        state["dice"] = [6, 6, 6, 6, 6]
+        state["rolls_left"] = 0
+        state["player_dice"]["host1"] = state["dice"][:]
+        state["player_rolls_left"]["host1"] = 0
+        state["turn_start_time"] = time.time() - 31
+        rooms[code] = room
+
+        advanced = self.client.get(
+            f"/api/rooms/{code}?u=host1",
+            headers={"X-Player-Token": host_token},
+        )
+        self.assertEqual(advanced.status_code, 200)
+        state = advanced.get_json()["state"]
+        self.assertEqual(state["timeout_event"]["action"], "score")
+        self.assertEqual(state["timeout_event"]["category_idx"], 11)
+        self.assertEqual(state["scores"]["host1"][11], 50)
+        self.assertEqual(state["turn"], "guest1")
+        self.assertEqual(state["rolls_left"], 3)
+
+    def test_roll_rejects_a_duplicate_request_from_an_old_room_version(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        code = created.get_json()["code"]
+        host_token = created.get_json()["player_token"]
+        joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
+        initial_version = joined.get_json()["state"]["version"]
+        request_body = {
+            "username": "host1",
+            "player_token": host_token,
+            "kept": [0] * 5,
+            "expected_version": initial_version,
+        }
+
+        first = self.client.post(f"/api/rooms/{code}/roll", json=request_body)
+        self.assertEqual(first.status_code, 200)
+        duplicate = self.client.post(f"/api/rooms/{code}/roll", json=request_body)
+        self.assertEqual(duplicate.status_code, 409)
+        self.assertEqual(duplicate.get_json()["state"]["rolls_left"], 2)
+
+    def test_score_command_is_server_calculated_and_versioned(self):
+        created = self.client.post("/api/rooms", json={"username": "host1"})
+        code = created.get_json()["code"]
+        host_token = created.get_json()["player_token"]
+        joined = self.client.post(f"/api/rooms/{code}/join", json={"username": "guest1"})
+        initial_version = joined.get_json()["state"]["version"]
+
+        room = rooms.get(code)
+        room["state"].update({
+            "dice": [1, 2, 3, 4, 6],
+            "rolls_left": 0,
+            "player_dice": {"host1": [1, 2, 3, 4, 6], "guest1": [1] * 5},
+            "player_rolls_left": {"host1": 0, "guest1": 3},
+        })
+        rooms.save(code, room)
+
+        request_body = {
+            "username": "host1",
+            "player_token": host_token,
+            "category_idx": CATS["Full House"],
+            "expected_version": initial_version,
+        }
+        scored = self.client.post(f"/api/rooms/{code}/score", json=request_body)
+        self.assertEqual(scored.status_code, 200)
+        payload = scored.get_json()
+        self.assertEqual(payload["score"], 0)
+        self.assertEqual(payload["state"]["scores"]["host1"][CATS["Full House"]], 0)
+        self.assertEqual(payload["state"]["turn"], "guest1")
+        self.assertEqual(payload["state"]["rolls_left"], 3)
+
+        duplicate = self.client.post(f"/api/rooms/{code}/score", json=request_body)
+        self.assertEqual(duplicate.status_code, 409)
+        self.assertEqual(duplicate.get_json()["state"]["turn"], "guest1")
 
 
     def test_room_reaction_send_rate_limit_and_sse(self):

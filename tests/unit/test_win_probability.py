@@ -1,6 +1,8 @@
 import time
 import unittest
+from unittest.mock import patch
 
+import yacht_app.services.win_probability as win_probability_service
 from utils.room_utils import score_total
 from utils.win_probability_service import clear_win_probability_cache, request_win_probability
 from yacht_ai.solvers import solve_best_move
@@ -71,6 +73,30 @@ class WinProbabilityTests(unittest.TestCase):
 
         self.assertAlmostEqual(active_turn_projection, expected, places=4)
         self.assertGreater(active_turn_projection, fresh_turn_projection)
+
+    def test_queue_saturation_returns_busy_without_running_projection(self):
+        class PendingFuture:
+            def done(self):
+                return False
+
+        payload = {
+            "my_scorecard": [None] * 12,
+            "opp_scorecard": [None] * 12,
+            "my_dice": None,
+            "my_rolls_left": None,
+            "opp_dice": None,
+            "opp_rolls_left": None,
+            "samples": 5,
+        }
+        with win_probability_service._lock:
+            win_probability_service._pending["already-full"] = PendingFuture()
+        self.addCleanup(clear_win_probability_cache)
+
+        with patch.object(win_probability_service, "WIN_PROBABILITY_MAX_PENDING", 1):
+            result = win_probability_service.request_win_probability(payload)
+
+        self.assertEqual(result["status"], "busy")
+        self.assertIn("retry_after_seconds", result)
 
 
 if __name__ == "__main__":

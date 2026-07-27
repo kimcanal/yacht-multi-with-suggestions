@@ -5,7 +5,7 @@ APP_UNIT="yacht-web.service"
 TUNNEL_UNIT="cloudflared-yacht.service"
 APP_SERVICE_FILE="${HOME}/.config/systemd/user/${APP_UNIT}"
 TUNNEL_CONFIG_FILE="${HOME}/.cloudflared/config.yml"
-PUBLIC_HEALTH_URL="https://app.yatch-game.cloud/health"
+PUBLIC_HEALTH_URL="https://yatch-game.cloud/health"
 DEFAULT_PORT="8000"
 PORT_CHANGED=0
 

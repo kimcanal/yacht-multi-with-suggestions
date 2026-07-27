@@ -1,11 +1,4 @@
-function escapeHtml(value) {
-            return String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
+        const {escapeHtml, formatRelativeTime} = window.LobbyRender;
 
         function roomTokenKey(code) {
             return `yacht_player_token_${code}`;
@@ -21,19 +14,10 @@ function escapeHtml(value) {
         let myUsername = localStorage.getItem('yacht_username');
         let isLoggedIn = false;
         let pollingStarted = false;
+        let lobbyRefreshInFlight = false;
+        let lobbyHeartbeatInFlight = false;
         let selectedLeaderboardUser = null;
         const pollingTimers = [];
-
-        function formatRelativeTime(isoString) {
-            if (!isoString) return '-';
-            const target = new Date(isoString);
-            if (Number.isNaN(target.getTime())) return isoString;
-            const diffSeconds = Math.max(0, Math.floor((Date.now() - target.getTime()) / 1000));
-            if (diffSeconds < 60) return '방금 전';
-            if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}분 전`;
-            if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}시간 전`;
-            return `${Math.floor(diffSeconds / 86400)}일 전`;
-        }
 
         function renderPlayerSpotlightEmpty(message) {
             const root = document.getElementById('player-spotlight');
@@ -131,7 +115,6 @@ function escapeHtml(value) {
             setTimeout(() => {
                 overlay.style.display = 'none';
                 isLoggedIn = true;
-                sendHeartbeat();
                 startPolling();
             }, 300);
         }
@@ -159,8 +142,7 @@ function escapeHtml(value) {
         async function createRoom() {
             if(!myUsername) return;
             try {
-                const res = await fetch('/api/rooms', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:myUsername})});
-                const data = await res.json();
+                const {response: res, data} = await LobbyApi.createRoom(myUsername);
                 if(data.code) {
                     if (data.player_token) localStorage.setItem(roomTokenKey(data.code), data.player_token);
                     localStorage.setItem('yacht_room', data.code);
@@ -173,8 +155,7 @@ function escapeHtml(value) {
             const code = document.getElementById('room-code').value.trim().toUpperCase();
             if(!code) return alert('방 코드를 입력하세요');
             try {
-                const res = await fetch(`/api/rooms/${code}/join`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:myUsername})});
-                const data = await res.json();
+                const {response: res, data} = await LobbyApi.joinRoom(code, myUsername);
                 if(res.ok) {
                     if (data.player_token) localStorage.setItem(roomTokenKey(code), data.player_token);
                     localStorage.setItem('yacht_room', code);
@@ -187,24 +168,23 @@ function escapeHtml(value) {
         async function joinAsObserver(code) {
             const obsName = 'Guest_' + Math.floor(Math.random()*1000);
             try {
-                const res = await fetch(`/api/rooms/${code}/observe`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({username: obsName})
-                });
+                const {response: res, data} = await LobbyApi.observeRoom(code, obsName);
                 if(res.ok) {
                     localStorage.setItem('yacht_username', obsName);
                     localStorage.setItem('yacht_room', code);
                     location.href = `/game/multi?room=${code}&mode=observer`;
                 } else {
-                    const d = await res.json();
-                    alert(d.error || '실패');
+                    alert(data.error || '실패');
                 }
             } catch(e) { alert('오류'); }
         }
 
-        function loadLobbyUsers() {
+        function loadLobbyUsers(usersOverride) {
             if (!isLoggedIn) return;
-            fetch('/api/online-users').then(r=>r.json()).then(users=>{
+            const source = Array.isArray(usersOverride)
+                ? Promise.resolve(usersOverride)
+                : LobbyApi.json('/api/online-users');
+            source.then(users=>{
                 const list = document.getElementById('lobby-user-list');
                 if(!users.length) {
                     list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔭</div><div class="empty-text">접속자 없음</div></div>';
@@ -234,8 +214,11 @@ function escapeHtml(value) {
             }).catch(()=>{});
         }
 
-        function loadRoomList() {
-            fetch('/api/rooms', {cache:'no-store'}).then(r=>r.json()).then(rooms=>{
+        function loadRoomList(roomsOverride) {
+            const source = Array.isArray(roomsOverride)
+                ? Promise.resolve(roomsOverride)
+                : LobbyApi.json('/api/rooms', {cache:'no-store'});
+            source.then(rooms=>{
                 const list = document.getElementById('room-list');
                 const waitingCount = rooms.filter((room) => (room.room_phase || (room.players.length >= 2 ? 'playing' : 'waiting')) === 'waiting').length;
                 const playingCount = rooms.filter((room) => (room.room_phase || (room.players.length >= 2 ? 'playing' : 'waiting')) === 'playing').length;
@@ -293,7 +276,7 @@ function escapeHtml(value) {
             if (currentRankMode === 'multi') loadLeaderboard();
         }
 
-        function refreshPlayerSpotlight() {
+        function refreshPlayerSpotlight(profileOverride) {
             if (!isLoggedIn) return;
             if (currentRankMode !== 'multi') {
                 renderPlayerSpotlightEmpty('멀티 탭에서 선수 전적을 확인할 수 있어요.');
@@ -306,24 +289,26 @@ function escapeHtml(value) {
                 return;
             }
 
-            fetch(`/api/leaderboard/users/${encodeURIComponent(target)}?recent_limit=5`, {cache:'no-store'})
-                .then(async (res) => {
-                    if (!res.ok) {
-                        const payload = await res.json().catch(() => ({}));
-                        throw new Error(payload.error || '전적 조회 실패');
-                    }
-                    return res.json();
-                })
+            if (profileOverride !== undefined) {
+                if (profileOverride) renderPlayerSpotlight(profileOverride);
+                else renderPlayerSpotlightEmpty('아직 멀티 경기 기록이 없습니다.');
+                return;
+            }
+
+            LobbyApi.json(`/api/leaderboard/users/${encodeURIComponent(target)}?recent_limit=5`, {cache:'no-store'})
                 .then(renderPlayerSpotlight)
                 .catch(() => {
                     renderPlayerSpotlightEmpty('아직 멀티 경기 기록이 없습니다.');
                 });
         }
 
-        function loadLeaderboard() {
+        function loadLeaderboard(usersOverride, options = {}) {
             if (!isLoggedIn) return;
             const endpoint = currentRankMode === 'multi' ? '/api/leaderboard/multi' : '/api/leaderboard/single';
-            fetch(endpoint).then(r=>r.json()).then(users=>{
+            const source = Array.isArray(usersOverride)
+                ? Promise.resolve(usersOverride)
+                : LobbyApi.json(endpoint);
+            source.then(users=>{
                 const list = document.getElementById('leaderboard-list');
                 if(!users.length) {
                     if (currentRankMode === 'multi') {
@@ -355,13 +340,16 @@ function escapeHtml(value) {
                         <div style="color:var(--muted); font-family:'Rajdhani'">${detail}</div>
                     </div>`;
                 }).join('');
-                if (currentRankMode === 'multi') refreshPlayerSpotlight();
+                if (currentRankMode === 'multi' && !options.skipProfile) refreshPlayerSpotlight();
             }).catch(()=>{});
         }
 
-        function loadRecentGames() {
+        function loadRecentGames(gamesOverride) {
             if (!isLoggedIn) return;
-            fetch('/api/leaderboard/recent?limit=6', {cache:'no-store'}).then(r=>r.json()).then(games=>{
+            const source = Array.isArray(gamesOverride)
+                ? Promise.resolve(gamesOverride)
+                : LobbyApi.json('/api/leaderboard/recent?limit=6', {cache:'no-store'});
+            source.then(games=>{
                 const root = document.getElementById('recent-games-list');
                 if (!root) return;
                 if (!Array.isArray(games) || !games.length) {
@@ -397,8 +385,11 @@ function escapeHtml(value) {
             }).catch(()=>{});
         }
 
-        function loadSystemStatus() {
-            fetch('/api/system-status').then(r=>r.json()).then(data=>{
+        function loadSystemStatus(dataOverride) {
+            const source = dataOverride
+                ? Promise.resolve(dataOverride)
+                : LobbyApi.json('/api/system-status');
+            source.then(data=>{
                 document.getElementById('online-count').textContent=data.online_count;
                 document.getElementById('active-rooms').textContent=data.active_rooms;
                 const glanceOnline = document.getElementById('glance-online-count');
@@ -453,20 +444,41 @@ function escapeHtml(value) {
         }
 
         function sendHeartbeat() {
-            if (!isLoggedIn) return;
-            fetch('/api/lobby-heartbeat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({client_id:clientId, username:myUsername})}).catch(()=>{});
+            if (!isLoggedIn || lobbyHeartbeatInFlight) return Promise.resolve();
+            lobbyHeartbeatInFlight = true;
+            return LobbyApi.heartbeat(clientId, myUsername)
+                .catch(() => {})
+                .finally(() => { lobbyHeartbeatInFlight = false; });
         }
 
         document.getElementById('room-code').addEventListener('keypress', (e) => { if(e.key === 'Enter') joinRoomById(); });
 
-        function refreshLobbyNow() {
-            loadLobbyUsers();
-            loadRoomList();
-            loadLeaderboard();
-            loadRecentGames();
-            loadSystemStatus();
-            refreshPlayerSpotlight();
-            sendHeartbeat();
+        async function refreshLobbyNow() {
+            if (!isLoggedIn || lobbyRefreshInFlight) return;
+            lobbyRefreshInFlight = true;
+            const profile = currentRankMode === 'multi' ? (selectedLeaderboardUser || myUsername) : '';
+            const query = new URLSearchParams({rank_mode: currentRankMode});
+            if (profile) query.set('profile', profile);
+            try {
+                await sendHeartbeat();
+                const snapshot = await LobbyApi.snapshot(query);
+                loadLobbyUsers(snapshot.online_users);
+                loadRoomList(snapshot.rooms);
+                loadLeaderboard(snapshot.leaderboard, {skipProfile: true});
+                loadRecentGames(snapshot.recent_games);
+                loadSystemStatus(snapshot.system);
+                refreshPlayerSpotlight(snapshot.profile);
+            } catch (_) {
+                // Keep the old independent reads as a resilient fallback
+                // when an intermediary has not yet deployed the snapshot.
+                loadLobbyUsers();
+                loadRoomList();
+                loadLeaderboard();
+                loadRecentGames();
+                loadSystemStatus();
+            } finally {
+                lobbyRefreshInFlight = false;
+            }
         }
 
         function startPolling() {
@@ -474,12 +486,10 @@ function escapeHtml(value) {
             pollingStarted = true;
             refreshLobbyNow();
 
-            pollingTimers.push(setInterval(loadLobbyUsers, 3000));
-            pollingTimers.push(setInterval(loadRoomList, 3000));
-            pollingTimers.push(setInterval(loadLeaderboard, 5000));
-            pollingTimers.push(setInterval(loadRecentGames, 5000));
-            pollingTimers.push(setInterval(loadSystemStatus, 3000));
-            pollingTimers.push(setInterval(refreshPlayerSpotlight, 5000));
+            // Keep one coordinated refresh loop.  Separate intervals used to
+            // overlap and could make six concurrent requests after a slow
+            // response or a background-tab wake-up.
+            pollingTimers.push(setInterval(refreshLobbyNow, 5000));
             pollingTimers.push(setInterval(sendHeartbeat, 10000));
         }
 

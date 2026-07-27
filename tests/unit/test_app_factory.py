@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from app_state import rooms
 from yacht_app import create_app
@@ -31,6 +32,23 @@ class AppFactoryTests(unittest.TestCase):
         )
 
         self.assertIs(app.extensions["yacht_services"], services)
+
+    def test_multi_worker_requires_shared_room_and_result_backends(self):
+        with patch.dict("os.environ", {"GUNICORN_WORKERS": "2"}, clear=False):
+            with self.assertRaisesRegex(RuntimeError, "YACHT_ROOM_BACKEND=redis"):
+                create_app({"TESTING": True}, initialize_runtime=False)
+
+        with patch.dict(
+            "os.environ",
+            {
+                "GUNICORN_WORKERS": "2",
+                "YACHT_ROOM_BACKEND": "redis",
+                "YACHT_RESULT_BACKEND": "json",
+            },
+            clear=False,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "YACHT_RESULT_BACKEND=sqlite"):
+                create_app({"TESTING": True}, initialize_runtime=False)
 
 
 if __name__ == "__main__":
