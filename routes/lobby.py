@@ -135,14 +135,22 @@ def lobby_snapshot():
         rank_mode = request.args.get("rank_mode", "multi")
         profile_username = normalize_username(request.args.get("profile"))
         results = get_services().results
-        leaderboard = results.get_single_leaderboard() if rank_mode == "single" else results.get_leaderboard()
+        if rank_mode == "single":
+            leaderboard = results.get_single_leaderboard()
+            recent_games = results.get_recent_games(limit=6)
+        elif rank_mode == "bot":
+            leaderboard = results.get_bot_leaderboard()
+            recent_games = results.get_recent_bot_games(limit=6)
+        else:
+            leaderboard = results.get_leaderboard()
+            recent_games = results.get_recent_games(limit=6)
         room_summaries = _room_list_payload()
         online_users = _online_users_payload()
         return jsonify({
             "online_users": online_users,
             "rooms": room_summaries,
             "leaderboard": leaderboard,
-            "recent_games": results.get_recent_games(limit=6),
+            "recent_games": recent_games,
             "system": _system_status_payload(),
             "profile": results.get_user_profile(profile_username, recent_limit=5) if profile_username else None,
         })

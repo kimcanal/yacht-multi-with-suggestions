@@ -263,9 +263,10 @@
         window.joinRoom = function(code) { document.getElementById('room-code').value=code; joinRoomById(); }
 
         function switchRank(mode) {
-            currentRankMode = mode;
+            currentRankMode = ['multi', 'single', 'bot'].includes(mode) ? mode : 'multi';
             document.getElementById('tab-multi').className = mode === 'multi' ? 'rank-tab active' : 'rank-tab';
             document.getElementById('tab-single').className = mode === 'single' ? 'rank-tab active' : 'rank-tab';
+            document.getElementById('tab-bot').className = mode === 'bot' ? 'rank-tab active' : 'rank-tab';
             loadLeaderboard();
             refreshPlayerSpotlight();
         }
@@ -304,7 +305,11 @@
 
         function loadLeaderboard(usersOverride, options = {}) {
             if (!isLoggedIn) return;
-            const endpoint = currentRankMode === 'multi' ? '/api/leaderboard/multi' : '/api/leaderboard/single';
+            const endpoint = currentRankMode === 'multi'
+                ? '/api/leaderboard/multi'
+                : currentRankMode === 'bot'
+                    ? '/api/leaderboard/bot'
+                    : '/api/leaderboard/single';
             const source = Array.isArray(usersOverride)
                 ? Promise.resolve(usersOverride)
                 : LobbyApi.json(endpoint);
@@ -327,6 +332,9 @@
                 list.innerHTML = users.slice(0,20).map((u, i) => {
                     let detail = '';
                     if(currentRankMode === 'multi') detail = `${u.wins}승 ${u.losses}패`;
+                    else if (currentRankMode === 'bot') {
+                        detail = `${u.wins}승 ${u.draws || 0}무 ${u.losses}패 · 평균 ${Number(u.avg_score || 0).toFixed(1)}`;
+                    }
                     else detail = `${u.score}점`;
                     const clickableClass = currentRankMode === 'multi' ? ' clickable' : '';
                     const selectedClass = currentRankMode === 'multi' && u.username === selectedLeaderboardUser ? ' selected' : '';

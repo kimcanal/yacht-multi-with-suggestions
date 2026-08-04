@@ -3,12 +3,6 @@ import time
 
 import yacht_engine
 from app_state import ai_metrics
-from config import AI_POLICY_MIN_CONFIDENCE, AI_POLICY_MODEL_PATH
-
-try:
-    from yacht_ai.policies.ml_policy import RollPolicyModel
-except Exception:
-    RollPolicyModel = None
 
 
 def detect_cpu_model():
@@ -26,22 +20,6 @@ def detect_cpu_model():
 
 
 CPU_MODEL = detect_cpu_model()
-
-
-def load_ai_policy_model():
-    if not AI_POLICY_MODEL_PATH:
-        return
-    if RollPolicyModel is None:
-        ai_metrics.policy_model_status = "import_failed"
-        print("[AI] learned roll policy unavailable: missing numpy or import failure")
-        return
-    try:
-        ai_metrics.policy_model = RollPolicyModel.load(AI_POLICY_MODEL_PATH)
-        ai_metrics.policy_model_status = "loaded"
-        print(f"[AI] learned roll policy loaded from {AI_POLICY_MODEL_PATH}")
-    except Exception as exc:
-        ai_metrics.policy_model_status = f"load_failed:{exc}"
-        print(f"[AI] learned roll policy load failed: {exc}")
 
 
 def percentile(values, ratio):
@@ -72,8 +50,6 @@ def ai_metrics_snapshot():
         "ai_cache_misses": cache_info.misses,
         "ai_cache_hit_rate": round(hit_rate * 100, 1),
         "ai_recent_slow_samples": list(ai_metrics.recent_slow_samples),
-        "ai_policy_model_status": ai_metrics.policy_model_status,
-        "ai_policy_model_enabled": bool(ai_metrics.policy_model),
     }
 
 
@@ -104,11 +80,6 @@ def warm_ai_runtime():
         for dice, rolls_left, scorecard, mode in warm_cases:
             open_cats = [i for i, v in enumerate(scorecard) if v is None]
             yacht_engine.solve_best_move(dice, rolls_left, open_cats, mode, scorecard)
-            if ai_metrics.policy_model and rolls_left > 0:
-                ai_metrics.policy_model.recommend_roll(
-                    dice, rolls_left, mode, scorecard,
-                    min_confidence=AI_POLICY_MIN_CONFIDENCE,
-                )
         elapsed_ms = (time.perf_counter() - started) * 1000
         print(f"[AI] runtime warm-up complete in {elapsed_ms:.1f}ms")
     except Exception as exc:

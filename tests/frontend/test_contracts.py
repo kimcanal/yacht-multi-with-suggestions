@@ -193,7 +193,7 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_single_table_layout_keeps_ranked_session_and_game_controls(self):
         self.assertIn('class="table-game-shell single-table-game-shell"', self.single_table_template)
-        for element_id in ("dice-grid", "scorecard", "save-modal", "mode-strip", "ai-breakdown"):
+        for element_id in ("dice-grid", "scorecard", "finish-modal", "mode-strip", "ai-breakdown"):
             self.assertIn(f'id="{element_id}"', self.single_table_template)
         self.assertIn("css/pages/single-game-table.css", self.single_table_template)
         self.assertIn("js/pages/single-game.js", self.single_table_template)
@@ -294,11 +294,11 @@ class FrontendContractTests(unittest.TestCase):
         self.assertNotIn('솔로 기록 모드입니다', self.single)
         self.assertNotIn('현재는 ${getAiModeDisplayName()} 기준으로 조언', self.single)
 
-    def test_single_ai_mode_uses_compact_buttons_instead_of_explanation_cards(self):
-        self.assertIn('class="ai-mode-row"', self.single)
-        self.assertIn('data-ai-mode="focused"', self.single)
-        self.assertIn('data-ai-mode="cover"', self.single)
-        self.assertIn('data-ai-mode="optimal"', self.single)
+    def test_single_uses_one_optional_hint_instead_of_ai_mode_choices(self):
+        self.assertIn('data-coach-toggle', self.single)
+        self.assertIn('💡 힌트 보기', self.single)
+        self.assertNotIn('class="ai-mode-row"', self.single)
+        self.assertNotIn('data-ai-mode=', self.single)
         self.assertNotIn('class="ai-mode-card"', self.single)
         self.assertNotIn('최적 정책보다 게임당 기대점수 10.4점 낮음', self.single)
 
@@ -332,6 +332,30 @@ class FrontendContractTests(unittest.TestCase):
             self.assertLess(info_end, dice_grid)
             self.assertLess(info_end, ai_panel)
 
+    def test_multi_mobile_places_ai_detail_after_the_scorecard(self):
+        panel_index = self.multi_template.index('id="mobile-insight-panel"')
+        scorecard_index = self.multi_template.index('<div class="scorecard-area">')
+        slot_index = self.multi_template.index('id="mobile-insight-slot"')
+        self.assertLess(panel_index, scorecard_index)
+        self.assertLess(scorecard_index, slot_index)
+        self.assertIn('function syncMobileInsightPlacement()', self.multi)
+        self.assertIn("mobileInsightQuery.addEventListener('change', syncMobileInsightPlacement)", self.multi)
+        self.assertIn('grid-template-columns: repeat(5, minmax(0, 1fr));', self.multi)
+
+    def test_single_and_multi_keep_their_mobile_hint_flow(self):
+        self.assertNotIn('class="ai-mode-row"', self.single_template)
+        for mode in ('focused', 'cover', 'optimal'):
+            self.assertIn(f'data-ai-mode="{mode}"', self.multi_template)
+        for page in (self.single_template, self.multi_template):
+            self.assertIn('id="mobile-score-jump"', page)
+        self.assertIn('id="single-mobile-insight-panel"', self.single_template)
+        self.assertIn('id="single-mobile-insight-slot"', self.single_template)
+        self.assertIn('function syncSingleMobileInsightPlacement()', self.single)
+        self.assertIn('function jumpToScorecard()', self.single)
+        self.assertIn('function jumpToScorecard()', self.multi)
+        self.assertIn("scrollIntoView({behavior: 'smooth', block: 'start'})", self.single)
+        self.assertIn("scrollIntoView({behavior: 'smooth', block: 'start'})", self.multi)
+
     def test_roll_control_follows_the_dice_grid_on_both_game_pages(self):
         for page in (self.single_template, self.multi_template):
             dice_grid = page.index('<div class="dice-grid"')
@@ -362,6 +386,13 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('function restoreTimerCountdown()', self.single)
         self.assertIn("timerBar.innerHTML = '⏳<span id=\"timer-count\">30</span>초 남았습니다';", self.single)
         self.assertIn('restoreTimerCountdown();', self.single)
+
+    def test_vs_ai_uses_the_server_authoritative_v1_session_api(self):
+        self.assertIn("fetch('/api/v1/vs-ai/sessions'", self.single)
+        self.assertIn('function restoreVsAiSession()', self.single)
+        self.assertIn('/roll`, {', self.single)
+        self.assertIn('/score`, {', self.single)
+        self.assertNotIn("fetch('/api/leaderboard/bot'", self.single)
 
 
 if __name__ == "__main__":

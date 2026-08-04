@@ -354,6 +354,9 @@ def record_room_score(
         state.setdefault("player_dice", {})[next_player] = [1] * 5
         state.setdefault("player_kept", {})[next_player] = [0] * 5
         state.setdefault("player_rolls_left", {})[next_player] = 3
+        # 추천은 이전 플레이어의 주사위에 대한 결과이므로 턴을 넘길 때 공유
+        # 상태에서 제거한다. 다음 플레이어는 자신의 첫 굴림 뒤 새로 계산한다.
+        state["ai_rec"] = None
         state["winner"] = None
         state["loser"] = None
         state["end_reason"] = None

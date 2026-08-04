@@ -537,7 +537,10 @@ def sync_room(code):
             "turn": new_turn,
             "turn_start_time": turn_start_time,
             "game_over": is_game_over,
-            "ai_rec": data.get("ai_rec", state.get("ai_rec")),
+            # AI 추천은 각 클라이언트가 현재 주사위로 계산하는 개인 UI 상태다.
+            # 방 상태에 남기면 상대의 추천(특히 희생 칸)이 다음 턴 플레이어에게
+            # 전달되어 새 주사위에 잘못 적용될 수 있다.
+            "ai_rec": None,
             "players": state.get("players", room["players"]),
             "version": state.get("version", 0) + 1,
             "updated_by": username,

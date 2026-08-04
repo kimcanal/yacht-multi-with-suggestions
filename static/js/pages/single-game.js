@@ -1,17 +1,14 @@
-document.getElementById('save-modal').onclick = function(e) { if(e.target === this) closeSaveModal(); };
-
-const SINGLE_MODE_KEY = 'yacht_single_mode';
+        const SINGLE_MODE_KEY = 'yacht_single_mode';
         const COACH_ENABLED_KEY = 'yacht_coach_enabled';
+        const VS_AI_SESSION_KEY = 'yacht_vs_ai_session';
         const AI_OPPONENT_NAME = 'Yacht Bot';
-        const AI_OPPONENT_MODE = 'focused';
-        const AI_TURN_DELAY_MS = 650;
 
         function normalizeSingleMode(mode) {
             return mode === 'vs-ai' ? 'vs-ai' : 'solo';
         }
 
         function normalizeCoachValue(value) {
-            return value === 'off' ? 'off' : 'on';
+            return value === 'on' ? 'on' : 'off';
         }
 
         const params = new URLSearchParams(window.location.search);
@@ -20,6 +17,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
         let coachEnabled = normalizeCoachValue(params.get('coach') || localStorage.getItem(COACH_ENABLED_KEY)) === 'on';
         localStorage.setItem(SINGLE_MODE_KEY, singleMode);
         localStorage.setItem(COACH_ENABLED_KEY, coachEnabled ? 'on' : 'off');
+        localStorage.removeItem('yacht_ai_policy_mode');
         localStorage.removeItem('yacht_room');
 
         var isMultiplayer = singleMode === 'vs-ai';
@@ -29,12 +27,23 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
         let isRolling = false;
         let isScoring = false;
         let gameOverToastShown = false;
-        let aiTurnInProgress = false;
-        let aiTurnSequence = 0;
         let turnOwner = username;
         let singleSessionId = null;
         let singleSessionToken = null;
         let singleSessionReady = false;
+        let vsAiSessionId = null;
+        let vsAiSessionToken = null;
+        let vsAiSessionReady = false;
+        const singleMobileInsightQuery = window.matchMedia('(max-width: 768px)');
+
+        function syncSingleMobileInsightPlacement() {
+            const panel = document.getElementById('single-mobile-insight-panel');
+            const diceArea = document.querySelector('.dice-area');
+            const mobileSlot = document.getElementById('single-mobile-insight-slot');
+            if (!panel || !diceArea || !mobileSlot) return;
+            const destination = singleMobileInsightQuery.matches ? mobileSlot : diceArea;
+            if (panel.parentElement !== destination) destination.appendChild(panel);
+        }
 
         let dice, kept, rollsLeft, myCard, oppCard, gameOver, aiRec;
 
@@ -72,21 +81,11 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
 
         const isMyTurn = () => !isVersusAI() || turnOwner === username;
 
-        function getAiModeDisplayName() {
-            const mode = getAiMode();
-            if (mode === 'cover') return '커버 플레이';
-            if (mode === 'optimal') return '기대 최적';
-            return '집중 공략';
-        }
-
-        function sleep(ms) {
-            return new Promise((resolve) => setTimeout(resolve, ms));
-        }
-
         function syncModeQuery() {
             const url = new URL(window.location.href);
             url.searchParams.set('mode', singleMode);
             url.searchParams.set('coach', coachEnabled ? 'on' : 'off');
+            url.searchParams.delete('ai_policy');
             window.history.replaceState({}, '', url.toString());
             localStorage.setItem(SINGLE_MODE_KEY, singleMode);
             localStorage.setItem(COACH_ENABLED_KEY, coachEnabled ? 'on' : 'off');
@@ -98,6 +97,19 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             kept = Array.isArray(sessionState.kept) ? [...sessionState.kept] : kept;
             rollsLeft = typeof sessionState.rolls_left === 'number' ? sessionState.rolls_left : rollsLeft;
             myCard = Array.isArray(sessionState.scorecard) ? [...sessionState.scorecard] : myCard;
+            gameOver = Boolean(sessionState.finished);
+            aiRec = null;
+            commitState();
+        }
+
+        function applyVsAiSessionState(sessionState) {
+            if (!sessionState) return;
+            dice = Array.isArray(sessionState.dice) ? [...sessionState.dice] : dice;
+            kept = Array.isArray(sessionState.kept) ? [...sessionState.kept] : kept;
+            rollsLeft = typeof sessionState.rolls_left === 'number' ? sessionState.rolls_left : rollsLeft;
+            myCard = Array.isArray(sessionState.scorecard) ? [...sessionState.scorecard] : myCard;
+            oppCard = Array.isArray(sessionState.opp_scorecard) ? [...sessionState.opp_scorecard] : oppCard;
+            turnOwner = sessionState.turn === 'bot' ? AI_OPPONENT_NAME : username;
             gameOver = Boolean(sessionState.finished);
             aiRec = null;
             commitState();
@@ -126,6 +138,62 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             singleSessionToken = payload.session_token;
             singleSessionReady = true;
             applySingleSessionState(payload.state);
+        }
+
+        async function startVsAiSession() {
+            vsAiSessionId = null;
+            vsAiSessionToken = null;
+            vsAiSessionReady = false;
+            if (!isVersusAI()) return;
+
+            const response = await fetch('/api/v1/vs-ai/sessions', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username}),
+            });
+            const payload = await response.json();
+            if (!response.ok || payload.error) {
+                throw new Error(payload.error || 'VS AI 세션 시작 실패');
+            }
+            vsAiSessionId = payload.session_id;
+            vsAiSessionToken = payload.session_token;
+            vsAiSessionReady = true;
+            applyVsAiSessionState(payload.state);
+            sessionStorage.setItem(VS_AI_SESSION_KEY, JSON.stringify({
+                username,
+                sessionId: vsAiSessionId,
+                sessionToken: vsAiSessionToken,
+            }));
+        }
+
+        function shouldUseVsAiSession() {
+            return isVersusAI() && vsAiSessionReady && vsAiSessionId && vsAiSessionToken;
+        }
+
+        async function restoreVsAiSession() {
+            if (!isVersusAI()) return false;
+            let saved;
+            try {
+                saved = JSON.parse(sessionStorage.getItem(VS_AI_SESSION_KEY) || 'null');
+            } catch (_error) {
+                sessionStorage.removeItem(VS_AI_SESSION_KEY);
+                return false;
+            }
+            if (!saved || saved.username !== username || !saved.sessionId || !saved.sessionToken) return false;
+            const response = await fetch(
+                `/api/v1/vs-ai/sessions/${encodeURIComponent(saved.sessionId)}?username=${encodeURIComponent(username)}`,
+                {headers: {'X-VS-AI-Token': saved.sessionToken}},
+            );
+            const payload = await response.json();
+            if (!response.ok || payload.error) {
+                sessionStorage.removeItem(VS_AI_SESSION_KEY);
+                return false;
+            }
+            vsAiSessionId = saved.sessionId;
+            vsAiSessionToken = saved.sessionToken;
+            vsAiSessionReady = true;
+            applyVsAiSessionState(payload.state);
+            return true;
         }
 
         function hasMeaningfulProgress() {
@@ -239,89 +307,54 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             playTurnToastSound();
             gameOverToastShown = true;
             setTimeout(() => toast.classList.remove('show'), 1800);
-            showSaveModal(myTotal);
+            window.setTimeout(() => showFinishModal(myTotal, oppTotal), 900);
         }
 
-        function showSaveModal(score) {
-            if (isVersusAI()) {
-                setTimeout(() => {
-                    const toast = document.getElementById('score-toast');
-                    toast.innerHTML = '<div class="toast-cat" style="color:#59f0c2;">VS AI 기록 완료</div><div class="toast-score" style="font-size:1rem;">메인 싱글 랭킹에는 반영되지 않습니다</div>';
-                    toast.classList.add('show');
-                    setTimeout(() => toast.classList.remove('show'), 2600);
-                }, 1800);
-                return;
-            }
-            if (coachEnabled) {
-                setTimeout(() => {
-                    const toast = document.getElementById('score-toast');
-                    toast.innerHTML = '<div class="toast-cat" style="color:#ffd36b;">AI 코치 ON 연습 모드</div><div class="toast-score" style="font-size:1rem;">랭킹 저장은 코치 OFF에서만 반영됩니다</div>';
-                    toast.classList.add('show');
-                    setTimeout(() => toast.classList.remove('show'), 2600);
-                }, 1800);
-                return;
-            }
+        async function showFinishModal(myTotal, oppTotal) {
+            const modal = document.getElementById('finish-modal');
+            if (!modal) return;
+            const title = document.getElementById('finish-title');
+            const score = document.getElementById('finish-score');
+            const message = document.getElementById('finish-message');
+            if (title) title.textContent = getGameResultLabel(myTotal, oppTotal);
+            if (score) score.textContent = isVersusAI() ? `${myTotal} : ${oppTotal}` : `최종 점수 ${myTotal}점`;
+            if (message) message.textContent = isVersusAI()
+                ? 'AI랑 한 판 끝! 전적은 챙겨뒀어.'
+                : coachEnabled
+                    ? '좋았어. 다음 판도 가볍게 해볼까?'
+                    : '점수는 내가 챙겨둘게.';
+            modal.style.display = 'flex';
+            if (!message || isVersusAI() || coachEnabled) return;
 
-            const name = localStorage.getItem('yacht_username') || '';
-            if (!name || name.length < 2) {
-                setTimeout(() => {
-                    const toast = document.getElementById('score-toast');
-                    toast.innerHTML = '<div class="toast-cat" style="color:#ff7b7b;">랭킹 저장 생략</div><div class="toast-score" style="font-size:1rem;">닉네임을 2자 이상 입력하면 기록됩니다</div>';
-                    toast.classList.add('show');
-                    setTimeout(() => toast.classList.remove('show'), 2600);
-                }, 1800);
-                return;
-            }
-
-            setTimeout(() => {
-                fetch('/api/leaderboard/single', {
+            try {
+                const response = await fetch('/api/leaderboard/single', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        username: name,
-                        score: parseInt(score, 10),
+                        username,
+                        score: parseInt(myTotal, 10),
                         mode: singleMode,
-                        coach_enabled: coachEnabled,
+                        coach_enabled: false,
                         session_id: singleSessionId,
                         session_token: singleSessionToken,
-                    })
-                })
-                .then((response) => response.json())
-                .then((data) => {
-                    const toast = document.getElementById('score-toast');
-                    const rankingMsg = data.success
-                        ? '<div class="toast-cat" style="color:#00ffcc;">싱글 랭킹 반영 완료</div><div class="toast-score" style="font-size:1rem;">코치 OFF 기록으로 저장됐습니다</div>'
-                        : `<div class="toast-cat" style="color:#ff6b6b;">랭킹 등록 실패</div><div class="toast-score" style="font-size:1rem;">${escapeHtml(data.error || '저장 실패')}</div>`;
-                    toast.innerHTML = rankingMsg;
-                    toast.classList.add('show');
-                    setTimeout(() => toast.classList.remove('show'), 2800);
-                })
-                .catch(() => {
-                    const toast = document.getElementById('score-toast');
-                    toast.innerHTML = '<div class="toast-cat" style="color:#ff6b6b;">랭킹 등록 실패</div><div class="toast-score" style="font-size:1rem;">저장 중 오류가 발생했습니다</div>';
-                    toast.classList.add('show');
-                    setTimeout(() => toast.classList.remove('show'), 2800);
+                    }),
                 });
-            }, 2000);
+                const payload = await response.json();
+                message.textContent = payload.success
+                    ? '랭킹에 올려뒀어. 잘했어!'
+                    : (payload.error || '이번 판 점수는 못 챙겼어. 다음 판 가자!');
+            } catch (_error) {
+                message.textContent = '이번 판 점수는 못 챙겼어. 다음 판 가자!';
+            }
         }
 
-        function closeSaveModal() {}
-        function saveSingleLeaderboard() {}
+        function playAgain() {
+            sessionStorage.removeItem(VS_AI_SESSION_KEY);
+            window.location.reload();
+        }
 
-        function finishVersusAiIfComplete() {
-            if (!isVersusAI()) return false;
-            const myDone = myCard.every((value) => value !== null);
-            const oppDone = oppCard.every((value) => value !== null);
-            if (!myDone || !oppDone) return false;
-            gameOver = true;
-            aiTurnInProgress = false;
-            const myTotal = calcTotals(myCard).total;
-            const oppTotal = calcTotals(oppCard).total;
-            commitState();
-            updateScorecard();
-            refreshTurnUI();
-            showGameOverToast(myTotal, oppTotal);
-            return true;
+        function goToLobby() {
+            window.location.href = '/';
         }
 
         function startTurnTimer() {
@@ -363,29 +396,21 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                 button.setAttribute('aria-pressed', active ? 'true' : 'false');
             });
             document.querySelectorAll('[data-coach-toggle]').forEach((button) => {
-                const enabledValue = button.dataset.coachToggle === 'on';
-                const active = enabledValue === coachEnabled;
-                button.classList.toggle('active', active);
-                button.setAttribute('aria-pressed', active ? 'true' : 'false');
+                button.classList.toggle('active', coachEnabled);
+                button.setAttribute('aria-pressed', coachEnabled ? 'true' : 'false');
+                button.textContent = coachEnabled ? '💡 힌트 숨기기' : '💡 힌트 보기';
             });
-
             const modeBadge = document.getElementById('mode-badge');
             if (modeBadge) modeBadge.textContent = isVersusAI() ? 'VS AI' : 'SOLO';
         }
 
         function updateCoachUI() {
-            const aiModeRow = document.querySelector('.ai-mode-row');
-            const aiModeGuide = document.querySelector('.ai-mode-guide');
             const aiBreakdownEl = document.getElementById('ai-breakdown');
             const aiInfoTip = document.getElementById('ai-info-tip');
             const showCoachPanel = coachEnabled;
 
-            if (aiModeRow) aiModeRow.style.display = showCoachPanel ? 'flex' : 'none';
-            if (aiModeGuide) aiModeGuide.style.display = showCoachPanel ? 'grid' : 'none';
             if (aiBreakdownEl) aiBreakdownEl.style.display = showCoachPanel ? 'block' : 'none';
             if (aiInfoTip) aiInfoTip.style.display = showCoachPanel ? 'block' : 'none';
-
-            updateAiModeButtons();
 
             if (!showCoachPanel) return;
 
@@ -395,15 +420,6 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             }
 
             if (isVersusAI() && !isMyTurn()) {
-                if (aiTurnInProgress && (!aiRec || !Array.isArray(aiRec.breakdown) || aiRec.breakdown.length === 0)) {
-                    renderAiStatus(
-                        'ai-breakdown',
-                        `🤖 ${AI_OPPONENT_NAME}이 생각 중...`,
-                        'thinking',
-                        '현재 손패를 보고 keep / reroll과 기록 후보를 계산하고 있습니다.'
-                    );
-                    return;
-                }
                 if (aiRec && Array.isArray(aiRec.breakdown) && aiRec.breakdown.length > 0) {
                     renderAiPanel('ai-breakdown', aiRec, { perspective: `${AI_OPPONENT_NAME} 턴 기준` });
                     return;
@@ -433,9 +449,9 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             }
             renderAiStatus(
                 'ai-breakdown',
-                '🎲 추천 계산 중...',
-                'thinking',
-                `${getAiModeDisplayName()} 기준으로 지금 손패를 계산하고 있습니다.`
+                    '🎲 추천 계산 중...',
+                    'thinking',
+                    '지금 주사위, 어디까지 들고 갈지 보고 있어요.'
             );
         }
 
@@ -534,11 +550,24 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             updateQuickScoreTargets(myCard, {
                 active: !isRolling && !gameOver && rollsLeft < 3 && isMyTurn(),
             });
+            const scoreJump = document.getElementById('mobile-score-jump');
+            if (scoreJump) {
+                scoreJump.hidden = isRolling || gameOver || rollsLeft >= 3 || !isMyTurn();
+            }
 
             const timerBar = document.getElementById('timer-bar');
             if (timerBar && (rollsLeft === 0 || rollsLeft === 3 || gameOver || !isMyTurn())) {
                 timerBar.style.display = 'none';
             }
+        }
+
+        function jumpToScorecard() {
+            const scorecardArea = document.querySelector('.scorecard-area');
+            if (!scorecardArea) return;
+            scorecardArea.scrollIntoView({behavior: 'smooth', block: 'start'});
+            window.setTimeout(() => {
+                scorecardArea.querySelector('.score-ready')?.focus({preventScroll: true});
+            }, 350);
         }
 
         function toggleLock(i) {
@@ -576,9 +605,9 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                     'ai-breakdown',
                     '🎲 추천 계산 중...',
                     'thinking',
-                    `${getAiModeDisplayName()} 기준으로 keep / reroll과 기록 후보를 계산하고 있습니다.`
+                    '뭘 남기고 다시 굴리면 좋을지 보고 있어요.'
                 );
-                aiRec = await requestRecommendation(myCard, dice, rollsLeft, getAiMode());
+                aiRec = await requestRecommendation(myCard, dice, rollsLeft, 'focused');
                 commitState();
                 updateCoachUI();
                 updateScorecard();
@@ -596,103 +625,13 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             }
         }
 
-        async function runAiTurn() {
-            if (!isVersusAI() || gameOver || turnOwner !== AI_OPPONENT_NAME) return;
-
-            const sequence = ++aiTurnSequence;
-            aiTurnInProgress = true;
-            clearTurnTimer();
-            resetTurnState();
-            commitState();
-            updateScorecard();
-            refreshTurnUI();
-
-            await sleep(450);
-
-            if (sequence !== aiTurnSequence || gameOver || turnOwner !== AI_OPPONENT_NAME) return;
-
-            rollUnlockedDice();
-            rollsLeft = Math.max(0, rollsLeft - 1);
-            commitState();
-            updateScorecard();
-            refreshTurnUI();
-            await sleep(AI_TURN_DELAY_MS);
-
-            while (sequence === aiTurnSequence && !gameOver && turnOwner === AI_OPPONENT_NAME) {
-                try {
-                    const payload = await requestRecommendation(oppCard, dice, rollsLeft, AI_OPPONENT_MODE);
-                    if (sequence !== aiTurnSequence || gameOver || turnOwner !== AI_OPPONENT_NAME) return;
-
-                    aiRec = coachEnabled ? payload : null;
-                    commitState();
-                    updateScorecard();
-                    refreshTurnUI();
-
-                    if (payload.stage === 'score' || rollsLeft <= 0) {
-                        const categoryIndex = chooseCategoryFromRecommendation(payload, oppCard, dice);
-                        const result = applyScoreToCard(oppCard, categoryIndex, dice);
-                        showToast(
-                            `🤖 ${AI_OPPONENT_NAME} · ${CATS[categoryIndex]}`,
-                            result.totalGain,
-                            result.bonus > 0 ? 'Yacht Bonus +100' : ''
-                        );
-                        resetTurnState();
-                        if (finishVersusAiIfComplete()) return;
-                        turnOwner = username;
-                        aiTurnInProgress = false;
-                        commitState();
-                        updateScorecard();
-                        refreshTurnUI();
-                        startTurnTimer();
-                        return;
-                    }
-
-                    kept = keepIndicesToMask(payload.keep_indices);
-                    commitState();
-                    updateScorecard();
-                    refreshTurnUI();
-                    await sleep(AI_TURN_DELAY_MS);
-
-                    if (sequence !== aiTurnSequence || gameOver || turnOwner !== AI_OPPONENT_NAME) return;
-
-                    rollUnlockedDice();
-                    rollsLeft = Math.max(0, rollsLeft - 1);
-                    commitState();
-                    updateScorecard();
-                    refreshTurnUI();
-                    await sleep(AI_TURN_DELAY_MS);
-                } catch (e) {
-                    console.error('AI turn failed:', e);
-                    const fallbackCategory = chooseBestScoringCategory(oppCard, dice);
-                    const result = applyScoreToCard(oppCard, fallbackCategory, dice);
-                    showToast(
-                        `🤖 ${AI_OPPONENT_NAME} · ${CATS[fallbackCategory]}`,
-                        result.totalGain,
-                        result.bonus > 0 ? 'Yacht Bonus +100' : '네트워크 오류로 즉시 기록'
-                    );
-                    resetTurnState();
-                    if (finishVersusAiIfComplete()) return;
-                    turnOwner = username;
-                    aiTurnInProgress = false;
-                    commitState();
-                    updateScorecard();
-                    refreshTurnUI();
-                    startTurnTimer();
-                    return;
-                }
-            }
-
-            aiTurnInProgress = false;
-            commitState();
-            refreshTurnUI();
-        }
-
         function bindSingleModeControls() {
             document.querySelectorAll('[data-single-mode]').forEach((button) => {
                 button.addEventListener('click', () => {
                     const nextMode = normalizeSingleMode(button.dataset.singleMode);
                     if (nextMode === singleMode) return;
                     if (hasMeaningfulProgress() && !confirm('현재 진행 중인 판이 초기화됩니다. 모드를 바꾸시겠습니까?')) return;
+                    sessionStorage.removeItem(VS_AI_SESSION_KEY);
                     singleMode = nextMode;
                     localStorage.setItem(SINGLE_MODE_KEY, singleMode);
                     window.location.href = `/game/single?mode=${encodeURIComponent(singleMode)}&coach=${coachEnabled ? 'on' : 'off'}`;
@@ -701,9 +640,11 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
 
             document.querySelectorAll('[data-coach-toggle]').forEach((button) => {
                 button.addEventListener('click', async () => {
-                    const nextEnabled = button.dataset.coachToggle === 'on';
-                    if (nextEnabled === coachEnabled) return;
-                    coachEnabled = nextEnabled;
+                    if (hasMeaningfulProgress()) {
+                        alert('힌트는 새 게임을 시작하기 전에 켜거나 끌 수 있어요.');
+                        return;
+                    }
+                    coachEnabled = !coachEnabled;
                     if (!coachEnabled) aiRec = null;
                     commitState();
                     syncModeQuery();
@@ -713,6 +654,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                     }
                 });
             });
+
         }
 
         function showTimerExpiredNotice() {
@@ -782,6 +724,10 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
 
         async function rollDice() {
             if (rollsLeft <= 0 || gameOver || isRolling || !isMyTurn()) return;
+            if (isVersusAI() && !shouldUseVsAiSession()) {
+                alert('VS AI 서버 세션을 시작하지 못했습니다. 새 게임으로 다시 시도해 주세요.');
+                return;
+            }
             clearTurnTimer();
             const keptForRoll = [...kept];
 
@@ -795,7 +741,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                     'ai-breakdown',
                     '🎲 추천 계산 중...',
                     'thinking',
-                    `${getAiModeDisplayName()} 기준으로 다음 수를 준비하고 있습니다.`
+                    '다음 수를 같이 보고 있어요.'
                 );
             }
             updateDice();
@@ -812,7 +758,22 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                         return;
                     }
 
-                    if (shouldUseRankedSingleSession()) {
+                    if (shouldUseVsAiSession()) {
+                        const response = await fetch(`/api/v1/vs-ai/sessions/${encodeURIComponent(vsAiSessionId)}/roll`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                username,
+                                session_token: vsAiSessionToken,
+                                kept: keptForRoll,
+                            }),
+                        });
+                        const payload = await response.json();
+                        if (!response.ok || payload.error) {
+                            throw new Error(payload.error || 'VS AI 서버 굴림 실패');
+                        }
+                        applyVsAiSessionState(payload.state);
+                    } else if (shouldUseRankedSingleSession()) {
                         if (!singleSessionReady) {
                             alert('랭킹 세션 연결에 실패했습니다. 새로고침 후 다시 시작해 주세요.');
                             stopDiceRollAnimation();
@@ -871,9 +832,58 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
 
         async function pickCategory(i) {
             if (rollsLeft === 3 || gameOver || !isMyTurn() || isScoring) return;
+            if (isVersusAI() && !shouldUseVsAiSession()) {
+                alert('VS AI 서버 세션을 시작하지 못했습니다. 새 게임으로 다시 시도해 주세요.');
+                return;
+            }
             clearTurnTimer();
 
             let result;
+            if (shouldUseVsAiSession()) {
+                try {
+                    isScoring = true;
+                    const response = await fetch(`/api/v1/vs-ai/sessions/${encodeURIComponent(vsAiSessionId)}/score`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            username,
+                            session_token: vsAiSessionToken,
+                            category_idx: i,
+                        }),
+                    });
+                    const payload = await response.json();
+                    if (!response.ok || payload.error) {
+                        throw new Error(payload.error || 'VS AI 서버 기록 실패');
+                    }
+                    result = {score: payload.score, bonus: payload.bonus || 0, totalGain: payload.total_gain};
+                    applyVsAiSessionState(payload.state);
+                    showToast(CATS[i], result.totalGain, result.bonus > 0 ? 'Yacht Bonus +100' : '');
+                    const botAction = payload.state?.last_bot_action;
+                    if (botAction) {
+                        setTimeout(() => showToast(
+                            `🤖 ${AI_OPPONENT_NAME} · ${botAction.category}`,
+                            botAction.total_gain,
+                            botAction.bonus > 0 ? 'Yacht Bonus +100' : ''
+                        ), 650);
+                    }
+                    updateScorecard();
+                    flashScoreSelection(i);
+                    refreshTurnUI();
+                    if (payload.state?.finished) {
+                        showGameOverToast(payload.state.final_score, payload.state.bot_final_score);
+                    } else {
+                        startTurnTimer();
+                    }
+                    isScoring = false;
+                    return;
+                } catch (error) {
+                    console.error('VS AI score failed:', error);
+                    alert(error.message || 'VS AI 서버 기록에 실패했습니다.');
+                    isScoring = false;
+                    refreshTurnUI();
+                    return;
+                }
+            }
             if (shouldUseRankedSingleSession()) {
                 if (!singleSessionReady) {
                     alert('랭킹 세션 연결에 실패했습니다. 새로고침 후 다시 시작해 주세요.');
@@ -931,19 +941,6 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
 
             resetTurnState();
 
-            if (isVersusAI()) {
-                if (finishVersusAiIfComplete()) return;
-                turnOwner = AI_OPPONENT_NAME;
-                commitState();
-                updateScorecard();
-                flashScoreSelection(i);
-                refreshTurnUI();
-                setTimeout(() => {
-                    runAiTurn().catch((error) => console.error('VS AI flow failed:', error));
-                }, AI_TURN_DELAY_MS);
-                return;
-            }
-
             const myDone = myCard.every((value) => value !== null);
             if (myDone) {
                 gameOver = true;
@@ -964,6 +961,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
 
         function resetGame() {
             if (!confirm('🔄 새 게임을 시작하시겠습니까?\n\n현재 게임 진행 상황이 모두 초기화됩니다.')) return;
+            sessionStorage.removeItem(VS_AI_SESSION_KEY);
             location.reload();
         }
 
@@ -980,6 +978,12 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
         function startSyncPolling() {}
 
         async function initializeGame() {
+            syncSingleMobileInsightPlacement();
+            if (typeof singleMobileInsightQuery.addEventListener === 'function') {
+                singleMobileInsightQuery.addEventListener('change', syncSingleMobileInsightPlacement);
+            } else {
+                singleMobileInsightQuery.addListener(syncSingleMobileInsightPlacement);
+            }
             updateLocalVars();
             syncModeQuery();
             try {
@@ -988,11 +992,12 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
                 console.warn('Ranked single session unavailable:', error);
                 singleSessionReady = false;
             }
+            try {
+                if (!(await restoreVsAiSession())) await startVsAiSession();
+            } catch (error) {
+                console.warn('VS AI session unavailable:', error);
+            }
             renderDice();
-            bindAiModeControls(() => {
-                if (!coachEnabled) return;
-                if (!gameOver && isMyTurn() && rollsLeft < 3) askAI();
-            });
             bindSingleModeControls();
             updateScorecard();
 

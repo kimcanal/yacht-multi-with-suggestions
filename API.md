@@ -65,7 +65,7 @@ Response:
     },
     "why": ["Large Straight 업그레이드 · 16.67%: Large Straight 16.7%를 노리되, 실패해도 Small Straight는 유지됩니다."],
     "tradeoffs": [],
-    "learning_note": "이 결정에는 ML/DL 모델이 꼭 필요하지 않습니다. 지금 게임처럼 상태공간이 작으면 exact solver가 teacher 역할을 하며, 모델은 그 결정을 빠르게 근사하거나 상대/승률 같은 더 큰 맥락을 학습할 때 가치가 커집니다."
+    "learning_note": "현재 손패와 열린 칸을 함께 비교해, 가장 유리한 keep / reroll 또는 기록 선택을 계산합니다."
   },
   "dice_recommendations": [
     { "index": 0, "value": 1, "action": "keep", "confidence": 100 },
@@ -91,6 +91,7 @@ Response:
 Notes:
 
 - `strategy_mode`: `focused`, `cover`, `optimal`
+- 추천은 항상 exact solver로 계산합니다. 이전 MLP 정책 요청은 더 이상 지원하지 않습니다.
 - 레거시 별칭 `safe`, `aggressive`는 서버에서 `focused`로 정규화됩니다.
 - `scorecard`: 12칸 배열, 비어 있는 칸은 `null`
 - `rolls_left = 0`이면 `stage = "score"`로 기록 추천을 반환하고, `keep_indices`는 빈 배열입니다.
@@ -217,6 +218,70 @@ Response:
   }
 }
 ```
+
+## VS-AI v1 Sessions
+
+현재 VS-AI 화면은 v1 서버 세션을 사용합니다. 서버가 주사위 굴림, 점수 기록, 봇의 전체 턴, 최종 전적 저장을 처리하므로 완료 결과는 `verified: true`로 저장됩니다. 세션 토큰은 재접속 상태 조회와 모든 명령에 필요합니다.
+
+### `POST /api/v1/vs-ai/sessions`
+
+```json
+{
+  "username": "Player01"
+}
+```
+
+응답은 `session_id`, `session_token`, 그리고 플레이어·봇 점수판을 포함한 `state`를 반환합니다. 봇은 항상 exact solver를 사용합니다.
+
+### `POST /api/v1/vs-ai/sessions/{session_id}/roll`
+
+```json
+{
+  "username": "Player01",
+  "session_token": "server-issued-token",
+  "kept": [0, 1, 0, 0, 1]
+}
+```
+
+### `POST /api/v1/vs-ai/sessions/{session_id}/score`
+
+```json
+{
+  "username": "Player01",
+  "session_token": "server-issued-token",
+  "category_idx": 6
+}
+```
+
+점수 기록 요청은 플레이어 점수를 처리한 뒤 봇의 전체 턴까지 서버에서 완료합니다. 마지막 턴이면 결과를 자동 저장합니다. `GET /api/v1/vs-ai/sessions/{session_id}?username=Player01`에 `X-VS-AI-Token` 헤더를 넣으면 현재 상태를 복원할 수 있습니다.
+
+## Legacy VS-AI Practice Board
+
+이전 클라이언트용 비검증 연습 기록 API입니다. 게임 시작 시 서버가 발급한 일회용 매치 토큰이 있어야 기록할 수 있으며, 최근 대국은 최대 500개만 보관합니다.
+
+### `POST /api/single/vs-ai/start`
+
+```json
+{
+  "username": "Player01"
+}
+```
+
+응답의 `match_id`, `match_token`을 매치 종료 전까지 보관합니다. 이 레거시 보드의 봇도 exact solver를 사용합니다.
+
+### `POST /api/leaderboard/bot`
+
+```json
+{
+  "username": "Player01",
+  "score": 213,
+  "bot_score": 198,
+  "match_id": "server-issued-id",
+  "match_token": "server-issued-token"
+}
+```
+
+한 매치 토큰은 한 번만 저장할 수 있습니다. 이 레거시 경로로 저장된 항목은 `verified: false`이며, v1 서버 세션으로 끝난 항목은 `verified: true`입니다.
 
 ### `GET /api/leaderboard`
 

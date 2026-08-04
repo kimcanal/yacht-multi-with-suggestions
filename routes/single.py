@@ -2,8 +2,9 @@ import time
 
 from flask import Blueprint, jsonify, request
 
-from app_state import single_sessions, single_sessions_lock
+from app_state import get_services, single_sessions, single_sessions_lock
 from utils.validation import normalize_kept, normalize_username, safe_int
+from yacht_app.services import vs_ai
 from yacht_app.services.room_lifecycle import score_total
 from yacht_app.services.single_sessions import (
     _get_session,
@@ -11,10 +12,126 @@ from yacht_app.services.single_sessions import (
     _new_session,
     _prune_sessions,
     _public_state,
+    new_bot_match,
 )
 from yacht_core.simulation import apply_score
 
 single_bp = Blueprint("single", __name__)
+
+
+@single_bp.route("/api/v1/vs-ai/sessions", methods=["POST"])
+def create_vs_ai_session():
+    data = request.json or {}
+    username = normalize_username(data.get("username"))
+    if not username:
+        return jsonify({"error": "유효한 닉네임이 필요합니다"}), 400
+    if data.get("policy_mode") not in (None, "exact_memo"):
+        return jsonify({"error": "MLP 정책은 더 이상 지원하지 않습니다"}), 400
+    with single_sessions_lock:
+        _prune_sessions()
+        session = vs_ai.new_session(username)
+        single_sessions[session["id"]] = session
+    payload = {
+        "session_id": session["id"],
+        "session_token": session["token"],
+        "state": vs_ai.public_state(session),
+    }
+    return jsonify(payload), 201
+
+
+def _vs_ai_session_from_request(session_id, data):
+    username = normalize_username(data.get("username"))
+    if not username:
+        return None, None, "유효한 닉네임이 필요합니다"
+    session = single_sessions.get(session_id)
+    error = vs_ai.authenticate(session, username, data.get("session_token"))
+    return session, username, error
+
+
+@single_bp.route("/api/v1/vs-ai/sessions/<session_id>", methods=["GET"])
+def get_vs_ai_session(session_id):
+    data = {
+        "username": request.args.get("username"),
+        "session_token": request.headers.get("X-VS-AI-Token"),
+    }
+    with single_sessions_lock:
+        session, _username, error = _vs_ai_session_from_request(session_id, data)
+        if error:
+            return jsonify({"error": error}), 403
+        return jsonify({"state": vs_ai.public_state(session)})
+
+
+@single_bp.route("/api/v1/vs-ai/sessions/<session_id>/roll", methods=["POST"])
+def roll_vs_ai_session(session_id):
+    data = request.json or {}
+    kept = normalize_kept(data.get("kept"))
+    if kept is None:
+        return jsonify({"error": "잘못된 고정 주사위 데이터"}), 400
+    with single_sessions_lock:
+        session, _username, error = _vs_ai_session_from_request(session_id, data)
+        if error:
+            return jsonify({"error": error}), 403
+        try:
+            vs_ai.roll_player(session, kept)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 409
+        single_sessions[session_id] = session
+        return jsonify({"state": vs_ai.public_state(session)})
+
+
+@single_bp.route("/api/v1/vs-ai/sessions/<session_id>/score", methods=["POST"])
+def score_vs_ai_session(session_id):
+    data = request.json or {}
+    category_idx = safe_int(data.get("category_idx"))
+    if category_idx is None:
+        return jsonify({"error": "잘못된 점수칸입니다"}), 400
+    with single_sessions_lock:
+        session, username, error = _vs_ai_session_from_request(session_id, data)
+        if error:
+            return jsonify({"error": error}), 403
+        try:
+            score, bonus = vs_ai.score_player(session, category_idx)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 409
+        if session["finished"] and not session["result_saved"]:
+            get_services().results.save_bot_game_result(
+                username,
+                session["final_score"],
+                session["bot_final_score"],
+                session["policy_mode"],
+                session_id,
+                verified=True,
+            )
+            session["result_saved"] = True
+        single_sessions[session_id] = session
+        return jsonify({
+            "score": score,
+            "bonus": bonus,
+            "total_gain": score + bonus,
+            "state": vs_ai.public_state(session),
+        })
+
+
+@single_bp.route("/api/single/vs-ai/start", methods=["POST"])
+def start_bot_match():
+    """Issue a one-time token for a VS-AI practice-board submission."""
+    data = request.json or {}
+    username = normalize_username(data.get("username"))
+    if not username:
+        return jsonify({"error": "유효한 닉네임이 필요합니다"}), 400
+    if data.get("policy_mode") not in (None, "exact_memo"):
+        return jsonify({"error": "MLP 정책은 더 이상 지원하지 않습니다"}), 400
+
+    with single_sessions_lock:
+        _prune_sessions()
+        match = new_bot_match(username)
+        single_sessions[match["id"]] = match
+    payload = {
+        "match_id": match["id"],
+        "match_token": match["token"],
+        "verified": False,
+    }
+    return jsonify(payload)
 
 @single_bp.route("/api/single/start", methods=["POST"])
 def start_single_session():

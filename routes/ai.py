@@ -7,7 +7,6 @@ from flask import Blueprint, jsonify, request
 import yacht_engine
 from app_state import ai_metrics, get_services
 from config import (
-    AI_POLICY_MIN_CONFIDENCE,
     AI_SLOW_LOG_MS,
     WIN_PROBABILITY_DEFAULT_SAMPLES,
 )
@@ -199,6 +198,7 @@ def recommend():
         normalized_rolls_left = normalize_rolls_left(data.get("rolls_left", 0), 0, 2)
         scorecard = normalize_scorecard(data.get("scorecard", []))
         strategy_mode = normalize_strategy_mode(data.get("strategy_mode", "focused"))
+        requested_policy = data.get("policy_mode")
 
         if dice is None:
             return jsonify({"error": "dice는 길이 5의 1~6 정수 배열이어야 합니다"}), 400
@@ -206,10 +206,16 @@ def recommend():
             return jsonify({"error": "scorecard는 길이 12의 점수/None 배열이어야 합니다"}), 400
         if strategy_mode is None:
             return jsonify({"error": "strategy_mode는 focused, cover, optimal만 허용됩니다"}), 400
+        # Older clients may still send the former exact policy label.  Do not
+        # silently turn an MLP request into an exact result: surface the
+        # retired option clearly while keeping a harmless rollout transition.
+        if requested_policy not in (None, "exact_memo"):
+            return jsonify({"error": "MLP 정책은 더 이상 지원하지 않습니다"}), 400
         if normalized_rolls_left is None or normalized_rolls_left < 0 or normalized_rolls_left > 2:
             return jsonify({"error": "rolls_left는 0~2 정수여야 합니다"}), 400
 
         solver_strategy_mode, score_value_mode, forced_policy_source = _solver_options_for_strategy(strategy_mode)
+        score_stage_value_mode = "value_score_only" if strategy_mode == "focused" else score_value_mode
 
         open_categories = [i for i, score in enumerate(scorecard) if score is None]
         if not open_categories:
@@ -237,12 +243,6 @@ def recommend():
         result = _get_cached_recommendation(cache_key)
         request_cache_hit = result is not None
 
-        if result is None and not score_value_mode and ai_metrics.policy_model and normalized_rolls_left > 0:
-            result = ai_metrics.policy_model.recommend_roll(
-                dice, normalized_rolls_left, strategy_mode, scorecard,
-                min_confidence=AI_POLICY_MIN_CONFIDENCE,
-            )
-
         if result is None:
             result = yacht_engine.solve_best_move(
                 dice,
@@ -250,7 +250,7 @@ def recommend():
                 open_categories,
                 solver_strategy_mode,
                 scorecard,
-                score_value_mode=score_value_mode,
+                score_value_mode=(score_stage_value_mode if normalized_rolls_left == 0 else score_value_mode),
             )
             result.setdefault("policy_source", "exact")
 
@@ -261,7 +261,7 @@ def recommend():
                 result["policy_source"] = forced_policy_source
 
         result = _mark_score_now_recommendation(
-            result, dice, scorecard, open_categories, solver_strategy_mode, score_value_mode,
+            result, dice, scorecard, open_categories, solver_strategy_mode, score_stage_value_mode,
         )
 
         result["decision_report"] = build_decision_report(

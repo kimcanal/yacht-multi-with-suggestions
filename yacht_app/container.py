@@ -32,8 +32,6 @@ class AIMetrics:
         self.request_count = 0
         self.error_count = 0
         self.max_latency_ms = 0.0
-        self.policy_model = None
-        self.policy_model_status = "disabled"
 
 
 class AIRequestRuntime:
