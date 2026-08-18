@@ -83,10 +83,11 @@ function updateQuickScoreTargets(card, options = {}) {
     const targetEl = document.getElementById('quick-score-targets');
     if (!targetEl) return;
 
+    const currentDice = options.dice || (typeof GameState !== 'undefined' && typeof GameState.getDice === 'function' ? GameState.getDice() : (typeof dice !== 'undefined' ? dice : null));
     const active = Boolean(options.active)
         && Array.isArray(card)
-        && Array.isArray(dice)
-        && dice.length === 5;
+        && Array.isArray(currentDice)
+        && currentDice.length === 5;
     if (!active) {
         targetEl.hidden = true;
         targetEl.innerHTML = '';
@@ -94,7 +95,7 @@ function updateQuickScoreTargets(card, options = {}) {
     }
 
     const targets = CATS
-        .map((name, index) => ({ name, index, score: calcScore(dice, index) }))
+        .map((name, index) => ({ name, index, score: calcScore(currentDice, index) }))
         .filter((target) => card[target.index] === null && target.score > 0)
         .sort((left, right) => right.score - left.score || left.index - right.index)
         .slice(0, 3);

@@ -908,6 +908,7 @@
             document.getElementById('roll-btn').disabled = GameState.getRollsLeft() <= 0 || GameState.isGameOver() || isRolling || !isMyTurn() || waitingForOpponent;
             updateQuickScoreTargets(GameState.getMyCard(), {
                 active: !isObserver && !isRolling && !gameOver && rollsLeft < 3 && isMyTurn(),
+                dice: GameState.getDice(),
             });
             const scoreJump = document.getElementById('mobile-score-jump');
             if (scoreJump) {
