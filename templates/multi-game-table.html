@@ -2,7 +2,7 @@
 {% block title %}<title>🎲 Yacht - Table Layout</title>{% endblock %}
 {% block head %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260721-16') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/multi-game.css', v='20260719-1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/multi-game.css', v='20260728-3') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/multi-game-table.css', v='20260721-10') }}">
     <script src="{{ url_for('static', filename='js/game_layout.js', v='20260721-3') }}"></script>
 {% endblock %}
@@ -64,6 +64,7 @@
                 <div class="dice-action-row" id="dice-action-row">
                     <button class="btn btn-roll" onclick="rollDice()" id="roll-btn">🎲 ROLL</button>
                 </div>
+                <div id="reaction-burst-layer" class="reaction-burst-layer" aria-live="polite" aria-atomic="true"></div>
             </section>
 
             <div class="controls table-turn-controls" id="multiplayer-controls">
@@ -74,22 +75,11 @@
 
         <aside class="table-insight-area">
             <div class="table-panel-title">AI 코치</div>
-            <div class="ai-mode-guide" aria-label="AI 추천 방식 선택">
-                <div class="ai-mode-card" data-ai-mode-desc="focused">
-                    <strong><span class="ai-mode-chip">집중</span> 한 족보 집중</strong>
-                    <p>유망한 한 족보를 끝까지 공략.</p>
-                    <span class="ai-mode-metric">한 족보의 완성과 상단 보너스 흐름을 우선 고려</span>
-                </div>
-                <div class="ai-mode-card" data-ai-mode-desc="cover">
-                    <strong><span class="ai-mode-chip">커버</span> 하나 이상</strong>
-                    <p>여러 하단 족보 중 하나라도 성공 노림.</p>
-                    <span class="ai-mode-metric">여러 하단 족보의 성공 가능성을 함께 보존</span>
-                </div>
-                <div class="ai-mode-card" data-ai-mode-desc="optimal">
-                    <strong><span class="ai-mode-chip">최적</span> 기대 최적</strong>
-                    <p>남은 점수판 가치까지 계산해 기대점수 최대화.</p>
-                    <span class="ai-mode-metric">남은 점수판 가치까지 반영한 기대점수 기준</span>
-                </div>
+            <div class="ai-mode-row" aria-label="AI 추천 방식 선택">
+                <span class="ai-mode-row-label">추천 방식</span>
+                <button type="button" class="ai-mode-btn" data-ai-mode="focused" title="한 족보의 완성과 상단 보너스 흐름을 우선 고려">집중</button>
+                <button type="button" class="ai-mode-btn" data-ai-mode="cover" title="여러 하단 족보의 성공 가능성을 함께 보존">커버</button>
+                <button type="button" class="ai-mode-btn" data-ai-mode="optimal" title="남은 점수판 가치까지 반영한 기대점수 기준">최적</button>
             </div>
             <div id="ai-breakdown" class="ai-breakdown"></div>
             <div id="win-prob-panel" class="winprob-panel"></div>
@@ -97,7 +87,6 @@
     </div>
 
     <div id="score-toast" class="toast-overlay"></div>
-    <div id="reaction-burst-layer" class="reaction-burst-layer" aria-live="polite" aria-atomic="true"></div>
     <div id="reaction-dock" class="reaction-dock" style="display:none;" aria-label="감정표현 보내기">
         <div class="reaction-dock-head">
             <strong>감정표현</strong>
@@ -119,5 +108,5 @@
     <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260721-4') }}"></script>
     <script src="{{ url_for('static', filename='js/winprob.js', v='20260721-1') }}"></script>
     <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260721-7') }}"></script>
-    <script src="{{ url_for('static', filename='js/pages/multi-game.js', v='20260721-12') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/multi-game.js', v='20260728-4') }}"></script>
 {% endblock %}

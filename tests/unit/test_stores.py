@@ -83,6 +83,17 @@ class StoreContractTests(unittest.TestCase):
             self.assertEqual(reopened.get_single_leaderboard()[0]["score"], 222)
             self.assertEqual(reopened.get_user_profile("alpha1")["wins"], 20)
 
+            first_bot_game = reopened.save_bot_game_result(
+                "alpha1", 231, 202, "exact_memo", "sqlite-bot-match-01",
+            )
+            self.assertTrue(first_bot_game["saved"])
+            self.assertFalse(first_bot_game["entry"]["verified"])
+            self.assertTrue(
+                SQLiteResultRepository(path).save_bot_game_result(
+                    "alpha1", 231, 202, "exact_memo", "sqlite-bot-match-01",
+                )["duplicate"]
+            )
+            self.assertEqual(SQLiteResultRepository(path).get_bot_leaderboard()[0]["wins"], 1)
 
 if __name__ == "__main__":
     unittest.main()

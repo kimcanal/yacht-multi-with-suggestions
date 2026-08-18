@@ -7,10 +7,17 @@ from datetime import datetime
 DATA_FILE = os.getenv('YACHT_DATA_FILE', 'game_data.json')
 DATA_LOCK = threading.RLock()
 MAX_SCORE = 1000
+MAX_BOT_GAME_HISTORY = 500
 
 
 def _default_data():
-    return {'users': {}, 'games': [], 'single_leaderboard': []}
+    return {
+        'users': {},
+        'games': [],
+        'single_leaderboard': [],
+        'bot_users': {},
+        'bot_games': [],
+    }
 
 
 def _now_iso():
@@ -45,6 +52,20 @@ def _normalize_user(username, raw_user):
         'games_played': games_played,
         'created_at': raw_user.get('created_at') or _now_iso(),
     }
+
+
+def _normalize_bot_user(username, raw_user):
+    user = _normalize_user(username, raw_user)
+    raw_user = raw_user if isinstance(raw_user, dict) else {}
+    games_played = user['games_played']
+    verified_games = _coerce_int(raw_user.get('verified_games', 0), maximum=games_played)
+    unverified_games = _coerce_int(raw_user.get('unverified_games', 0), maximum=games_played)
+    if not verified_games and not unverified_games and games_played:
+        # Existing practice records predate verification counters.
+        unverified_games = games_played
+    user['verified_games'] = verified_games
+    user['unverified_games'] = unverified_games
+    return user
 
 
 def _normalize_game(raw_game):
@@ -84,6 +105,33 @@ def _normalize_single_entry(raw_entry):
     }
 
 
+def _normalize_bot_game(raw_game):
+    if not isinstance(raw_game, dict) or not raw_game.get('player1'):
+        return None
+    player1 = raw_game['player1']
+    player2 = raw_game.get('player2') or 'Yacht Bot'
+    score1 = _coerce_int(raw_game.get('score1', 0))
+    score2 = _coerce_int(raw_game.get('score2', 0))
+    winner = raw_game.get('winner')
+    if winner not in {player1, player2, 'DRAW'}:
+        winner = 'DRAW' if score1 == score2 else (player1 if score1 > score2 else player2)
+    policy_mode = raw_game.get('policy_mode')
+    if policy_mode not in {'exact_memo', 'mlp_roll', 'guarded_mlp'}:
+        policy_mode = 'exact_memo'
+    match_id = raw_game.get('match_id')
+    return {
+        'match_id': match_id if isinstance(match_id, str) else None,
+        'player1': player1,
+        'score1': score1,
+        'player2': player2,
+        'score2': score2,
+        'winner': winner,
+        'policy_mode': policy_mode,
+        'timestamp': raw_game.get('timestamp') or _now_iso(),
+        'verified': bool(raw_game.get('verified', False)),
+    }
+
+
 def _normalize_data(data):
     if not isinstance(data, dict):
         return _default_data()
@@ -95,6 +143,8 @@ def _normalize_data(data):
         if isinstance(data.get('single_leaderboard'), list)
         else []
     )
+    bot_users = data.get('bot_users') if isinstance(data.get('bot_users'), dict) else {}
+    bot_games = data.get('bot_games') if isinstance(data.get('bot_games'), list) else []
 
     normalized = _default_data()
     normalized['users'] = {
@@ -113,6 +163,14 @@ def _normalize_data(data):
         key=lambda row: row['score'],
         reverse=True,
     )[:20]
+    normalized['bot_users'] = {
+        username: _normalize_bot_user(username, row)
+        for username, row in bot_users.items()
+        if username
+    }
+    normalized['bot_games'] = [
+        game for game in (_normalize_bot_game(row) for row in bot_games) if game is not None
+    ][:MAX_BOT_GAME_HISTORY]
     return normalized
 
 

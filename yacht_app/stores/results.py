@@ -10,6 +10,8 @@ from pathlib import Path
 
 import database as legacy
 
+MAX_BOT_GAME_HISTORY = 500
+
 
 class ResultRepository:
     backend_name = "abstract"
@@ -107,6 +109,71 @@ class ResultRepository:
         with self._data() as data:
             rows = data.get("single_leaderboard", [])
             return [dict(row) for row in sorted(rows, key=lambda row: row["score"], reverse=True)]
+
+    def save_bot_game_result(self, username, score, bot_score, policy_mode, match_id, *, verified=False):
+        with self._data(write=True) as data:
+            for key, default in (("bot_users", {}), ("bot_games", [])):
+                data.setdefault(key, default)
+            existing = next((row for row in data["bot_games"] if row.get("match_id") == match_id), None)
+            if existing:
+                return {"saved": False, "duplicate": True, "entry": dict(existing)}
+
+            score = legacy._coerce_int(score)
+            bot_score = legacy._coerce_int(bot_score)
+            user = data["bot_users"].setdefault(username, legacy._normalize_user(username, {}))
+            if score > bot_score:
+                user["wins"] += 1
+                winner = username
+            elif score < bot_score:
+                user["losses"] += 1
+                winner = "Yacht Bot"
+            else:
+                user["draws"] += 1
+                winner = "DRAW"
+            user["total_score"] += score
+            user["games_played"] += 1
+            verification_key = "verified_games" if verified else "unverified_games"
+            user[verification_key] = int(user.get(verification_key, 0) or 0) + 1
+            entry = {
+                "match_id": match_id,
+                "player1": username,
+                "score1": score,
+                "player2": "Yacht Bot",
+                "score2": bot_score,
+                "winner": winner,
+                "policy_mode": policy_mode,
+                "timestamp": legacy._now_iso(),
+                "verified": bool(verified),
+            }
+            data["bot_games"].append(entry)
+            data["bot_games"] = legacy._sorted_games_desc(data["bot_games"])[:MAX_BOT_GAME_HISTORY]
+            return {"saved": True, "duplicate": False, "entry": dict(entry), "user": dict(user)}
+
+    def get_bot_leaderboard(self):
+        with self._data() as data:
+            users = [dict(row) for row in data.get("bot_users", {}).values()]
+        for user in users:
+            user.setdefault("draws", 0)
+            games = user.get("games_played", 0) or 0
+            user["avg_score"] = round((user.get("total_score", 0) or 0) / games, 1) if games else 0.0
+            user["verified_games"] = int(user.get("verified_games", 0) or 0)
+            user["unverified_games"] = int(user.get("unverified_games", 0) or 0)
+            user["verified"] = bool(user["verified_games"]) and not user["unverified_games"]
+        ranked = sorted(users, key=lambda row: (row["wins"], row["draws"], row["total_score"]), reverse=True)
+        return ranked
+
+    def get_recent_bot_games(self, limit=10):
+        with self._data() as data:
+            games = list(data.get("bot_games", []))
+        return [
+            {
+                **legacy._serialize_game_entry(game),
+                "game_type": "vs_ai",
+                "policy_mode": game.get("policy_mode"),
+                "verified": bool(game.get("verified", False)),
+            }
+            for game in legacy._sorted_games_desc(games)[: legacy._clamp_limit(limit, default=10, maximum=50)]
+        ]
 
     def reset_leaderboard(self):
         with self._data(write=True) as data:

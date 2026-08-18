@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from app_state import get_services
 from config import RESET_ADMIN_TOKEN
 from utils.validation import normalize_username, safe_int
-from yacht_app.services.single_sessions import verify_ranked_single_session
+from yacht_app.services.single_sessions import claim_bot_match, verify_ranked_single_session
 
 leaderboard_bp = Blueprint("leaderboard", __name__)
 
@@ -44,6 +44,39 @@ def leaderboard_single_post():
         return jsonify({"success": False, "error": error}), 403
     get_services().results.save_single_leaderboard(username, score)
     return jsonify({"success": True})
+
+
+@leaderboard_bp.route("/api/leaderboard/bot", methods=["GET"])
+def leaderboard_bot_get():
+    return jsonify(get_services().results.get_bot_leaderboard())
+
+
+@leaderboard_bp.route("/api/leaderboard/bot", methods=["POST"])
+def leaderboard_bot_post():
+    """Store a VS-AI practice result separately from verified human matches.
+
+    The current VS-AI game runs in the browser, so its final score cannot be
+    server-verified.  Keeping it in a dedicated practice board prevents it from
+    affecting the human multiplayer ladder.
+    """
+    data = request.json or {}
+    username = normalize_username(data.get("username"))
+    score = safe_int(data.get("score"))
+    bot_score = safe_int(data.get("bot_score"))
+    match_id = data.get("match_id")
+    match_token = data.get("match_token")
+    if not username or score is None or bot_score is None:
+        return jsonify({"success": False, "error": "Invalid bot match data"}), 400
+    if not 0 <= score <= 1000 or not 0 <= bot_score <= 1000:
+        return jsonify({"success": False, "error": "Invalid bot match score"}), 400
+    match, error = claim_bot_match(username, match_id, match_token)
+    if not match:
+        return jsonify({"success": False, "error": error}), 403
+
+    result = get_services().results.save_bot_game_result(
+        username, score, bot_score, match["policy_mode"], match_id,
+    )
+    return jsonify({"success": True, **result})
 
 
 @leaderboard_bp.route("/api/leaderboard/multi", methods=["GET"])

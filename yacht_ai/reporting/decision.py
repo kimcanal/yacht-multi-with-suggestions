@@ -135,19 +135,12 @@ def _probability_context(result, rows):
 
 
 def _source_label(policy_source):
-    if policy_source == "learned_roll_policy":
-        return "학습 정책 모델"
     if policy_source == "exact_value_optimal":
         return "Full-game exact V"
     return "Exact solver"
 
 
 def _method_note(policy_source, stage):
-    if policy_source == "learned_roll_policy":
-        return (
-            "이번 굴림 선택은 exact solver가 만든 teacher 데이터를 학습한 정책 모델이 먼저 냈고, "
-            "confidence 기준을 넘은 경우에만 채택됩니다."
-        )
     if policy_source == "exact_value_optimal":
         return "현재 점수와 남은 턴을 함께 비교해, 끝까지 진행했을 때 평균 최종 점수가 가장 큰 선택을 고릅니다."
     if stage == "score":
@@ -156,19 +149,11 @@ def _method_note(policy_source, stage):
 
 
 def _learning_note(policy_source):
-    if policy_source == "learned_roll_policy":
-        return (
-            "모델은 스스로 결정을 흉내 내는 실행 정책이고, 낮은 확신이나 위험한 상태에서는 exact solver로 돌아갑니다. "
-            "다음 단계의 self-learning은 self-play 데이터를 더 쌓아 win-rate/value model을 붙이는 방식이 좋습니다."
-        )
     if policy_source == "exact_value_optimal":
         return (
             "이 모드는 현재 점수와 남은 턴을 함께 비교해, 평균 최종 점수가 가장 큰 선택을 찾습니다."
         )
-    return (
-        "이 결정에는 ML/DL 모델이 꼭 필요하지 않습니다. 지금 게임처럼 상태공간이 작으면 exact solver가 teacher 역할을 하며, "
-        "모델은 그 결정을 빠르게 근사하거나 상대/승률 같은 더 큰 맥락을 학습할 때 가치가 커집니다."
-    )
+    return "현재 손패와 열린 칸을 함께 비교해, 가장 유리한 keep / reroll 또는 기록 선택을 계산합니다."
 
 
 def build_decision_report(result, dice, rolls_left, strategy_mode, scorecard, open_categories):

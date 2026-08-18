@@ -1,6 +1,6 @@
 # YACHT — 주사위는 운, 선택은 전략
 
-5개의 주사위를 최대 세 번 굴리고, 12개 족보를 한 번씩 채우는 웹 요트 다이스 게임입니다. 혼자 점수를 노리거나 AI와 겨룰 수 있고, 친구와 실시간 1:1 대전·관전도 할 수 있습니다.
+5개의 주사위를 최대 세 번 굴리고, 12개 족보를 한 번씩 채우는 웹 요트 다이스 게임입니다. 혼자 점수를 노리거나 AI와 겨루고, 친구와 실시간 1:1 대전·관전도 할 수 있습니다.
 
 [바로 플레이하기](https://yatch-game.cloud/) · [게임 소개](https://yatch-game.cloud/intro) · [API 문서](./API.md)
 
@@ -28,9 +28,9 @@
 
 > 0점은 실수가 아니라 선택지입니다. 다만 한 번 기록하면 되돌릴 수 없으니, 점수판에 남은 칸과 상단 보너스 진행도를 함께 보세요.
 
-## AI 코치, 이렇게 보면 됩니다
+## AI 코치
 
-AI는 자동으로 플레이하지 않습니다. 어떤 주사위를 KEEP할지와 어떤 족보를 기록할지는 플레이어가 결정합니다.
+AI 코치는 자동으로 플레이하지 않습니다. KEEP할 주사위와 기록 후보를 보여 주지만, 최종 선택은 항상 플레이어가 합니다. 추천은 항상 exact solver로 계산합니다.
 
 | 모드 | 이럴 때 쓰세요 | 무엇을 우선하나요 |
 | --- | --- | --- |
@@ -42,12 +42,12 @@ AI는 자동으로 플레이하지 않습니다. 어떤 주사위를 KEEP할지�
 
 ## 플레이 모드
 
-- **솔로** — 내 최고 점수에 도전합니다. AI 코치를 끄면 랭킹 기록으로 플레이할 수 있습니다.
-- **VS AI** — AI와 12턴씩 진행해 총점을 겨룹니다.
+- **솔로** — 내 최고 점수에 도전합니다. AI 코치를 끄면 서버 검증 랭킹 기록으로 플레이할 수 있습니다.
+- **VS AI** — AI와 12턴씩 진행해 총점을 겨룹니다. 주사위, 점수, 봇 턴과 전적 저장을 서버가 처리하며 완료 전적은 로비의 VS AI 탭에서 확인할 수 있습니다.
 - **실시간 멀티** — 방 코드를 공유해 친구와 1:1로 플레이합니다. 관전자 입장과 재대결도 지원합니다.
 - **관전** — 방에 들어가 경기 흐름과 점수판을 읽기 전용으로 봅니다.
 
-멀티플레이의 주사위와 점수는 서버가 판정합니다. 참가자는 감정표현을 보낼 수 있고, 경기 상태는 실시간 이벤트와 polling fallback으로 동기화됩니다.
+VS AI와 멀티플레이의 주사위·점수는 서버가 판정합니다. 멀티플레이는 실시간 이벤트와 polling fallback으로 동기화됩니다.
 
 ## 실행하기
 
@@ -68,11 +68,11 @@ python3 server.py
 gunicorn -c gunicorn.conf.py wsgi:application
 ```
 
-## 프로젝트가 특별히 보는 것
+## 구현 원칙
 
-이 프로젝트의 AI는 단순히 “족보 완성 확률”만 보여주지 않습니다. 현재 주사위, 남은 재굴림, 열린 점수칸, 상단 63점 보너스, Yacht Bonus와 희생 칸의 장기 비용을 함께 고려합니다.
+추천은 단순 족보 완성 확률이 아니라 현재 주사위, 남은 재굴림, 열린 점수칸, 상단 63점 보너스와 Yacht Bonus까지 함께 고려합니다. 제품 런타임은 학습 모델 선택지 없이 exact solver 하나로 동작합니다.
 
-추천 품질은 exact solver를 기준으로 검증합니다. 즉, UI의 추천과 이론적 최적 판단의 차이를 측정하고 개선하는 구조입니다.
+추천 품질은 exact solver 기준으로 검증합니다. 실험용 학습 코드와 평가 자료는 제품 경로와 분리해 `scripts/`, `artifacts/`, `docs/`에 보관합니다.
 
 <details>
 <summary>개발·운영 정보 펼치기</summary>
@@ -80,8 +80,8 @@ gunicorn -c gunicorn.conf.py wsgi:application
 ### 기술 구성
 
 - Python / Flask / Vanilla JavaScript / CSS
-- AI: full-game exact value table, turn DP, decision-regret evaluation
-- 기본 코치: Focused roll policy + score-stage exact value lookup
+- AI: exact value table, turn DP, decision-regret evaluation
+- 기본 코치와 VS AI: exact solver
 
 ### AI 품질 지표
 
@@ -112,41 +112,19 @@ python3 server.py
 
 주요 API와 요청 예시는 [API.md](./API.md)를 참고하세요. 멀티플레이는 서버 권위 주사위, 점수 재검증, commit-reveal fairness 검증을 사용합니다.
 
-### Redis 적용 보고서
+### 운영과 배포
 
-Redis는 AI 모델이 아니라 **멀티플레이 상태 저장소**다. 방 정보, 로비 접속 정보, 싱글 게임 세션을 프로세스 메모리 대신 Redis에 저장한다.
+개발 환경은 in-memory 저장소로 실행할 수 있습니다. 장기 운영이나 다중 worker 환경에서는 Redis(방·로비·세션)와 SQLite(전적)를 사용하세요. 다중 worker로 시작하면 앱이 이 구성을 확인합니다.
 
-#### 왜 적용했나
+현재 호스팅 환경은 `yacht-hosting.sh`로 제어합니다.
 
-기존 in-memory 방식은 한 Gunicorn 프로세스 안에서는 가장 빠르지만, 서버를 재시작하면 방·세션 상태가 사라지고 worker를 여러 개 실행하면 각 worker의 상태가 서로 분리된다. Redis backend는 이 상태를 공용 저장소에 두고 TTL과 방 단위 lock을 적용하므로 다음이 가능해진다.
+```bash
+bash yacht-hosting.sh status
+bash yacht-hosting.sh restart 8080
+curl -fsS https://yatch-game.cloud/health
+```
 
-- 서버 재시작 뒤에도 TTL이 남아 있는 방과 세션을 복구한다.
-- 여러 worker 또는 여러 앱 인스턴스가 같은 방·로비·세션 상태를 읽는다.
-- 방 생성은 atomic create로 처리하고, 방 변경은 Redis lock으로 직렬화한다.
-
-현재 로컬 Redis는 `127.0.0.1:6379`에만 bind하며, AOF와 RDB snapshot을 함께 사용한다. 외부에서 Redis 포트에 직접 접근할 수 없고 앱 서버만 연결한다.
-
-#### 적용 전후에 바뀐 점
-
-| 항목 | 이전: in-memory | 이후: Redis |
-| --- | --- | --- |
-| 방·로비·싱글 세션 위치 | Gunicorn worker의 Python 메모리 | Redis key-value 저장소 |
-| 서버 재시작 | 상태 소멸 | TTL 내 상태 유지, Redis persistence로 복구 가능 |
-| worker 확장 | worker마다 상태가 분리됨 | worker들이 같은 상태를 공유 |
-| 동시 방 변경 | 프로세스 내부 lock | Redis 방 단위 lock + atomic create |
-| 요청 지연 | 가장 낮음 | Redis 왕복 비용이 추가됨 |
-
-#### 벤치마크 (2026-07-26)
-
-같은 머신에서 메모리 backend와 Redis backend를 각각 별도 Gunicorn 인스턴스(1 worker, 4 threads)로 실행해 비교했다. Redis는 운영 DB와 분리한 로컬 DB 1을 사용했고, 각 항목은 25회 워밍업 뒤 300회 **순차 요청**으로 측정했다. 수치는 HTTP 요청 전체 시간이며 낮을수록 좋다.
-
-| 요청 | 메모리 평균 / p95 | Redis 평균 / p95 | Redis 처리량 | 변화 |
-| --- | ---: | ---: | ---: | --- |
-| `GET /health` | 1.10 / 1.23ms | 1.26 / 1.44ms | 910 → 792 req/s | 평균 지연 +15% |
-| `POST /api/lobby-heartbeat` | 1.23 / 1.42ms | 1.57 / 1.77ms | 812 → 637 req/s | 평균 지연 +27% |
-| `GET /api/rooms/:code` (방 polling) | 1.20 / 1.30ms | 1.71 / 2.20ms | 834 → 586 req/s | 평균 지연 +42% |
-
-로컬 Redis 기준 추가 비용은 요청당 약 **0.2~0.5ms**였다. 즉 단일 worker만 쓰는 순간 성능만 보면 메모리가 유리하지만, 멀티플레이 운영에서 필요한 상태 공유와 재시작 복구를 위해 Redis를 선택했다. 이 수치는 로컬 loopback 환경의 순차 요청 결과이므로, 원격 Redis·TLS·동시 접속 수가 추가되면 실제 지연은 달라질 수 있다.
+`/health` 응답에서 `room_backend`, `presence_backend`, `session_backend`, `result_backend`를 확인할 수 있습니다.
 
 ### 검증 명령
 

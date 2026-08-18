@@ -109,6 +109,8 @@
         .single-insight-grid > .ai-breakdown {
             margin: 0 !important;
         }
+        .mobile-insight-title { display: none; }
+        .mobile-score-jump { display: none; }
         /* 좁은 화면 최적화 */
         @media (max-width: 1024px) {
             body { padding: 6px; }
@@ -188,4 +190,86 @@
         }
         @media (max-width: 768px) {
             .scorecard-area { max-height:none; }
+        }
+
+        /* Match multiplayer's compact phone flow: play first, inspect coaching after scoring. */
+        @media (max-width: 768px) {
+            .single-game-page:not(.table-layout-page) .game-status-grid {
+                grid-template-columns: minmax(54px, 0.55fr) minmax(0, 1.45fr) minmax(66px, 0.8fr);
+                gap: 6px;
+                margin-bottom: 10px;
+            }
+            .single-game-page:not(.table-layout-page) .game-status-card,
+            .single-game-page:not(.table-layout-page) .game-timer-card {
+                min-height: 54px;
+                padding: 8px;
+            }
+            .single-game-page:not(.table-layout-page) .game-status-label {
+                margin-bottom: 4px;
+                font-size: 0.61rem;
+            }
+            .single-game-page:not(.table-layout-page) .game-status-card #game-status,
+            .single-game-page:not(.table-layout-page) .game-status-card #turn-progress,
+            .single-game-page:not(.table-layout-page) .game-timer-card {
+                font-size: 0.78rem;
+                line-height: 1.2;
+            }
+            .single-game-page:not(.table-layout-page) .game-status-roll { font-size: 1.35rem; }
+
+            .single-game-page:not(.table-layout-page) .dice-grid {
+                display: grid;
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                gap: 6px;
+                padding: 0;
+                margin-bottom: 14px;
+            }
+            .single-game-page:not(.table-layout-page) .dice-item {
+                width: auto;
+                flex: none;
+                font-size: min(4.3vw, 18px);
+                gap: 5px;
+            }
+            .single-game-page:not(.table-layout-page) .keep-btn {
+                min-height: 40px;
+                padding: 8px 3px;
+                font-size: 0.66rem;
+            }
+            .single-game-page:not(.table-layout-page) .die-container.locked { transform: translateY(-8px); }
+            .single-game-page:not(.table-layout-page) .mobile-score-jump:not([hidden]) {
+                display: inline-flex;
+                width: 100%;
+                min-height: 46px;
+                justify-content: center;
+                margin: -2px 0 14px;
+                border: 1px solid rgba(126, 243, 203, 0.45);
+                border-radius: 12px;
+                background: rgba(126, 243, 203, 0.12);
+                color: var(--mint-pale);
+                font-weight: 800;
+            }
+
+            .single-game-page:not(.table-layout-page) #single-mobile-insight-slot { margin-top: 16px; }
+            .single-game-page:not(.table-layout-page) .single-mobile-insight-panel {
+                padding: 14px 12px;
+                border: 1px solid rgba(148, 163, 184, 0.2);
+                border-radius: 16px;
+                background: #101827;
+            }
+            .single-game-page:not(.table-layout-page) .mobile-insight-title {
+                display: block;
+                margin: 0 0 10px;
+                color: var(--text-faint);
+                font-size: 0.78rem;
+                font-weight: 900;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            .single-game-page:not(.table-layout-page) .single-mobile-insight-panel .ai-mode-row {
+                justify-content: flex-start;
+                margin: 0 0 10px;
+            }
+            .single-game-page:not(.table-layout-page) .single-mobile-insight-panel .ai-breakdown {
+                margin-top: 10px;
+                padding: 10px;
+            }
         }

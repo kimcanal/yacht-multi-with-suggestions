@@ -1,5 +1,7 @@
-"""Heuristic and learned policy implementations."""
+"""Policy helpers used by the exact solver and offline experiments.
 
-from .ml_policy import RollPolicyModel
-
-__all__ = ["RollPolicyModel"]
+Learned-policy modules intentionally are not imported here.  The production
+game only needs the exact solver, while offline research can import
+``yacht_ai.policies.ml_policy`` directly when its numerical dependencies are
+installed.
+"""

@@ -36,22 +36,22 @@
         </div>
 
         <div class="quick-start" aria-label="빠른 시작">
-            <div class="quick-card">
-                <div class="quick-title">바로 시작</div>
+            <div class="quick-card quick-card-primary">
+                <div class="quick-title">오늘은 어떻게 놀까?</div>
                 <div class="quick-actions">
-                    <button class="btn-mini btn-p" onclick="startGame('solo')">🎮 혼자하기</button>
-                    <button class="btn-mini btn-s" onclick="startGame('vs-ai')">🤖 VS AI</button>
-                    <button class="btn-mini btn-c" onclick="createRoom()">방 생성</button>
+                    <button class="btn-mini btn-p" onclick="startGame('solo')">🎮 혼자 하기</button>
+                    <button class="btn-mini btn-s" onclick="startGame('vs-ai')">🤖 AI와 하기</button>
+                    <button class="btn-mini btn-c" onclick="createRoom()">👥 친구와 하기</button>
                 </div>
             </div>
             <div class="quick-card">
-                <div class="quick-title">친구 방 입장</div>
+                <div class="quick-title">친구 방 들어가기</div>
                 <div class="room-code-row">
                     <input type="text" id="room-code" class="input-mini" placeholder="CODE" maxlength="10" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="방 코드" style="text-transform:uppercase;">
                     <button class="btn-mini btn-s" onclick="joinRoomById()">입장</button>
                     <button class="btn-mini btn-i" onclick="refreshLobbyNow()">새로고침</button>
                 </div>
-                <div class="quick-hint">대기실 목록에서 참가/관전을 바로 눌러도 됩니다.</div>
+                <div class="quick-hint">친구가 보낸 방 코드가 있으면 여기 넣어줘.</div>
             </div>
         </div>
 
@@ -155,6 +155,7 @@
                         <div class="rank-tabs">
                             <button class="rank-tab active" onclick="switchRank('multi')" id="tab-multi">멀티</button>
                             <button class="rank-tab" onclick="switchRank('single')" id="tab-single">싱글</button>
+                            <button class="rank-tab" onclick="switchRank('bot')" id="tab-bot">VS AI</button>
                         </div>
                     </div>
                     <div class="panel-body">
@@ -191,5 +192,5 @@
 
     <script src="{{ url_for('static', filename='js/pages/lobby_api.js', v='20260726-1') }}"></script>
     <script src="{{ url_for('static', filename='js/pages/lobby_render.js', v='20260726-1') }}"></script>
-    <script src="{{ url_for('static', filename='js/pages/lobby.js', v='20260726-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/lobby.js', v='20260804-4') }}"></script>
 {% endblock %}

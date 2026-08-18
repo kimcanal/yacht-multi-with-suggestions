@@ -3,12 +3,12 @@
 {% block head %}
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico', v='20260719-1') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v='20260721-16') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/single-game.css', v='20260721-2') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/single-game.css', v='20260728-3') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/multi-game-table.css', v='20260721-10') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/single-game-table.css', v='20260721-8') }}">
     <script src="{{ url_for('static', filename='js/game_layout.js', v='20260721-3') }}"></script>
 {% endblock %}
-{% block body_attrs %}class="table-layout-page single-table-layout-page"{% endblock %}
+{% block body_attrs %}class="single-game-page table-layout-page single-table-layout-page"{% endblock %}
 {% block body %}
     <div class="background-fx"></div>
     <div class="table-game-shell single-table-game-shell">
@@ -36,9 +36,7 @@
                         <button type="button" class="seg-btn" data-single-mode="vs-ai">🤖 VS AI</button>
                     </div>
                     <div class="mode-group">
-                        <span class="mode-label">AI 코치</span>
-                        <button type="button" class="seg-btn" data-coach-toggle="on">ON</button>
-                        <button type="button" class="seg-btn" data-coach-toggle="off">OFF</button>
+                        <button type="button" class="seg-btn" data-coach-toggle>💡 힌트 보기</button>
                     </div>
                 </div>
             </div>
@@ -69,13 +67,7 @@
         </main>
 
         <aside class="table-insight-area single-table-insight-area">
-            <div class="table-panel-title">AI 코치</div>
-            <div class="ai-mode-row" aria-label="AI 추천 방식 선택" style="display:none;">
-                <span class="ai-mode-row-label">추천 방식</span>
-                <button type="button" class="ai-mode-btn" data-ai-mode="focused">집중</button>
-                <button type="button" class="ai-mode-btn" data-ai-mode="cover">커버</button>
-                <button type="button" class="ai-mode-btn" data-ai-mode="optimal">최적</button>
-            </div>
+            <div class="table-panel-title">💡 힌트</div>
             <div class="single-insight-grid">
                 <div id="ai-breakdown" class="ai-breakdown" style="display:none;"></div>
             </div>
@@ -83,14 +75,13 @@
     </div>
 
     <div id="score-toast" class="toast-overlay"></div>
-    <div id="save-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:3000; align-items:center; justify-content:center;">
-        <div style="background:#181824; border-radius:18px; padding:38px 32px; box-shadow:0 8px 40px rgba(0,255,204,0.13); border:2px solid #00ffcc; min-width:320px; max-width:90vw; text-align:center;" onclick="event.stopPropagation();">
-            <div style="font-size:1.3em; font-weight:700; color:#00ffcc; margin-bottom:18px;">🏆 랭킹에 등록하시겠습니까?</div>
-            <input id="modal-username" type="text" maxlength="12" placeholder="닉네임 (2~12자)" style="padding:12px 18px; border-radius:8px; border:1.5px solid #00ffcc; font-size:1.1em; margin-bottom:18px; width:80%; max-width:220px;">
-            <div style="margin-bottom:18px; color:#aaa; font-size:0.95em;">최종 점수: <span id="modal-score" style="color:#ffd700; font-weight:700;"></span></div>
-            <button onclick="saveSingleLeaderboard()" style="padding:12px 32px; font-size:1.1em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#00ffcc 0%,#00b894 100%); color:#181824; border:none; margin-right:10px;">저장</button>
-            <button onclick="closeSaveModal()" style="padding:12px 32px; font-size:1.1em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%); color:white; border:none;">취소</button>
-            <div id="modal-error" style="color:#ff6b6b; margin-top:12px; font-size:0.95em;"></div>
+    <div id="finish-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.58); z-index:3000; align-items:center; justify-content:center; padding:20px;">
+        <div style="background:#181824; border-radius:18px; padding:34px 28px; box-shadow:0 8px 40px rgba(0,255,204,0.13); border:2px solid #00ffcc; width:min(360px, 100%); text-align:center;">
+            <div id="finish-title" style="font-size:1.35em; font-weight:700; color:#00ffcc; margin-bottom:12px;">한 판 끝!</div>
+            <div id="finish-score" style="margin-bottom:10px; color:#ffd700; font-size:1.15em; font-weight:700;"></div>
+            <div id="finish-message" style="margin-bottom:22px; color:#b7c5d6; font-size:0.92em;"></div>
+            <button onclick="playAgain()" style="padding:12px 20px; font-size:1em; font-weight:700; border-radius:999px; background:linear-gradient(135deg,#00ffcc 0%,#00b894 100%); color:#181824; border:none; margin-right:8px;">🎲 한 판 더</button>
+            <button onclick="goToLobby()" style="padding:12px 20px; font-size:1em; font-weight:700; border-radius:999px; background:rgba(255,255,255,0.12); color:white; border:none;">로비로</button>
         </div>
     </div>
     <script src="{{ url_for('static', filename='js/dom_utils.js', v='20260417-6') }}"></script>
@@ -99,5 +90,5 @@
     <script src="{{ url_for('static', filename='js/ai_panel.js', v='20260721-4') }}"></script>
     <script src="{{ url_for('static', filename='js/winprob.js', v='20260721-1') }}"></script>
     <script src="{{ url_for('static', filename='js/yacht_game.js', v='20260721-7') }}"></script>
-    <script src="{{ url_for('static', filename='js/pages/single-game.js', v='20260721-14') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages/single-game.js', v='20260804-7') }}"></script>
 {% endblock %}

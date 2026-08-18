@@ -61,8 +61,9 @@
                 if (diceActionRow) diceActionRow.style.display = 'none';
                 const banner = document.getElementById('observer-banner');
                 if (banner) banner.style.display = 'block';
-                const aiModeGuide = document.querySelector('.ai-mode-guide');
-                if (aiModeGuide) aiModeGuide.style.display = 'none';
+                document.querySelectorAll('.ai-mode-guide, .ai-mode-row').forEach((element) => {
+                    element.style.display = 'none';
+                });
                 renderObserverSummary();
             } else {
                 document.getElementById('player-controls').style.display = 'flex';
@@ -70,8 +71,9 @@
                 if (diceActionRow) diceActionRow.style.display = 'flex';
                 const banner = document.getElementById('observer-banner');
                 if (banner) banner.style.display = 'none';
-                const aiModeGuide = document.querySelector('.ai-mode-guide');
-                if (aiModeGuide) aiModeGuide.style.display = 'grid';
+                document.querySelectorAll('.ai-mode-guide, .ai-mode-row').forEach((element) => {
+                    element.style.display = element.classList.contains('ai-mode-row') ? 'flex' : 'grid';
+                });
             }
         }
         let roomVersion = 0;
@@ -108,6 +110,16 @@
         let heartbeatRequestInFlight = false;
         let lastRoomContactAt = Date.now();
         let syncPollGeneration = 0;
+        const mobileInsightQuery = window.matchMedia('(max-width: 768px)');
+
+        function syncMobileInsightPlacement() {
+            const panel = document.getElementById('mobile-insight-panel');
+            const diceArea = document.querySelector('.dice-area');
+            const mobileSlot = document.getElementById('mobile-insight-slot');
+            if (!panel || !diceArea || !mobileSlot) return;
+            const destination = mobileInsightQuery.matches ? mobileSlot : diceArea;
+            if (panel.parentElement !== destination) destination.appendChild(panel);
+        }
 
         // 편의성 변수 (읽기 전용)
         let dice, kept, rollsLeft, myCard, oppCard, gameOver, aiRec;
@@ -896,7 +908,21 @@
             document.getElementById('roll-btn').disabled = GameState.getRollsLeft() <= 0 || GameState.isGameOver() || isRolling || !isMyTurn() || waitingForOpponent;
             updateQuickScoreTargets(GameState.getMyCard(), {
                 active: !isObserver && !isRolling && !gameOver && rollsLeft < 3 && isMyTurn(),
+                dice: GameState.getDice(),
             });
+            const scoreJump = document.getElementById('mobile-score-jump');
+            if (scoreJump) {
+                scoreJump.hidden = isObserver || isRolling || gameOver || rollsLeft >= 3 || !isMyTurn();
+            }
+        }
+
+        function jumpToScorecard() {
+            const scorecardArea = document.querySelector('.scorecard-area');
+            if (!scorecardArea) return;
+            scorecardArea.scrollIntoView({behavior: 'smooth', block: 'start'});
+            window.setTimeout(() => {
+                scorecardArea.querySelector('.score-ready')?.focus({preventScroll: true});
+            }, 350);
         }
 
         function toggleLock(i) {
@@ -940,7 +966,6 @@
                 kept: [...kept],
                 turn: turnOwner || username,
                 game_over: gameOver,
-                ai_rec: aiRec,
                 player_token: playerToken,
                 winner: endWinner,
                 loser: endLoser,
@@ -1076,8 +1101,11 @@ function applyRemoteState(state) {
         }
     }
 
-    // 5. AI 정보 및 기타 UI 업데이트
-    GameState.setAiRec(state.ai_rec || null);
+    // 5. AI 추천은 현재 브라우저가 자신의 주사위로 계산한 결과만 사용한다.
+    // 이전 버전의 방 상태에 남아 있는 상대 추천도 다음 턴에 표시하지 않는다.
+    if (prevTurnOwner !== currentTurnOwner) {
+        GameState.setAiRec(null);
+    }
     updateLocalVars();
 
     // 내 턴 알림 (플레이어만)
@@ -1553,6 +1581,12 @@ window.addEventListener('beforeunload', (e) => {
         }
 
         async function initializeGame() {
+            syncMobileInsightPlacement();
+            if (typeof mobileInsightQuery.addEventListener === 'function') {
+                mobileInsightQuery.addEventListener('change', syncMobileInsightPlacement);
+            } else {
+                mobileInsightQuery.addListener(syncMobileInsightPlacement);
+            }
             const reactionDock = document.getElementById('reaction-dock');
             if (reactionDock && !isObserver) reactionDock.style.display = 'block';
             updateReactionSoundButton();

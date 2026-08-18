@@ -6,8 +6,6 @@ import time
 from app_state import single_sessions, single_sessions_lock
 
 SINGLE_SESSION_TTL_SECONDS = 60 * 60 * 4
-
-
 def _new_dice():
     return [secrets.randbelow(6) + 1 for _ in range(5)]
 
@@ -26,6 +24,27 @@ def _new_session(username):
         "updated_at": now,
         "finished": False,
         "final_score": None,
+        "saved": False,
+    }
+
+
+def new_bot_match(username):
+    """Create a server-issued token for one unverified VS-AI practice match.
+
+    The browser still owns the casual VS-AI game loop, so this token does not
+    make the submitted score authoritative.  It requires a match to be
+    created before a result is accepted and binds the published policy label
+    to the match created at the start of play.
+    """
+    now = time.time()
+    return {
+        "id": secrets.token_urlsafe(18),
+        "token": secrets.token_urlsafe(24),
+        "kind": "bot_match",
+        "username": username,
+        "policy_mode": "exact_memo",
+        "created_at": now,
+        "updated_at": now,
         "saved": False,
     }
 
@@ -79,3 +98,23 @@ def verify_ranked_single_session(username, score, session_id, session_token):
         session["updated_at"] = time.time()
         single_sessions[session_id] = session
         return True, None
+
+
+def claim_bot_match(username, session_id, session_token):
+    """Atomically claim a server-issued practice-match token for result save."""
+    if not isinstance(session_id, str) or not isinstance(session_token, str):
+        return None, "봇전 매치 인증 실패"
+    with single_sessions_lock:
+        session = single_sessions.get(session_id)
+        if not session or session.get("kind") != "bot_match":
+            return None, "봇전 매치 인증 실패"
+        if not secrets.compare_digest(session.get("token", ""), session_token):
+            return None, "봇전 매치 인증 실패"
+        if session.get("username") != username:
+            return None, "봇전 매치 사용자와 닉네임이 다릅니다"
+        if session.get("saved"):
+            return None, "이미 저장된 봇전 기록입니다"
+        session["saved"] = True
+        session["updated_at"] = time.time()
+        single_sessions[session_id] = session
+        return session, None

@@ -16,7 +16,7 @@ from routes.leaderboard import leaderboard_bp
 from routes.lobby import lobby_bp
 from routes.rooms import rooms_bp
 from routes.single import single_bp
-from utils.ai_utils import load_ai_policy_model, warm_ai_runtime
+from utils.ai_utils import warm_ai_runtime
 from yacht_app.container import AppServices, create_services
 from yacht_app.infra.observability import assign_request_id, attach_request_id, configure_tracing
 from yacht_app.web.pages import pages_bp
@@ -114,7 +114,6 @@ def create_app(
 
     if initialize_runtime:
         with app.app_context():
-            load_ai_policy_model()
             if AI_WARMUP_ENABLED:
                 threading.Thread(target=warm_ai_runtime, daemon=True).start()
 

@@ -2,7 +2,6 @@ import os
 import tempfile
 import time
 import unittest
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -22,7 +21,6 @@ from app_state import (
     single_sessions,
     single_sessions_lock,
 )
-from yacht_ai.ml_policy import RollPolicyModel
 from yacht_app.infra.rate_limit import SlidingWindowRateLimiter
 from yacht_engine import CATS, calc_score
 
@@ -45,6 +43,7 @@ class RouteIntegrationTests(unittest.TestCase):
         ai_metrics.error_count = 0
         ai_metrics.max_latency_ms = 0.0
         get_services().ai_requests.recommendation_cache.clear()
+        get_services().system_status_cache.clear()
 
         self.tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tempdir.cleanup)
@@ -138,6 +137,28 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(payload["online_users"][0]["username"], "host1")
         self.assertEqual(payload["rooms"][0]["host"], "host1")
         self.assertIn("cpu_percent", payload["system"])
+
+    def test_recommendation_uses_exact_solver_and_rejects_retired_mlp_policy(self):
+        payload = {
+            "dice": [1, 2, 3, 4, 6],
+            "rolls_left": 1,
+            "scorecard": [None] * 12,
+            "strategy_mode": "focused",
+        }
+        exact = self.client.post(
+            "/api/recommend",
+            json=payload,
+        )
+        self.assertEqual(exact.status_code, 200)
+        self.assertEqual(exact.get_json()["policy_source"], "exact")
+        self.assertNotIn("policy_mode", exact.get_json())
+
+        retired = self.client.post(
+            "/api/recommend",
+            json={**payload, "policy_mode": "mlp_roll"},
+        )
+        self.assertEqual(retired.status_code, 400)
+        self.assertIn("더 이상 지원", retired.get_json()["error"])
 
     def test_lobby_snapshot_uses_the_same_expired_room_cleanup_as_room_list(self):
         created = self.client.post("/api/rooms", json={"username": "host1"})
@@ -265,16 +286,7 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(payload["record_now"]["score"], 50)
         self.assertIn("지금 Yacht 50점 기록 추천", payload["message"])
 
-    def test_loaded_roll_policy_is_used_for_cover_but_not_focused_value_mode(self):
-        model_path = Path("artifacts/runtime/models/model-20260717-roll-policy-v3.json")
-        self.assertTrue(model_path.exists())
-        original_model = ai_metrics.policy_model
-        original_status = ai_metrics.policy_model_status
-        ai_metrics.policy_model = RollPolicyModel.load(model_path)
-        ai_metrics.policy_model_status = "loaded"
-        self.addCleanup(setattr, ai_metrics, "policy_model", original_model)
-        self.addCleanup(setattr, ai_metrics, "policy_model_status", original_status)
-
+    def test_recommendation_uses_exact_solver_for_cover_and_focused_modes(self):
         focused = self.client.post(
             "/api/recommend",
             json={
@@ -301,8 +313,8 @@ class RouteIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(cover.status_code, 200)
         cover_payload = cover.get_json()
-        self.assertEqual(cover_payload["policy_source"], "learned_roll_policy")
-        self.assertEqual(cover.headers["X-AI-Policy-Source"], "learned_roll_policy")
+        self.assertEqual(cover_payload["policy_source"], "exact")
+        self.assertEqual(cover.headers["X-AI-Policy-Source"], "exact")
 
     def test_recommend_optimal_strategy_uses_exact_value_mode(self):
         response = self.client.post(
@@ -485,7 +497,7 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(payload["active_rooms"], 0)
         self.assertEqual(payload["cpu_percent"], 12.5)
         self.assertEqual(payload["memory_percent"], 42.5)
-        self.assertIn("ai_policy_model_status", payload)
+        self.assertIn("ai_cache_hit_rate", payload)
 
     def test_room_lifecycle_with_observer_and_forfeit(self):
         created = self.client.post("/api/rooms", json={"username": "host1"})
@@ -972,6 +984,7 @@ class RouteIntegrationTests(unittest.TestCase):
             "player_dice": {"host1": [1, 2, 3, 4, 6], "guest1": [6, 6, 6, 6, 6]},
             "player_kept": {"host1": [0, 0, 0, 0, 0], "guest1": [1, 1, 1, 1, 1]},
             "player_rolls_left": {"host1": 0, "guest1": 0},
+            "ai_rec": {"stage": "score", "primary_target": "Yacht"},
             "turn": "host1",
             "version": 4,
         })
@@ -1002,6 +1015,7 @@ class RouteIntegrationTests(unittest.TestCase):
         self.assertEqual(state["player_dice"]["guest1"], [1, 1, 1, 1, 1])
         self.assertEqual(state["player_kept"]["guest1"], [0, 0, 0, 0, 0])
         self.assertEqual(state["player_rolls_left"]["guest1"], 3)
+        self.assertIsNone(state["ai_rec"])
 
     def test_rematch_requires_both_players_and_resets_room(self):
         created = self.client.post("/api/rooms", json={"username": "host1"})
@@ -1347,6 +1361,107 @@ class RouteIntegrationTests(unittest.TestCase):
         after_reset = self.client.get("/api/leaderboard")
         self.assertEqual(after_reset.status_code, 200)
         self.assertEqual(after_reset.get_json(), [])
+
+    def test_bot_leaderboard_persists_practice_matches_separately(self):
+        started = self.client.post(
+            "/api/single/vs-ai/start",
+            json={"username": "botuser1", "policy_mode": "exact_memo"},
+        )
+        self.assertEqual(started.status_code, 200)
+        match = started.get_json()
+        self.assertFalse(match["verified"])
+        payload = {
+            "username": "botuser1",
+            "score": 213,
+            "bot_score": 198,
+            "match_id": match["match_id"],
+            "match_token": match["match_token"],
+        }
+        saved = self.client.post("/api/leaderboard/bot", json=payload)
+        self.assertEqual(saved.status_code, 200)
+        self.assertTrue(saved.get_json()["success"])
+        self.assertTrue(saved.get_json()["saved"])
+        self.assertFalse(saved.get_json()["entry"]["verified"])
+
+        duplicate = self.client.post("/api/leaderboard/bot", json=payload)
+        self.assertEqual(duplicate.status_code, 403)
+        self.assertIn("이미 저장", duplicate.get_json()["error"])
+
+        board = self.client.get("/api/leaderboard/bot")
+        self.assertEqual(board.status_code, 200)
+        self.assertEqual(board.get_json()[0]["username"], "botuser1")
+        self.assertEqual(board.get_json()[0]["wins"], 1)
+        self.assertEqual(board.get_json()[0]["games_played"], 1)
+        self.assertEqual(board.get_json()[0]["avg_score"], 213.0)
+        self.assertFalse(board.get_json()[0]["verified"])
+
+        snapshot = self.client.get("/api/lobby-snapshot?rank_mode=bot")
+        self.assertEqual(snapshot.status_code, 200)
+        snapshot_payload = snapshot.get_json()
+        self.assertEqual(snapshot_payload["leaderboard"][0]["username"], "botuser1")
+        self.assertEqual(snapshot_payload["recent_games"][0]["game_type"], "vs_ai")
+        self.assertEqual(snapshot_payload["recent_games"][0]["player2"], "Yacht Bot")
+
+        self.assertEqual(self.client.get("/api/leaderboard/multi").get_json(), [])
+        invalid = self.client.post("/api/leaderboard/bot", json={**payload, "match_token": "not-the-token"})
+        self.assertEqual(invalid.status_code, 403)
+
+    def test_bot_match_rejects_retired_mlp_policy(self):
+        started = self.client.post(
+            "/api/single/vs-ai/start",
+            json={"username": "botuser1", "policy_mode": "mlp_roll"},
+        )
+        self.assertEqual(started.status_code, 400)
+        self.assertIn("더 이상 지원", started.get_json()["error"])
+
+    def test_v1_vs_ai_session_owns_rolls_scores_and_verified_result(self):
+        started = self.client.post(
+            "/api/v1/vs-ai/sessions",
+            json={"username": "botuser1"},
+        )
+        self.assertEqual(started.status_code, 201)
+        created = started.get_json()
+        session_id = created["session_id"]
+        token = created["session_token"]
+
+        denied = self.client.post(
+            f"/api/v1/vs-ai/sessions/{session_id}/roll",
+            json={"username": "botuser1", "session_token": "wrong", "kept": [0] * 5},
+        )
+        self.assertEqual(denied.status_code, 403)
+
+        rolled = self.client.post(
+            f"/api/v1/vs-ai/sessions/{session_id}/roll",
+            json={"username": "botuser1", "session_token": token, "kept": [1] * 5},
+        )
+        self.assertEqual(rolled.status_code, 200)
+        state = rolled.get_json()["state"]
+        self.assertEqual(state["rolls_left"], 2)
+        self.assertTrue(all(1 <= value <= 6 for value in state["dice"]))
+
+        with single_sessions_lock:
+            session = single_sessions[session_id]
+            session["dice"] = [6, 6, 6, 6, 6]
+            session["kept"] = [0] * 5
+            session["rolls_left"] = 0
+            session["scorecard"] = [0] * 11 + [None]
+            session["bot_scorecard"] = [0] * 11 + [None]
+            single_sessions[session_id] = session
+
+        scored = self.client.post(
+            f"/api/v1/vs-ai/sessions/{session_id}/score",
+            json={"username": "botuser1", "session_token": token, "category_idx": 11},
+        )
+        self.assertEqual(scored.status_code, 200)
+        final_state = scored.get_json()["state"]
+        self.assertTrue(final_state["finished"])
+        self.assertTrue(final_state["verified"])
+        self.assertEqual(final_state["final_score"], 50)
+        board = self.client.get("/api/leaderboard/bot").get_json()
+        self.assertEqual(board[0]["verified_games"], 1)
+        self.assertTrue(board[0]["verified"])
+        recent = self.client.get("/api/lobby-snapshot?rank_mode=bot").get_json()["recent_games"]
+        self.assertTrue(recent[0]["verified"])
 
 
 if __name__ == "__main__":
