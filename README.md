@@ -38,7 +38,7 @@ AI는 자동으로 플레이하지 않습니다. 어떤 주사위를 KEEP할지�
 | **커버** | 여러 가능성을 남기고 싶을 때 | 하나 이상 성공할 확률 |
 | **최적** | 최종 기대점수를 최대화하고 싶을 때 | 남은 점수판까지 포함한 기대값 |
 
-추천 패널은 KEEP할 주사위, 추천 또는 희생 점수칸, 그리고 간단한 근거를 보여줍니다. 처음에는 **집중** 모드로 시작하면 이해하기 편합니다.
+추천 패널은 KEEP할 주사위, 추천 또는 희생 점수칸, 그리고 간단한 근거를 보여줍니다. 처음에는 **집중** 모드로 시작하면 이해하기 편합니다. 주사위를 굴리면 AI가 추천하는 주사위에 `AI KEEP` 표시가 붙고, **"AI 추천대로 KEEP 적용"** 버튼 한 번으로 그 조합을 한 번에 선택할 수 있습니다.
 
 ## 플레이 모드
 
@@ -89,11 +89,12 @@ gunicorn -c gunicorn.conf.py wsgi:application
 | --- | --- |
 | 초기 상태 exact EV | 198.358185점 |
 | Focused score-stage regret | 0.0000 |
+| Focused roll-stage regret (100게임) | 10.2988점/게임, roll match 70.35% |
 | Focused 200게임 A/B | heuristic 175.52점 → value_score_only 184.56점 |
 | Optimal 200게임 평균 | 198.645점 |
 | AI cold-cache 응답 | heuristic 38~194ms, value-optimal 59~140ms |
 
-상세 내용은 [AI 품질 지표](./docs/ai-quality-metrics.md), [AI 수식 설명](./docs/ai-math.md), [AI 결정 프레임워크](./docs/ai-decision-framework.md)에서 확인할 수 있습니다.
+상세 내용은 [AI 품질 지표](./docs/ai-quality-metrics.md), [AI 수식 설명](./docs/ai-math.md), [AI 결정 프레임워크](./docs/ai-decision-framework.md), [AI 학습 로드맵](./docs/ai-learning-roadmap.md)에서 확인할 수 있습니다.
 
 ### 멀티플레이 운영 설정
 
@@ -168,6 +169,7 @@ node --check static/js/score_utils.js
 - [변경 이력](./CHANGELOG.md)
 - [승률 엔진 노트](./docs/win-probability-v1-notes.md)
 - [성능 로드맵](./docs/performance-roadmap.md)
+- [Production 체크리스트](./docs/production-checklist.md)
 - [Artifact 관리 정책](./artifacts/README.md)
 
 ## 오픈소스 에셋과 라이선스

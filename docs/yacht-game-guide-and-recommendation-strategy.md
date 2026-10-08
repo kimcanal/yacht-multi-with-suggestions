@@ -405,7 +405,6 @@ AI는 이 다섯 단계를 계산해 추천을 만든다. 집중 모드는 이�
 
 ## 참고: 구현과 검증 문서
 
-- [Exact solver 면접 설명 가이드](./exact-solver-interview-guide.md)
 - [AI 의사결정 프레임워크](./ai-decision-framework.md)
 - [AI 품질 지표와 검증 결과](./ai-quality-metrics.md)
 - [상태별 족보 희생 비용 리포트](./category-sacrifice-value-report.md)

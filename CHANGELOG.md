@@ -14,6 +14,14 @@
 
 ## 릴리즈 히스토리
 
+### 2026-10-08 — Redis 실환경 검증, 멀티 UI 버그 수정, roll-stage 개선
+
+Redis room/presence/session backend를 실제 Redis 인스턴스와 gunicorn 멀티 worker로 돌려 검증했다. 그 과정에서 `RedisSingleSessionStore`의 global lock 키가 세션 데이터와 같은 prefix를 써서, lock을 쥔 채로 `clear()`를 호출하면 lock 키 자체가 지워지는 버그를 발견해 lock을 별도 `-lock:` 네임스페이스로 분리했다.
+
+멀티플레이 UI에서 세 가지를 고쳤다. 재대결 신청은 `state.version`을 올리지 않아 SSE 경로에서 상대방이 신청 사실을 전혀 알 수 없었던 문제(별도의 rematch 시그니처를 SSE room_state 이벤트에 추가해 해결), 게임이 끝난 뒤에도 판세 분석 패널이 "상대 입장 대기 중" 문구를 그대로 보여주던 문제, 모바일 한 컬럼 레이아웃에서 `position: fixed` 리액션 패널이 AI 전략 카드를 가려버리던 문제(기본 접힘 상태로 변경). AI 추천 패널에는 추천된 keep 조합을 한 번에 적용하는 버튼을 추가했고, 좁은 화면에서 상태 카드 텍스트가 단어 중간에 줄바꿈되던 것도 고쳤다.
+
+Roll-stage 추천 로직에서 `choose_target_keep`의 tie-break가 "이미 성공이 확정된 족보"(예: 이미 4 of a Kind 완성)일 때도 가장 긴 kept_tuple을 선호해 공짜 재굴림 기회를 버리던 버그를 수정했다. 100게임 decision-regret 재측정으로 검증(10.3907 → 10.2988점/게임, roll match 70.11% → 70.35%). 같은 세션에서 시도한 다른 두 가지 수정은 전체 regret을 오히려 악화시켜 되돌렸다 — 자세한 내용과 남은 과제는 [AI 품질 지표](./docs/ai-quality-metrics.md)에 기록.
+
 ### 2026-07-11 — 정확한 판세 전망과 멀티 모바일 안정화
 
 멀티 판세 패널의 고정 카테고리 합산식을 제거하고, exact value table 예상 최종점수와 캐시된 백그라운드 Monte Carlo 승률을 연결했다. 승률에는 샘플 수와 표본 오차를 함께 표시한다.
