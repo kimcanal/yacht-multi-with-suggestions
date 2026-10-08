@@ -1236,6 +1236,7 @@ class RouteIntegrationTests(unittest.TestCase):
             session = single_sessions[single_session["session_id"]]
             session["finished"] = True
             session["final_score"] = 211
+            single_sessions[single_session["session_id"]] = session
 
         single_saved = self.client.post(
             "/api/leaderboard/single",

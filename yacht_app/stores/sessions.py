@@ -54,6 +54,7 @@ class RedisSingleSessionStore:
             raise RuntimeError("YACHT_REDIS_URL is required when YACHT_SESSION_BACKEND=redis")
         self._client = redis.Redis.from_url(url, decode_responses=True)
         self._prefix = prefix
+        self._lock_key = f"{prefix.rstrip(':')}-lock:global"
         self._ttl_seconds = ttl_seconds
         self._client.ping()
 
@@ -97,7 +98,7 @@ class RedisSingleSessionStore:
 
     def lock(self):
         return self._client.lock(
-            f"{self._prefix.rstrip(':')}:global-lock",
+            self._lock_key,
             timeout=15,
             blocking_timeout=5,
         )
