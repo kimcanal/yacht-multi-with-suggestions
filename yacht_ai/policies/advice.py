@@ -90,13 +90,20 @@ def _default_keep_rank(kept_tuple):
     return (len(kept_tuple), tuple(sorted(kept_tuple, reverse=True)))
 
 
-def choose_target_keep(cat_name, kept_tuples):
+def choose_target_keep(cat_name, kept_tuples, max_prob=None):
     if not kept_tuples:
         return ()
     if cat_name in ("Small Straight", "Large Straight"):
         return max(kept_tuples, key=_straight_keep_rank)
     if cat_name == "Full House" and () in kept_tuples:
         return ()
+    if max_prob is not None and max_prob >= 1.0 - EPS:
+        # Success is already guaranteed this turn (e.g. 4 of a Kind with 4
+        # matches already showing) — keeping extra dice beyond what's needed
+        # only forfeits a free reroll on them (pure upside: it can only help,
+        # e.g. a Yacht Bonus cash-in), so prefer the shortest kept tuple
+        # instead of the longest.
+        return min(kept_tuples, key=_default_keep_rank)
     return max(kept_tuples, key=_default_keep_rank)
 
 

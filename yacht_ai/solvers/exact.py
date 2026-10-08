@@ -98,7 +98,7 @@ def _compute_hand_targets(
             continue
 
         tie_rows = [row for row in action_rows if abs(row["prob"] - max_prob) <= EPS]
-        best_keep = choose_target_keep(cat_name, [row["kept_tuple"] for row in tie_rows])
+        best_keep = choose_target_keep(cat_name, [row["kept_tuple"] for row in tie_rows], max_prob=max_prob)
         selected = next(row for row in tie_rows if row["kept_tuple"] == best_keep)
         cond_ev = (
             selected["expected_score"] / max_prob
