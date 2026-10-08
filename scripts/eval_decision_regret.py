@@ -32,7 +32,11 @@ MATCH_EPS = 1e-6
 YACHT_IDX = CATS["Yacht"]
 
 POLICY_SPECS = {
-    "focused": {"mode": "focused", "score_mode": "heuristic"},
+    # routes/ai.py _solver_options_for_strategy promotes strategy_mode="focused" to
+    # score_value_mode="value_score_only" (2026-07-09); keep this preset in sync with
+    # that default so `--policies focused` measures what users actually get.
+    "focused": {"mode": "focused", "score_mode": "value_score_only"},
+    "focused_heuristic_score": {"mode": "focused", "score_mode": "heuristic"},
     "cover": {"mode": "cover", "score_mode": "heuristic"},
     "value_score_only": {"mode": "focused", "score_mode": "value_score_only"},
     "optimal": {"mode": "focused", "score_mode": "value_optimal"},
