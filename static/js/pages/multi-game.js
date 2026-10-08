@@ -1468,6 +1468,11 @@ window.addEventListener('beforeunload', (e) => {
             if (reactionSoundEnabled) playReactionSound('nice');
         }
 
+        function toggleReactionDock() {
+            document.getElementById('reaction-dock')?.classList.toggle('expanded');
+        }
+        window.toggleReactionDock = toggleReactionDock;
+
         function playReactionSound(code) {
             if (!reactionSoundEnabled) return;
             try {

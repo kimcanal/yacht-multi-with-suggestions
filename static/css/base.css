@@ -1988,9 +1988,22 @@ button {
 @media (max-width: 768px) {
     .multiplayer-page { padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important; }
     .reaction-dock { right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); width: min(340px, calc(100vw - 20px)); }
-    .reaction-dock-head { padding-block: 5px; }
+    .reaction-dock-head { padding-block: 5px; cursor: pointer; }
     .reaction-buttons { padding: 7px; }
     .reaction-burst-layer { top: 18%; }
+
+    /* A fixed-position dock floats over whatever has scrolled beneath it in the
+       single-column mobile layout (it covered the "집중" AI mode card). Collapse
+       to just the header by default and expand only on tap. */
+    .reaction-dock .reaction-buttons { display: none; }
+    .reaction-dock.expanded .reaction-buttons { display: grid; }
+    .reaction-dock-head strong::after {
+        content: ' · 펼치기';
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--text-muted-mid);
+    }
+    .reaction-dock.expanded .reaction-dock-head strong::after { content: ' · 접기'; }
 }
 @media (prefers-reduced-motion: reduce) {
     .reaction-burst { animation: reactionFade 1.8s ease forwards; }

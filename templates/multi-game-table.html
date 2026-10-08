@@ -99,9 +99,9 @@
     <div id="score-toast" class="toast-overlay"></div>
     <div id="reaction-burst-layer" class="reaction-burst-layer" aria-live="polite" aria-atomic="true"></div>
     <div id="reaction-dock" class="reaction-dock" style="display:none;" aria-label="감정표현 보내기">
-        <div class="reaction-dock-head">
+        <div class="reaction-dock-head" onclick="toggleReactionDock()">
             <strong>감정표현</strong>
-            <button type="button" id="reaction-sound-toggle" class="reaction-sound-toggle" onclick="toggleReactionSound()" aria-label="감정표현 소리 끄기" aria-pressed="true">🔊</button>
+            <button type="button" id="reaction-sound-toggle" class="reaction-sound-toggle" onclick="event.stopPropagation(); toggleReactionSound()" aria-label="감정표현 소리 끄기" aria-pressed="true">🔊</button>
         </div>
         <div class="reaction-buttons">
             <button type="button" data-reaction="nice" onclick="sendReaction('nice')" aria-label="나이스" title="나이스"><img src="{{ url_for('static', filename='assets/openmoji/1F44D.svg', v='17.0.0') }}" alt="👍"></button>
