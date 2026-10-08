@@ -908,6 +908,17 @@
             playKeepSound();
         }
 
+        function applyAiKeepTarget(target) {
+            if (isObserver || rollsLeft >= 3 || rollsLeft <= 0 || gameOver || isRolling || !isMyTurn()) return;
+            if (!Array.isArray(target) || target.length !== 5) return;
+            for (let i = 0; i < 5; i++) kept[i] = target[i] ? 1 : 0;
+            GameState.setKept(kept);
+            updateDice();
+            pushState();
+            playKeepSound();
+        }
+        window.applyAiKeepTarget = applyAiKeepTarget;
+
         function refreshInsightPanels() {
             const aiPerspective = isObserver ? `${turnOwner || '플레이어'} 턴 기준` : (isMyTurn() ? '내 턴 기준' : '상대 턴 기준');
             renderAiPanel('ai-breakdown', GameState.getAiRec(), { perspective: aiPerspective });

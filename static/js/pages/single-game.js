@@ -550,6 +550,17 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             playKeepSound();
         }
 
+        function applyAiKeepTarget(target) {
+            if (rollsLeft >= 3 || rollsLeft <= 0 || gameOver || !isMyTurn() || isRolling) return;
+            if (!Array.isArray(target) || target.length !== 5) return;
+            for (let i = 0; i < 5; i++) kept[i] = target[i] ? 1 : 0;
+            commitState();
+            updateDice();
+            pushState();
+            playKeepSound();
+        }
+        window.applyAiKeepTarget = applyAiKeepTarget;
+
         async function requestRecommendation(scorecard, currentDice, currentRollsLeft, strategyMode) {
             const response = await fetch('/api/recommend', {
                 method: 'POST',

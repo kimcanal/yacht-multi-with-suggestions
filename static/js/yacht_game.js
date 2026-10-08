@@ -214,6 +214,8 @@ function clearAiDiceHints() {
         if (containerEl) containerEl.classList.remove('ai-keep-recommended');
         if (keepBtn) keepBtn.classList.remove('ai-keep-recommended');
     }
+    const applyBtn = document.getElementById('ai-apply-keep-btn');
+    if (applyBtn) applyBtn.remove();
 }
 
 function clearAiScoreHints() {
@@ -276,9 +278,17 @@ function applyAiDiceHints(aiRec, options = {}) {
     clearAiDiceHints();
     if (!options.enabled || !aiRec || aiRec.stage === 'score') return;
     const recs = Array.isArray(aiRec.dice_recommendations) ? aiRec.dice_recommendations : [];
+    if (!recs.length) return;
+    const keepTarget = [0, 0, 0, 0, 0];
+    let keepCount = 0;
     recs.forEach((rec, fallbackIndex) => {
+        const index = Number.isInteger(rec?.index) ? rec.index : fallbackIndex;
+        if (index < 0 || index > 4) return;
+        if (rec && rec.action === 'keep') {
+            keepTarget[index] = 1;
+            keepCount += 1;
+        }
         if (!rec || rec.action !== 'keep') return;
-        const index = Number.isInteger(rec.index) ? rec.index : fallbackIndex;
         const itemEl = document.getElementById(`dice-item-${index}`);
         const containerEl = document.getElementById(`die-container-${index}`);
         const keepBtn = document.getElementById(`keep-${index}`);
@@ -293,6 +303,19 @@ function applyAiDiceHints(aiRec, options = {}) {
             itemEl.appendChild(badge);
         }
     });
+
+    if (typeof window.applyAiKeepTarget !== 'function') return;
+    const diceGrid = document.getElementById('dice-grid');
+    if (!diceGrid || !diceGrid.parentNode) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'ai-apply-keep-btn';
+    btn.className = 'ai-apply-keep-btn';
+    btn.textContent = keepCount > 0
+        ? `AI 추천대로 KEEP 적용 (${keepCount}개)`
+        : 'AI 추천대로 전체 다시 굴리기';
+    btn.onclick = () => window.applyAiKeepTarget(keepTarget);
+    diceGrid.insertAdjacentElement('afterend', btn);
 }
 
 function applyAiScoreHints(aiRec, options = {}) {
