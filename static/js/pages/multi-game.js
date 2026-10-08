@@ -469,7 +469,15 @@
                 try {
                     const notice = JSON.parse(event.data || '{}');
                     const remoteVersion = Number(notice.version || 0);
-                    if (remoteVersion !== roomVersion || notice.room_phase !== roomPhase) {
+                    const remoteRematchPending = Array.isArray(notice.rematch_pending_players)
+                        ? [...notice.rematch_pending_players].sort().join(',')
+                        : '';
+                    const localRematchPending = [...rematchPendingPlayers].sort().join(',');
+                    if (
+                        remoteVersion !== roomVersion
+                        || notice.room_phase !== roomPhase
+                        || remoteRematchPending !== localRematchPending
+                    ) {
                         fetchRoomState();
                     }
                 } catch (error) {

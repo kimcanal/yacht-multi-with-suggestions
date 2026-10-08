@@ -338,6 +338,7 @@ def room_events(code):
     @stream_with_context
     def generate():
         nonlocal last_version, last_reaction_id, reaction_cursor_initialized
+        last_rematch_signature = None
         try:
             deadline = time.time() + 25
             last_heartbeat = 0
@@ -354,6 +355,10 @@ def room_events(code):
                         room_notice = None
                         reactions = []
 
+                current_rematch_signature = (
+                    tuple(sorted(room_notice.get("rematch_pending_players", []))) if room_notice else ()
+                )
+
                 if room_notice is None:
                     yield sse_event("room_closed", {"code": code})
                     return
@@ -368,8 +373,9 @@ def room_events(code):
                     if new_reactions:
                         last_reaction_id = new_reactions[-1].get("id")
 
-                if once or current_version != last_version:
+                if once or current_version != last_version or current_rematch_signature != last_rematch_signature:
                     last_version = current_version
+                    last_rematch_signature = current_rematch_signature
                     yield sse_event(
                         "room_state",
                         room_notice,

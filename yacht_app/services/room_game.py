@@ -23,7 +23,7 @@ def _rematch_payload(room):
 
 def _room_event_payload(code, room):
     state = room.get("state", default_room_state())
-    return {
+    payload = {
         "code": code,
         "room_phase": room_phase(room),
         "players": room.get("players", []),
@@ -32,6 +32,8 @@ def _room_event_payload(code, room):
         "turn": state.get("turn"),
         "game_over": state.get("game_over", False),
     }
+    payload.update(_rematch_payload(room))
+    return payload
 
 
 def _sse_event(event_name, payload, event_id=None):
