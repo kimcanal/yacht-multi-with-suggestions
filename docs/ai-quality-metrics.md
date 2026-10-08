@@ -122,3 +122,62 @@ Yacht 50 / Large Straight 30 같은 확정 고득점 족보가 상단 보너스 
 - roll-stage `keep_indices`는 값 변화 없음을 회귀 테스트로 확인(`tests/integration/test_routes.py`의 `[0, 1, 2, 3]` 기대값 유지).
 
 프론트의 AI 모드 설명 카드에 노출하는 평균 점수/최적 대비 손실 수치는 이 문서와 regret 리포트를 기준으로 하며, 새 regret 리포트를 채택할 때 함께 갱신한다.
+
+## Roll-Stage 개선 시도 기록 — 보류 (2026-10-08)
+
+Score 단계가 exact로 대체된 이후, `focused`의 남은 regret은 전부 roll 단계에서 나온다
+(`scripts/eval_decision_regret.py --games 100 --policies focused`: regret/게임 10.39,
+roll match 70.11%, score match 100%). roll 단계는 여전히 heuristic 유틸리티
+(`score_stage_category_advice`) 기반 DP(`_solve_best_move_cached`의
+`keep_ev_map`/`exact_turn_value`)로 keep을 고르므로, DP 탐색 자체는 제대로 동작해도
+leaf 평가 함수가 부정확하면 체계적으로 틀린 keep을 고를 수 있다.
+
+### 실제로 재현·확인한 버그 2건
+
+1. **상단 보너스 추격 가드의 오판** — `current_upper >= 42`일 때 발동하는
+   upper-focus override(`yacht_ai/solvers/exact.py`의 `_solve_best_move_cached`)가,
+   이미 51.8% 확률로 완성 가능한 4 of a Kind(트리플 보유)를 버리고 단 1개 짜리 상단
+   숫자(Sixes 등)를 쫓도록 유도하는 사례를 확인했다. 예: `dice=[4,1,6,1,1]`,
+   scorecard `[None,None,12,12,20,None,21,None,None,15,None,50]` →
+   AI 선택 `[6] Keep` (평가 33.9) vs 진짜 최적 `[1,1,1] Keep` (평가 22.6, 그러나
+   exact Q-value는 116.6 > 108.99로 역전). 즉 heuristic의 자체 EV 추정치가 진짜
+   가치 순위를 뒤집고 있었다 (regret 7.64).
+2. **"이미 확정된 족보" tie-break 버그** — `choose_target_keep`/`_default_keep_rank`가
+   동률(성공 확률 1.0)일 때 가장 긴 kept_tuple을 선호하는데, 이미 4 of a Kind가
+   확정된 상태(예: `dice=[6,6,6,6,2]`)에서는 "주사위 5개 모두 keep"(= 사실상 즉시
+   기록)이 이겨버려 공짜 재굴림(추가 Yacht Bonus 노림)을 포기한다. regret 32.47로
+   가장 큰 단일 사례.
+
+### 시도한 수정과 실패 이유
+
+두 사례 모두 `FOCUSED_STRONG_HAND_PROB_GUARD`라는 새 가드를 도입해 "focus 타겟
+확률이 충분히 높으면(>=0.4) 기존 EV 가드들을 건너뛴다"는 방식으로 고치려 했다.
+개별 사례는 둘 다 정확히 고쳐졌지만(`[1,1,1] Keep`, `[6,6,6,6] Keep`으로 각각
+정상화), **100게임 전체 재측정에서는 매번 악화**됐다:
+
+- 1차 시도: regret/게임 10.39 → 23.41, roll match 70.11% → 63.91%
+- tie-break 케이스까지 고려해 `len(focus_keep_tuple) < 5` 조건을 추가한 2차 시도:
+  17.56 / 65.34% — 여전히 베이스라인보다 나쁨
+
+원인은 내가 건드린 EV 가드(`focus_ev_gap > FOCUSED_EV_GUARD_POINTS`)가 다른
+수백 개의 무관한 결정에서도 이미 올바르게 작동하고 있었고, "focus 확률이 높으면
+가드를 끈다"는 조건이 그 유익한 작동까지 함께 꺼버렸기 때문으로 보인다. 두 번의
+시도 모두 커밋하지 않고 되돌렸다(작업 트리는 이 문서가 추가되기 직전 커밋 상태로
+복원됨).
+
+### 다음에 시도해볼 방향
+
+- **가드를 억제하지 말고 tie-break 자체를 고친다**: `choose_target_keep`이
+  성공 확률이 이미 1.0(혹은 EPS 이내)인 후보들 사이에서 tie-break할 때는
+  "가장 긴 kept_tuple"이 아니라 "그 족보 성공에 필요한 최소 keep + 나머지는 공짜
+  재굴림"을 선호하도록 바꾸는 편이 더 root-cause에 가깝다. 이 변경은 `_compute_hand_targets`가
+  이미 들고 있는 `max_prob`을 `choose_target_keep`에 같이 넘겨야 한다.
+- 베이스라인(100게임, regret 10.39/roll match 70.11%)에 이미 존재하는 **세 번째
+  패턴도 남아 있다**: Small Straight/직선류를 노리느라 이미 쥔 트리플(예:
+  `dice=[3,5,3,3,4]` → AI는 `[3,4,5]`로 직선을 노리지만 진짜 최적은 `[3,3,3]`)을
+  버리는 경우. `mode_rank`가 순수 완성 확률(prob)만으로 1순위 타겟을 고르다 보니,
+  직선처럼 all-or-nothing인 족보의 "실패 시 0점" 하방 리스크를 트리플의 안정적인
+  바닥값과 비교하지 못한다. 이건 이번 세션에서 손대지 않았다.
+- 어떤 방향이든 **반드시 `scripts/eval_decision_regret.py --games 100 --policies focused`
+  전체 재측정으로 검증**한 뒤에만 채택할 것 — 개별 사례가 고쳐졌다고 해서 전체가
+  나아진다는 보장이 전혀 없다는 걸 이번 세션에서 두 번 확인했다.
