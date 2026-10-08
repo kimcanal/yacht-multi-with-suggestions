@@ -64,6 +64,15 @@ const WinProbabilityPanel = (() => {
         const oppProjected = Number(result?.opp_projected);
         const hasProjection = Number.isFinite(myProjected) && Number.isFinite(oppProjected);
 
+        if (options.gameOver) {
+            root.innerHTML = `
+                <div class="winprob-head">
+                    <div class="winprob-title">판세 분석</div>
+                    <div class="winprob-sub">게임이 종료되었습니다. 새 판을 시작하면 다시 계산합니다.</div>
+                </div>`;
+            return;
+        }
+
         if (!options.readyToCompare) {
             root.innerHTML = `
                 <div class="winprob-head">

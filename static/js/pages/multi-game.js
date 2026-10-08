@@ -940,6 +940,7 @@
             }
             WinProbabilityPanel.request('win-prob-panel', payload, {
                 readyToCompare: roomPlayers.length >= 2,
+                gameOver,
                 leftLabel,
                 rightLabel,
             });
