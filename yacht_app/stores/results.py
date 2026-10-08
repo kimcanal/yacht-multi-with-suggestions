@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from pathlib import Path
 
 import database as legacy
@@ -186,14 +186,15 @@ class SQLiteResultRepository(ResultRepository):
     def __init__(self, path):
         self.path = str(Path(path).expanduser().resolve())
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as connection:
-            connection.execute(
-                "CREATE TABLE IF NOT EXISTS yacht_state (id INTEGER PRIMARY KEY CHECK (id = 1), payload TEXT NOT NULL)"
-            )
-            connection.execute(
-                "INSERT OR IGNORE INTO yacht_state (id, payload) VALUES (1, ?)",
-                (json.dumps(legacy._default_data(), ensure_ascii=False),),
-            )
+        with closing(self._connect()) as connection:
+            with connection:
+                connection.execute(
+                    "CREATE TABLE IF NOT EXISTS yacht_state (id INTEGER PRIMARY KEY CHECK (id = 1), payload TEXT NOT NULL)"
+                )
+                connection.execute(
+                    "INSERT OR IGNORE INTO yacht_state (id, payload) VALUES (1, ?)",
+                    (json.dumps(legacy._default_data(), ensure_ascii=False),),
+                )
 
     def _connect(self):
         connection = sqlite3.connect(self.path, timeout=10)
