@@ -100,7 +100,10 @@ def _get_cached_recommendation(cache_key):
         if cached is None:
             return None
         runtime.recommendation_cache.move_to_end(cache_key)
-        return deepcopy(cached)
+        # Callers only assign top-level keys (stage, strategy_mode,
+        # decision_report, ...); nested rows stay read-only. A shallow copy
+        # is therefore enough and avoids a ~80us deepcopy per warm request.
+        return dict(cached)
 
 
 def _set_cached_recommendation(cache_key, result):
@@ -264,9 +267,12 @@ def recommend():
             result, dice, scorecard, open_categories, solver_strategy_mode, score_value_mode,
         )
 
-        result["decision_report"] = build_decision_report(
-            result, dice, normalized_rolls_left, strategy_mode, scorecard, open_categories
-        )
+        # Every report input (dice, rolls_left, mode, scorecard) is part of
+        # the cache key, so a cache hit already carries the final report.
+        if not request_cache_hit:
+            result["decision_report"] = build_decision_report(
+                result, dice, normalized_rolls_left, strategy_mode, scorecard, open_categories
+            )
 
         if not request_cache_hit:
             _set_cached_recommendation(cache_key, result)
