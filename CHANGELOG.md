@@ -14,6 +14,18 @@
 
 ## 릴리즈 히스토리
 
+### 2026-10-12 — 멀티플레이 polling 경로 최적화, LICENSE 추가, 캐시 안전성 수정
+
+서버 권한 라우트의 쓰기 비용을 줄였다. 플레이어/관전자 하트비트는 방 전체를 매 요청 다시 쓰던 것에서, 구조적 변경(강제퇴장·턴 만료·상태 동기화)은 그대로 즉시 저장하고, 하트비트만 `YACHT_ROOM_PRESENCE_SAVE_INTERVAL`(기본 10초) 주기로 저장하며 그 사이에는 Redis TTL만 갱신한다. in-memory 백엔드는 프로세스 내 상태가 살아있으므로 의미가 같다. 유휴 강제퇴장은 최대 `PLAYER_ROOM_TIMEOUT` + 이 간격 뒤에 발생한다.
+
+Redis room/presence store의 `items()`를 키별 GET(N+1)에서 배치 `mget`으로 바꿨고, `touch()`로 TTL만 갱신하는 경로를 추가했다. JSON 결과 저장소는 정규화된 데이터를 프로세스 내에서 캐시하고(파일 경로+mtime으로 외부 작성 무효화), 저장 시 중복 정규화를 건너뛴다. SSE 슬롯 기본값이 `GUNICORN_THREADS`에서 자동 조정된다(스레드 하나가 스트림 하나를 잡고 있으므로 슬롯은 스레드 예산 아래로 유지된다).
+
+`/api/recommend` 웜 경로도 함께 줄였다. 캐시 히트 시 deepcopy를 얕은 복사로 대체(~80µs)하고, 캐시 키에 이미 포함된 입력으로 만든 `decision_report` 재계산을 건너뛴다(~10µs). `/api/recommend`의 catch-all 핸들러가 내부 예외 메시지(`str(e)`)를 그대로 클라이언트에 노출하던 것도 고쳐서, 이제 서버 로그에만 기록하고 클라이언트에는 `internal_error`만 돌려준다.
+
+이 배치는 코드 리뷰로 한 번 더 검증했고, 그 과정에서 자체 점검 목록에 없던 버그 3개를 찾아 함께 고쳤다: JSON 결과 저장소가 쓰기 실패 시 캐시를 직접 mutate해서, 실패한 쓰기가 다음에 성공하는 무관한 쓰기에 묻어 디스크에 영구 반영될 수 있었던 문제(이제 성공 후에만 캐시를 교체), `RedisPresenceStore.items()`가 같은 diff의 `RedisRoomStore`와 달리 배치 없이 통짜 `mget`을 쓰던 불일치, `GUNICORN_THREADS`에 잘못된 값이 들어오면 SSE 설정을 건드리지 않은 운영자의 앱도 기동 시점에 죽던 문제(방어적 파싱으로 교체).
+
+README에 MIT `LICENSE` 파일을 추가하고 링크했으며, 문서 몇 곳의 오래된 상호참조와 시나리오 불일치도 정리했다.
+
 ### 2026-10-08 — Redis 실환경 검증, 멀티 UI 버그 수정, roll-stage 개선
 
 Redis room/presence/session backend를 실제 Redis 인스턴스와 gunicorn 멀티 worker로 돌려 검증했다. 그 과정에서 `RedisSingleSessionStore`의 global lock 키가 세션 데이터와 같은 prefix를 써서, lock을 쥔 채로 `clear()`를 호출하면 lock 키 자체가 지워지는 버그를 발견해 lock을 별도 `-lock:` 네임스페이스로 분리했다.
