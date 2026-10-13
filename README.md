@@ -174,4 +174,4 @@ node --check static/js/score_utils.js
 
 ## 오픈소스 에셋과 라이선스
 
-감정표현 SVG는 [OpenMoji](https://openmoji.org/) 17.0.0 컬러 에셋이며 [CC BY-SA 4.0](./static/assets/openmoji/LICENSE.txt)으로 제공됩니다. 이 프로젝트의 라이선스는 MIT입니다.
+감정표현 SVG는 [OpenMoji](https://openmoji.org/) 17.0.0 컬러 에셋이며 [CC BY-SA 4.0](./static/assets/openmoji/LICENSE.txt)으로 제공됩니다. 이 프로젝트의 라이선스는 [MIT](./LICENSE)입니다.
