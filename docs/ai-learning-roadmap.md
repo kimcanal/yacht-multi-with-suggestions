@@ -83,7 +83,7 @@ python3 scripts/simulate_value_state_distribution.py \
   --scorecard yacht_bonus_active \
   --trials 128 \
   --seed 20260708 \
-  --markdown-output docs/yacht-bonus-value-distribution.md
+  --markdown-output artifacts/reference/reports/yacht-bonus-value-distribution.md
 
 python3 scripts/generate_value_distribution_data.py \
   --source-jsonl artifacts/reference/data/self-play-value-focused-256.jsonl \
@@ -190,7 +190,9 @@ open12 table은 전체 scorecard 상태를 커버하므로 value 계열 모드�
 
 기존 `scripts/check_ai_golden.py`는 운영 기본값인 휴리스틱 추천을 고정하는 회귀 테스트다. value mode는 score-stage 결정을 의도적으로 바꿀 수 있으므로 별도 full-game A/B로 평가한다.
 
-200게임 paired A/B (`scripts/simulate_score_value_games.py --games 200 --seed 20260708 --mode focused`) 결과:
+이전 부분 table(open4) 시절의 측정 기록이다. table이 후반 endgame만 커버하던 시절 수치이며, 아래 full open12 결과에 의해 대체되었다. 비교를 위해 원문 그대로 남긴다.
+
+200게임 paired A/B (`scripts/simulate_score_value_games.py --games 200 --seed 20260708 --mode focused`, historical, partial-table) 결과:
 
 - heuristic: 평균 177.635, 표준편차 44.5676, Upper Bonus 34.5%, Yacht bonus 평균 0.030
 - value mode: 평균 178.440, 표준편차 47.9419, Upper Bonus 40.5%, Yacht bonus 평균 0.035

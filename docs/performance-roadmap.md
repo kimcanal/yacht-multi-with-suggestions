@@ -12,7 +12,7 @@
 
 구분해서 측정해야 할 항목은 `focused` / `cover`, `rolls_left = 1` / `2`, 빈 점수판 / 후반 점수판이다. 기록할 값은 평균 응답 시간, p95, 가장 느린 케이스의 주사위 패턴.
 
-현재 로컬 기준 대표 값은 `python3 scripts/benchmark_ai.py --repeats 2` 실행 시 대략 이렇다.
+현재 로컬 기준 대표 값은 `python3 scripts/benchmark_ai.py --repeats 2` 실행 시 대략 이렇다. 이것은 반복 2회의 단일 패스 cold DP 수치로, 시나리오 세트가 다르다. 현재 표준 기준선은 `docs/ai-quality-metrics.md`와 아래 런타임 벤치마크 artifact(`ai-runtime-*`)의 시나리오 세트(heuristic cold 37.8~193.6ms, value-optimal cold 58.5~140.3ms)를 따른다.
 
 - `straight_upgrade_focused`: 평균 16.22ms
 - `full_house_focus`: 평균 910.96ms

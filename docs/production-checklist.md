@@ -22,8 +22,15 @@ Keep Redis private to the application network and back up the SQLite volume.
 
 ## Capacity controls
 
-- `YACHT_SSE_MAX_CONNECTIONS` caps blocking SSE streams. Clients over the cap
-  automatically use the existing polling fallback.
+- `YACHT_SSE_MAX_CONNECTIONS` caps blocking SSE streams. Each stream
+  holds one Gunicorn thread, so the default stays below
+  `GUNICORN_THREADS - 2` (raise the thread count first if you need
+  more concurrent streams). Clients over the cap automatically use
+  the existing polling fallback.
+- `YACHT_ROOM_PRESENCE_SAVE_INTERVAL` (default 10s) throttles how
+  often player/observer heartbeats rewrite room state. Between saves
+  the room TTL is refreshed only, so idle-forfeit triggers at most
+  `PLAYER_ROOM_TIMEOUT` plus this interval after the last sighting.
 - `YACHT_WIN_PROBABILITY_MAX_PENDING` bounds background Monte Carlo work.
 - `YACHT_AI_RECOMMEND_RATE_LIMIT` and `YACHT_AI_WIN_PROBABILITY_RATE_LIMIT`
   set per-process, per-IP limits over `YACHT_AI_RATE_LIMIT_WINDOW_SECONDS`.

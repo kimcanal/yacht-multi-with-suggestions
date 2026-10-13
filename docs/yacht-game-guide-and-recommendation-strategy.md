@@ -273,8 +273,6 @@ P(4 of a Kind 또는 Full House 또는 Small Straight 또는 Large Straight 또�
 
 ## 10. 점수 기록 단계: 왜 현재 최고점만 고르지 않는가
 
-## 10. 점수 기록 단계: 왜 현재 최고점만 고르지 않는가
-
 재굴림이 끝나면 AI는 열린 점수칸 하나하나에 대해 다음을 비교한다.
 
 ```text

@@ -57,7 +57,7 @@ full-game exact value table(open12)이 있으므로, 모든 지표는 이론 최
 | Roll 결정 최적 일치율 | 70.11% | 60.0% | 100% | 상동 |
 | Score 결정 최적 일치율 | **100%** | 71.0% | 100% | 상동 |
 | Score 실수 시 평균 손실 | **0.00점** | 5.23점 | - | 상동 |
-| 평균 점수 (200게임, indexed) | **184.56** | - | 198.6 | score-value-score-only-open12 / full-table-optimal |
+| 평균 점수 (200게임, stream) | **184.56** | - | 198.6 | score-value-score-only-open12 / full-table-optimal |
 | 응답(cold) | 38~194ms | - | 59~140ms | ai-runtime-* artifacts |
 
 읽는 법: 현재 focused는 score 단계가 exact value라 기록 실수가 0이고, 남은 regret은 설명 가능한 목표 지향 roll 정책에서 발생한다.

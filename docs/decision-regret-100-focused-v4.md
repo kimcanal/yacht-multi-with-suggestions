@@ -1,5 +1,10 @@
 # AI Decision Regret vs Exact Optimal
 
+> 이 문서의 `focused` 블록은 같은 실행(seed `20260709`, random source `indexed`)으로
+> `decision-regret-100-value-score-only.md`의 `focused` 섹션과 동일하다.
+> focused vs value_score_only 비교의 원본은 그쪽 문서를 따른다.
+> 이 문서는 guard v2→v3→v4 개선 사슬의 v4 기록으로 남긴다.
+
 - Games per policy: `100`
 - Seed: `20260709` / random source: `indexed`
 - Value table: `artifacts/runtime/value/endgame-value-table-open12.npz`

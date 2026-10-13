@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Estimate long-run opportunity cost of closing categories early."""
+"""Estimate long-run opportunity cost of closing categories early.
+
+Superseded by ``scripts/report_category_sacrifice_value.py``, which derives the
+same quantity exactly from the open12 value table instead of rollouts. This
+script is kept only to reproduce the earlier rollout-based estimates.
+"""
 
 from __future__ import annotations
 

@@ -108,6 +108,9 @@ export YACHT_REDIS_URL=redis://localhost:6379/0
 
 export YACHT_RESULT_BACKEND=sqlite
 export YACHT_SQLITE_PATH=/var/lib/yacht/game_data.sqlite3
+# 방 하트비트가 방 전체를 다시 쓰는 주기(초). 낮추면 유휴 강제퇴장이
+# 최대 PLAYER_ROOM_TIMEOUT + 이 값 뒤에 발생한다. 기본 10초.
+export YACHT_ROOM_PRESENCE_SAVE_INTERVAL=10
 python3 server.py
 ```
 
