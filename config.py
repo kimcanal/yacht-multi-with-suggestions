@@ -1,12 +1,28 @@
 import os
 import re
 
+
+def _env_int(name, default):
+    """Best-effort int env parse: an unrelated malformed value should
+    never crash config loading for a setting the operator isn't touching."""
+    try:
+        return int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
 # 클라이언트 타임아웃 (초)
 CLIENT_TIMEOUT = 45
 PLAYER_ROOM_TIMEOUT = 35
 OBSERVER_ROOM_TIMEOUT = 90
 TURN_TIME_LIMIT = 30
-SSE_MAX_CONNECTIONS = max(1, int(os.getenv("YACHT_SSE_MAX_CONNECTIONS", "2")))
+# Each SSE stream holds one gunicorn gthread for up to 25s, so the default
+# slot count must stay below the thread budget (threads - 2 reserve for
+# regular requests). Operators running more threads can raise either value.
+SSE_MAX_CONNECTIONS = max(1, _env_int(
+    "YACHT_SSE_MAX_CONNECTIONS",
+    min(6, max(2, _env_int("GUNICORN_THREADS", 4) - 2)),
+))
 
 # 닉네임 유효성 검사
 USERNAME_RE = re.compile(r"^[A-Za-z0-9가-힣_]{2,12}$")
