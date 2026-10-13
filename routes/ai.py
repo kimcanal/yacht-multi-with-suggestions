@@ -319,4 +319,5 @@ def recommend():
         }), 503
     except Exception as e:
         ai_metrics.error_count += 1
-        return jsonify({"error": str(e), "message": "AI 추천 오류"}), 500
+        log_json(logging.ERROR, "ai_recommend_error", error=str(e))
+        return jsonify({"error": "internal_error", "message": "AI 추천 오류"}), 500
