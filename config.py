@@ -31,6 +31,14 @@ WIN_PROBABILITY_CACHE_MAX = max(8, int(os.getenv("YACHT_WIN_PROBABILITY_CACHE_MA
 WIN_PROBABILITY_CACHE_TTL_SECONDS = max(30, int(os.getenv("YACHT_WIN_PROBABILITY_CACHE_TTL", "600")))
 WIN_PROBABILITY_MAX_PENDING = max(1, int(os.getenv("YACHT_WIN_PROBABILITY_MAX_PENDING", "24")))
 
+# Player/observer presence is re-persisted at most once per this interval.
+# Between saves the store only refreshes the room TTL, so frequent polling
+# does not rewrite the whole room on every request. Idle-forfeit timing
+# becomes PLAYER_ROOM_TIMEOUT + this interval at the latest.
+ROOM_PRESENCE_SAVE_INTERVAL = max(
+    1.0, float(os.getenv("YACHT_ROOM_PRESENCE_SAVE_INTERVAL", "10"))
+)
+
 # Public, CPU-intensive endpoints are protected by a small in-process window.
 # Redis-backed room state still works across workers; deployments that need a
 # globally shared quota should enforce the same limit at their edge proxy.

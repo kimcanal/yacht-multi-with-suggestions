@@ -49,6 +49,10 @@ class InMemoryRoomStore:
         with self._global_lock:
             self._rooms[code] = room
 
+    def touch(self, code):
+        """Refresh presence TTL. No-op for the in-memory backend."""
+        return True
+
     def save_if_absent(self, code, room):
         with self._global_lock:
             if code in self._rooms:
@@ -142,6 +146,10 @@ class RedisRoomStore:
             json.dumps(room, ensure_ascii=False, separators=(",", ":")),
             ex=self._ttl_seconds,
         )
+
+    def touch(self, code):
+        """Refresh the room TTL without rewriting the whole payload."""
+        return bool(self._client.expire(self._key(code), self._ttl_seconds))
 
     def save_if_absent(self, code, room):
         return bool(self._client.set(

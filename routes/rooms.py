@@ -5,7 +5,7 @@ from contextlib import nullcontext
 from flask import Blueprint, Response, jsonify, request, stream_with_context
 
 from app_state import get_services, rooms
-from config import TURN_TIME_LIMIT
+from config import ROOM_PRESENCE_SAVE_INTERVAL, TURN_TIME_LIMIT
 from utils.validation import (
     is_valid_player,
     issue_player_token,
@@ -90,22 +90,47 @@ def _room_lock(code):
 
 
 def _advance_expired_turn_if_needed(code, room, now):
-    event = advance_expired_turn(room, code, TURN_TIME_LIMIT, now)
-    if event:
-        if room.get("state", {}).get("game_over"):
-            finish_room_if_complete(room, room["state"])
-        _save_room(code, room)
-    return event
+    return advance_expired_turn(room, code, TURN_TIME_LIMIT, now)
 
 
-def _prepare_room(code, room, now):
-    """Prune, advance an expired turn, and persist one locked room mutation."""
-    room = prune_room_activity(room, now)
+def _touch_room(code):
+    touch = getattr(rooms, "touch", None)
+    if touch is not None:
+        touch(code)
+
+
+def _prepare_room(code, room, now, *, presence_touched=False):
+    """Prune, advance an expired turn, and persist one locked room mutation.
+
+    Structural changes (pruning, turn advance, forfeit) always persist.
+    Presence-only touches persist at most once per
+    ``ROOM_PRESENCE_SAVE_INTERVAL``; between saves the store just
+    refreshes the room TTL so polling does not rewrite the whole
+    room on every request.
+    """
+    room, pruned = prune_room_activity(room, now)
     if not room:
         _delete_room(code)
         return None
-    _advance_expired_turn_if_needed(code, room, now)
-    _save_room(code, room)
+
+    event = _advance_expired_turn_if_needed(code, room, now)
+    if event:
+        if room.get("state", {}).get("game_over"):
+            finish_room_if_complete(room, room["state"])
+
+    if pruned or event:
+        _save_room(code, room)
+        return room
+
+    if presence_touched and (
+        now - float(room.get("presence_saved_at", 0.0))
+        >= ROOM_PRESENCE_SAVE_INTERVAL
+    ):
+        room["presence_saved_at"] = now
+        _save_room(code, room)
+        return room
+
+    _touch_room(code)
     return room
 
 
@@ -268,14 +293,17 @@ def get_room(code):
         now = time.time()
         u = normalize_username(request.args.get("u"))
         player_token = request.headers.get("X-Player-Token", "")
+        presence_touched = False
         if u and u in room.get("players", []):
             if not is_valid_player(room, u, player_token):
                 return jsonify({"error": "참가자 인증 실패"}), 403
             touch_player(room, u, now)
+            presence_touched = True
         elif u and u in room.get("observers", []):
             touch_observer(room, u, now)
+            presence_touched = True
 
-        room = _prepare_room(code, room, now)
+        room = _prepare_room(code, room, now, presence_touched=presence_touched)
         if not room:
             return jsonify({"error": "방 없음"}), 404
 
@@ -425,7 +453,7 @@ def heartbeat_room(code):
         else:
             return jsonify({"error": "참가자 없음"}), 404
 
-        room = _prepare_room(code, room, now)
+        room = _prepare_room(code, room, now, presence_touched=True)
         if not room:
             return jsonify({"error": "방 없음"}), 404
 

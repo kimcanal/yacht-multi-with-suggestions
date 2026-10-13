@@ -141,7 +141,14 @@ def start_room_rematch(room, updated_by="system_rematch", now=None):
 
 
 def prune_room_activity(room, now=None):
+    """Drop stale participants and return ``(room, structurally_changed)``.
+
+    ``structurally_changed`` is True when a player or observer was
+    removed (or a forfeit happened), so callers can persist only real
+    mutations and skip a redundant save for presence-only requests.
+    """
     now = now or time.time()
+    changed = False
 
     player_last_seen = room.setdefault("player_last_seen", {})
     current_players = list(room.get("players", []))
@@ -152,6 +159,7 @@ def prune_room_activity(room, now=None):
     surviving_players = [p for p in current_players if p not in stale_players]
     for player in stale_players:
         remove_player(room, player, now)
+        changed = True
 
     if len(current_players) >= 2 and len(stale_players) == 1 and len(surviving_players) == 1:
         finalize_room_forfeit(
@@ -161,6 +169,7 @@ def prune_room_activity(room, now=None):
             updated_by="system_timeout",
             now=now,
         )
+        changed = True
 
     observer_last_seen = room.setdefault("observer_last_seen", {})
     stale_observers = [
@@ -169,16 +178,17 @@ def prune_room_activity(room, now=None):
     ]
     for observer in stale_observers:
         remove_observer(room, observer, now)
+        changed = True
 
     state = room.get("state")
     if isinstance(state, dict):
         state["players"] = room.get("players", [])
 
     if not room.get("players"):
-        return None
+        return None, changed
 
     room["last_update"] = now
-    return room
+    return room, changed
 
 
 def generate_room_code(length=6):
