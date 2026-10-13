@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import sqlite3
@@ -169,15 +170,56 @@ class ResultRepository:
 
 
 class JsonResultRepository(ResultRepository):
+    """Single-process JSON backend with a normalized-data cache.
+
+    The app factory refuses multi-worker startup with this backend,
+    so one instance per process is the only expected writer. The
+    cache is keyed on ``DATA_FILE`` and its mtime, so tests (or
+    operators) that rewrite the file through the legacy module API
+    still get a fresh read instead of stale cached rows.
+    """
+
     backend_name = "json"
+
+    def __init__(self):
+        self._cache_path = None
+        self._cache_mtime = None
+        self._cache_data = None
+
+    def _current_mtime(self, path):
+        try:
+            return os.path.getmtime(path)
+        except OSError:
+            return None
 
     @contextmanager
     def _data(self, *, write=False):
         with legacy.DATA_LOCK:
-            data = legacy._load_data_unlocked()
-            yield data
+            current_path = legacy.DATA_FILE
+            current_mtime = self._current_mtime(current_path)
+            if (
+                self._cache_data is None
+                or self._cache_path != current_path
+                or self._cache_mtime != current_mtime
+            ):
+                self._cache_data = legacy._load_data_unlocked()
+                self._cache_path = current_path
+                self._cache_mtime = self._current_mtime(current_path)
+            # Read callers only copy rows out of the payload, so they get
+            # the live cache object directly. Write callers mutate in
+            # place, so they get a deep copy and the cache is only
+            # replaced after a successful save — if the caller's mutation
+            # or the save itself raises, self._cache_data is never
+            # touched, instead of silently caching a write that never
+            # reached disk.
             if write:
-                legacy._save_data_unlocked(data)
+                data = copy.deepcopy(self._cache_data)
+                yield data
+                legacy._save_data_unlocked(data, normalize=False)
+                self._cache_data = data
+                self._cache_mtime = self._current_mtime(current_path)
+            else:
+                yield self._cache_data
 
 
 class SQLiteResultRepository(ResultRepository):

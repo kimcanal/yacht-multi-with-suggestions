@@ -129,13 +129,16 @@ def _load_data_unlocked():
     return _normalize_data(data)
 
 
-def _save_data_unlocked(data):
+def _save_data_unlocked(data, normalize=True):
     directory = os.path.dirname(os.path.abspath(DATA_FILE)) or '.'
     os.makedirs(directory, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(prefix='.game_data.', suffix='.tmp', dir=directory)
     try:
         with os.fdopen(fd, 'w', encoding='utf-8') as f:
-            json.dump(_normalize_data(data), f, ensure_ascii=False, indent=2)
+            # Callers that already hold normalized data (the result
+            # repository cache) can skip the second full pass.
+            payload = _normalize_data(data) if normalize else data
+            json.dump(payload, f, ensure_ascii=False, indent=2)
             f.write('\n')
             f.flush()
             os.fsync(f.fileno())
