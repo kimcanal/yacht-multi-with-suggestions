@@ -126,10 +126,13 @@ class RedisRoomStore:
         return json.loads(raw)
 
     def items(self):
-        for key in self._client.scan_iter(match=f"{self._prefix}*"):
-            raw = self._client.get(key)
-            if raw is not None:
-                yield self._code_from_key(key), json.loads(raw)
+        # Batched mget instead of a per-key GET (N+1 round trips).
+        for keys in self._batched_keys(
+            self._client.scan_iter(match=f"{self._prefix}*")
+        ):
+            for key, raw in zip(keys, self._client.mget(keys)):
+                if raw is not None:
+                    yield self._code_from_key(key), json.loads(raw)
 
     def keys(self):
         for key in self._client.scan_iter(match=f"{self._prefix}*"):
@@ -150,6 +153,17 @@ class RedisRoomStore:
     def touch(self, code):
         """Refresh the room TTL without rewriting the whole payload."""
         return bool(self._client.expire(self._key(code), self._ttl_seconds))
+
+    @staticmethod
+    def _batched_keys(scan_iter, batch_size=500):
+        keys = []
+        for key in scan_iter:
+            keys.append(key)
+            if len(keys) >= batch_size:
+                yield keys
+                keys = []
+        if keys:
+            yield keys
 
     def save_if_absent(self, code, room):
         return bool(self._client.set(

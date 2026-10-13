@@ -79,10 +79,25 @@ class RedisPresenceStore:
             self._client.delete(*keys)
 
     def items(self):
-        for key in self._client.scan_iter(match=f"{self._prefix}*"):
-            raw = self._client.get(key)
-            if raw is not None:
-                yield self._client_id_from_key(key), json.loads(raw)
+        # Batched mget instead of a per-key GET (N+1 round trips), capped
+        # so a large presence set can't produce one unbounded MGET.
+        for keys in self._batched_keys(
+            self._client.scan_iter(match=f"{self._prefix}*")
+        ):
+            for key, raw in zip(keys, self._client.mget(keys)):
+                if raw is not None:
+                    yield self._client_id_from_key(key), json.loads(raw)
+
+    @staticmethod
+    def _batched_keys(scan_iter, batch_size=500):
+        keys = []
+        for key in scan_iter:
+            keys.append(key)
+            if len(keys) >= batch_size:
+                yield keys
+                keys = []
+        if keys:
+            yield keys
 
     def pop(self, client_id, default=None):
         key = self._key(client_id)
