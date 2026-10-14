@@ -395,13 +395,7 @@
             }
         }
 
-        function clearTurnTimer() {
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-            }
-            document.getElementById('timer-bar').style.display = 'none';
-        }
+        // clearTurnTimer is defined in shared_turn_ui.js
 
         function showStatusToast(title, detail = '', timeoutMs = 1800) {
             const toast = document.getElementById('score-toast');
@@ -844,59 +838,13 @@
             }
         }
 
+        function commitKeptChange() {
+            GameState.setKept(kept);
+        }
+
         function updateDice() {
-            for (let i = 0; i < 5; i++) {
-                const d = document.getElementById(`die-${i}`);
-                const c = document.getElementById(`die-container-${i}`);
-                if (!d) continue;
+            renderDiceFaces();
 
-                c.classList.toggle('dice-unrolled', rollsLeft === 3 && !isRolling && !gameOver);
-                if (isRolling && !kept[i]) {
-                    d.classList.add('rolling');
-                } else {
-                    d.classList.remove('rolling');
-                }
-
-                if (GameState.getKept()[i]) {
-                    c.classList.add('locked');
-                    d.querySelectorAll('.die-face').forEach(f => f.style.borderColor = '#00ffcc');
-                } else {
-                    c.classList.remove('locked');
-                    d.querySelectorAll('.die-face').forEach(f => f.style.borderColor = 'rgba(200,200,200,0.5)');
-                }
-
-                const val = GameState.getDice()[i] || 1;
-                d.dataset.value = String(val);
-
-                const keepBtn = document.getElementById(`keep-${i}`);
-                const keepText = document.getElementById(`keep-text-${i}`);
-                if (keepBtn && keepText) {
-                    keepBtn.className = 'keep-btn';
-
-                    if (rollsLeft >= 3 || rollsLeft === 0 || gameOver || isRolling || !isMyTurn()) {
-                        keepBtn.disabled = true;
-                        keepBtn.style.opacity = '0.5';
-                        keepBtn.style.cursor = 'not-allowed';
-                    } else {
-                        keepBtn.disabled = false;
-                        keepBtn.style.opacity = '1';
-                        keepBtn.style.cursor = 'pointer';
-                    }
-
-                    if (kept[i]) {
-                        keepBtn.classList.add('active-keep');
-                        keepBtn.style.borderColor = '#00ff00';
-                    } else {
-                        keepBtn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                    }
-
-                    keepBtn.style.boxShadow = 'none';
-
-                    keepText.innerHTML = kept[i] ? '✓ KEEP' : 'KEEP';
-                }
-                const lbl = document.getElementById(`lock-${i}`);
-                if (lbl) lbl.innerText = '';
-            }
             const boardAiRec = GameState.getAiRec ? GameState.getAiRec() : aiRec;
             applyAiDiceHints(boardAiRec, { enabled: !isObserver && isMyTurn() && !gameOver });
             document.getElementById('rolls-left').innerText = GameState.getRollsLeft();
@@ -907,25 +855,7 @@
             });
         }
 
-        function toggleLock(i) {
-            if (isObserver || rollsLeft >= 3 || rollsLeft <= 0 || gameOver || isRolling || !isMyTurn()) return;
-            kept[i] = kept[i] ? 0 : 1;
-            GameState.setKept(kept);
-            updateDice();
-            pushState();
-            playKeepSound();
-        }
-
-        function applyAiKeepTarget(target) {
-            if (isObserver || rollsLeft >= 3 || rollsLeft <= 0 || gameOver || isRolling || !isMyTurn()) return;
-            if (!Array.isArray(target) || target.length !== 5) return;
-            for (let i = 0; i < 5; i++) kept[i] = target[i] ? 1 : 0;
-            GameState.setKept(kept);
-            updateDice();
-            pushState();
-            playKeepSound();
-        }
-        window.applyAiKeepTarget = applyAiKeepTarget;
+        // toggleLock / applyAiKeepTarget are defined in shared_turn_ui.js
 
         function refreshInsightPanels() {
             const aiPerspective = isObserver ? `${turnOwner || '플레이어'} 턴 기준` : (isMyTurn() ? '내 턴 기준' : '상대 턴 기준');
@@ -1319,13 +1249,7 @@ window.addEventListener('beforeunload', (e) => {
     e.returnValue = '';
 });
 
-        function showToast(category, score) {
-            const toast = document.getElementById('score-toast');
-            toast.innerHTML = `<div class="toast-cat">${category}</div><div class="toast-score">+${score}</div>`;
-            toast.classList.add('show');
-            playScoreSelectSound();
-            setTimeout(() => toast.classList.remove('show'), 1500);
-        }
+        // showToast is defined in shared_turn_ui.js
 
         function chooseBestOpenCategory(card, currentDice) {
             let bestIdx = null;

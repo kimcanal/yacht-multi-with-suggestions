@@ -13,14 +13,17 @@ class FrontendContractTests(unittest.TestCase):
         cls.single_table_template = (ROOT / "templates/single-game-table.html").read_text(encoding="utf-8")
         cls.multi_template = (ROOT / "templates/multi-game.html").read_text(encoding="utf-8")
         cls.multi_table_template = (ROOT / "templates/multi-game-table.html").read_text(encoding="utf-8")
+        cls.shared_turn_ui = (ROOT / "static/js/shared_turn_ui.js").read_text(encoding="utf-8")
         cls.single = "\n".join((
             cls.single_template,
             (ROOT / "static/css/pages/single-game.css").read_text(encoding="utf-8"),
+            cls.shared_turn_ui,
             (ROOT / "static/js/pages/single-game.js").read_text(encoding="utf-8"),
         ))
         cls.multi = "\n".join((
             cls.multi_template,
             (ROOT / "static/css/pages/multi-game.css").read_text(encoding="utf-8"),
+            cls.shared_turn_ui,
             (ROOT / "static/js/pages/multi-game.js").read_text(encoding="utf-8"),
         ))
         cls.score_utils = (ROOT / "static/js/score_utils.js").read_text(encoding="utf-8")
@@ -132,7 +135,7 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_multiplayer_timeout_refreshes_server_authoritative_state(self):
         self.assertIn("Timeout advancement is server-authoritative", self.multi)
-        timer_block = self.multi[self.multi.index("function startTurnTimer()"):self.multi.index("function clearTurnTimer()")]
+        timer_block = self.multi[self.multi.index("function startTurnTimer()"):self.multi.index("function showStatusToast(")]
         self.assertIn("timeOut();", timer_block)
         self.assertIn("fetchRoomState();", timer_block)
         self.assertNotIn("rollDice();", timer_block)

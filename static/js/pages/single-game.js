@@ -219,16 +219,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             return '🤝 VS AI 무승부';
         }
 
-        function showToast(category, score, note = '') {
-            const toast = document.getElementById('score-toast');
-            const noteLine = note
-                ? `<div class="toast-cat" style="margin-top:8px; color:#ffd36b;">${escapeHtml(note)}</div>`
-                : '';
-            toast.innerHTML = `<div class="toast-cat">${escapeHtml(category)}</div><div class="toast-score">+${score}</div>${noteLine}`;
-            toast.classList.add('show');
-            playScoreSelectSound();
-            setTimeout(() => toast.classList.remove('show'), 1500);
-        }
+        // showToast is defined in shared_turn_ui.js
 
         function showGameOverToast(myTotal, oppTotal) {
             if (gameOverToastShown) return;
@@ -331,13 +322,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             // 계약 테스트를 위해 호출 구문 텍스트 유지: restoreTimerCountdown();
         }
 
-        function clearTurnTimer() {
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-            }
-            document.getElementById('timer-bar').style.display = 'none';
-        }
+        // clearTurnTimer is defined in shared_turn_ui.js
 
         function restoreTimerCountdown() {
             const timerBar = document.getElementById('timer-bar');
@@ -476,56 +461,12 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             updateDice();
         }
 
+        function commitKeptChange() {
+            commitState();
+        }
+
         function updateDice() {
-            for (let i = 0; i < 5; i++) {
-                const dieEl = document.getElementById(`die-${i}`);
-                const containerEl = document.getElementById(`die-container-${i}`);
-                if (!dieEl || !containerEl) continue;
-
-                containerEl.classList.toggle('dice-unrolled', rollsLeft === 3 && !isRolling && !gameOver);
-                if (isRolling && !kept[i]) {
-                    dieEl.classList.add('rolling');
-                } else {
-                    dieEl.classList.remove('rolling');
-                }
-
-                if (kept[i]) {
-                    containerEl.classList.add('locked');
-                    dieEl.querySelectorAll('.die-face').forEach((face) => {
-                        face.style.borderColor = '#00ffcc';
-                    });
-                } else {
-                    containerEl.classList.remove('locked');
-                    dieEl.querySelectorAll('.die-face').forEach((face) => {
-                        face.style.borderColor = 'rgba(200,200,200,0.5)';
-                    });
-                }
-
-                dieEl.dataset.value = String(dice[i] || 1);
-
-                const keepBtn = document.getElementById(`keep-${i}`);
-                const keepText = document.getElementById(`keep-text-${i}`);
-                if (keepBtn && keepText) {
-                    keepBtn.className = 'keep-btn';
-                    const disabled = rollsLeft === 3 || rollsLeft === 0 || gameOver || isRolling || !isMyTurn();
-                    keepBtn.disabled = disabled;
-                    keepBtn.style.opacity = disabled ? '0.5' : '1';
-                    keepBtn.style.cursor = disabled ? 'not-allowed' : 'pointer';
-                    keepBtn.style.boxShadow = 'none';
-
-                    if (kept[i]) {
-                        keepBtn.classList.add('active-keep');
-                        keepBtn.style.borderColor = '#00ff00';
-                    } else {
-                        keepBtn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                    }
-
-                    keepText.innerHTML = kept[i] ? '✓ KEEP' : 'KEEP';
-                }
-
-                const label = document.getElementById(`lock-${i}`);
-                if (label) label.innerText = '';
-            }
+            renderDiceFaces();
 
             applyAiDiceHints(aiRec, { enabled: coachEnabled && !gameOver });
 
@@ -541,25 +482,7 @@ const SINGLE_MODE_KEY = 'yacht_single_mode';
             }
         }
 
-        function toggleLock(i) {
-            if (rollsLeft >= 3 || rollsLeft <= 0 || gameOver || !isMyTurn() || isRolling) return;
-            kept[i] = kept[i] ? 0 : 1;
-            commitState();
-            updateDice();
-            pushState();
-            playKeepSound();
-        }
-
-        function applyAiKeepTarget(target) {
-            if (rollsLeft >= 3 || rollsLeft <= 0 || gameOver || !isMyTurn() || isRolling) return;
-            if (!Array.isArray(target) || target.length !== 5) return;
-            for (let i = 0; i < 5; i++) kept[i] = target[i] ? 1 : 0;
-            commitState();
-            updateDice();
-            pushState();
-            playKeepSound();
-        }
-        window.applyAiKeepTarget = applyAiKeepTarget;
+        // toggleLock / applyAiKeepTarget are defined in shared_turn_ui.js
 
         async function requestRecommendation(scorecard, currentDice, currentRollsLeft, strategyMode) {
             const response = await fetch('/api/recommend', {
